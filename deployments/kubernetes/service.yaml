@@ -5,6 +5,11 @@ metadata:
 spec:
   selector:
     app: gotobeta
+  # WebSocket 为长连接，单机 Hub 在进程内（阶段 A），用 ClientIP 会话亲和让同一客户端命中同一 Pod。
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
   ports:
     - port: 80
       targetPort: 8080

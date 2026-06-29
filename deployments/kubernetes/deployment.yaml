@@ -90,6 +90,13 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 3
             failureThreshold: 3
+          lifecycle:
+            preStop:
+              # 收到终止信号后先 sleep，等待 endpoints 摘除与 in-flight 请求/WS 优雅关闭，避免连接被硬断。
+              exec:
+                command: ["/bin/sleep", "10"]
+      # 给 preStop + 优雅关闭（含 WS 排空）留足时间，需大于 preStop sleep + server shutdown 超时。
+      terminationGracePeriodSeconds: 40
       volumes:
         - name: logs
           emptyDir: {}

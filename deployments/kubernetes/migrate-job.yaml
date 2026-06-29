@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gotobeta-migrate
+  # 在部署前执行（如 helm hook / argo PreSync），完成数据库迁移后再滚动更新 server。
+spec:
+  backoffLimit: 3
+  # 迁移本身带 MySQL 命名锁，多副本并发也安全；这里限制单 Pod 即可。
+  template:
+    metadata:
+      labels:
+        app: gotobeta
+        component: migrate
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          # 与 server 同镜像，运行 /app/migrate 二进制。
+          image: example.com/codego/gotobeta:REPLACE_WITH_RELEASE_TAG
+          imagePullPolicy: IfNotPresent
+          command: ["/app/migrate"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: APP_ENV
+              value: "prod"
+            - name: APP_CONFIG_DIR
+              value: "/app/configs"
+            - name: APP_DATABASE_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: gotobeta-runtime
+                  key: database-dsn
+            - name: APP_AUTH_JWT_HMAC_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gotobeta-runtime
+                  key: auth-jwt-hmac-secret
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+      volumes:
+        - name: logs
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
