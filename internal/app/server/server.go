@@ -208,5 +208,5 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 
 // RunMigrate 执行数据库迁移。
 func RunMigrate(ctx context.Context, rt *bootstrap.Runtime) error {
-	return runMigrate(ctx, rt.Cfg)
+	return runMigrate(ctx, rt.Cfg, rt.AppLogger)
 }
