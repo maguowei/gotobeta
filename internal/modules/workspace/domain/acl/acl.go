@@ -83,9 +83,18 @@ func UnmarshalEntry(id, workspaceID int64, subjectType int8, subjectID int64, re
 	}
 }
 
-func (e *Entry) ID() int64          { return e.id }
-func (e *Entry) Effect() Effect     { return e.effect }
-func (e *Entry) ActionCode() string { return e.actionCode }
+func (e *Entry) ID() int64             { return e.id }
+func (e *Entry) WorkspaceID() int64    { return e.workspaceID }
+func (e *Entry) SubjectType() int8     { return e.subjectType }
+func (e *Entry) SubjectID() int64      { return e.subjectID }
+func (e *Entry) ResourceType() string  { return e.resourceType }
+func (e *Entry) ResourceID() string    { return e.resourceID }
+func (e *Entry) ActionCode() string    { return e.actionCode }
+func (e *Entry) Effect() Effect        { return e.effect }
+func (e *Entry) Reason() string        { return e.reason }
+func (e *Entry) SourceType() int8      { return e.sourceType }
+func (e *Entry) ExpiresAt() *time.Time { return e.expiresAt }
+func (e *Entry) CreatedBy() int64      { return e.createdBy }
 
 // IsActive 返回该条目在给定时刻是否有效（未过期）。
 func (e *Entry) IsActive(now time.Time) bool {
