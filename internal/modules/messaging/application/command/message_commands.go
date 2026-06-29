@@ -18,3 +18,11 @@ type RecallMessageCommand struct {
 	OperatorUserID int64
 	MessageID      int64
 }
+
+// ReportReadCommand 已读水位上报入参。
+type ReportReadCommand struct {
+	WorkspaceID    int64
+	ConversationID int64
+	UserID         int64
+	ReadSeq        int64
+}

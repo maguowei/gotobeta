@@ -38,3 +38,18 @@ func (d *Dispatcher) OnMessageCreated(ctx context.Context, e event.Event) error 
 	d.hub.Broadcast(userIDs, ws.SignalFrame(evt.ConversationID, evt.Seq))
 	return nil
 }
+
+// OnReadUpdated 处理已读水位更新事件：向会话成员（含本人其他端）推 read 帧对齐。
+func (d *Dispatcher) OnReadUpdated(ctx context.Context, e event.Event) error {
+	evt, ok := e.(imevent.ReadUpdatedEvent)
+	if !ok {
+		return nil
+	}
+	userIDs, err := d.members.ConversationUserIDs(ctx, evt.ConversationID)
+	if err != nil {
+		loggerx.WithError(ctx, d.logger, "dispatch lookup members failed", err, slog.Int64("conversationId", evt.ConversationID))
+		return err
+	}
+	d.hub.Broadcast(userIDs, ws.ReadFrame(evt.ConversationID, evt.UserID, evt.ReadSeq))
+	return nil
+}

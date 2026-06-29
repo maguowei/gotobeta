@@ -20,6 +20,7 @@ type MessageUseCase interface {
 	SendMessage(ctx context.Context, cmd messagingcmd.SendMessageCommand) (*messagingresult.MessageResult, error)
 	PullMessages(ctx context.Context, q messagingquery.PullMessagesQuery) ([]*messagingresult.MessageResult, error)
 	RecallMessage(ctx context.Context, cmd messagingcmd.RecallMessageCommand) error
+	ReportRead(ctx context.Context, cmd messagingcmd.ReportReadCommand) error
 }
 
 // MessageHandler 处理消息 HTTP 请求。
@@ -104,6 +105,28 @@ func (h *MessageHandler) RecallMessage(c *gin.Context) {
 	if err := h.usecase.RecallMessage(c.Request.Context(), messagingcmd.RecallMessageCommand{
 		WorkspaceID: wsID, ConversationID: cid, OperatorUserID: claims.UserID, MessageID: mid,
 	}); err != nil {
+		httpresponse.Error(c, err)
+		return
+	}
+	httpresponse.Success(c, nil)
+}
+
+// ReportRead 上报已读水位。
+func (h *MessageHandler) ReportRead(c *gin.Context) {
+	claims, ok := httpmiddleware.RequireClaims(c)
+	if !ok {
+		return
+	}
+	wsID, cid, ok := parseWsConv(c)
+	if !ok {
+		return
+	}
+	var req messagingreq.ReportReadRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "请求参数格式错误")
+		return
+	}
+	if err := h.usecase.ReportRead(c.Request.Context(), req.ToCommand(wsID, cid, claims.UserID)); err != nil {
 		httpresponse.Error(c, err)
 		return
 	}

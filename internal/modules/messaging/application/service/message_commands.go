@@ -162,6 +162,26 @@ func (s *MessageService) RecallMessage(ctx context.Context, cmd messagingcmd.Rec
 	return nil
 }
 
+// ReportRead 上报已读水位（单调推进 read_seq），并发布已读更新事件供多端对齐。
+func (s *MessageService) ReportRead(ctx context.Context, cmd messagingcmd.ReportReadCommand) error {
+	mem, err := s.requireActiveMember(ctx, cmd.ConversationID, cmd.UserID)
+	if err != nil {
+		return err
+	}
+	if !mem.MarkRead(cmd.ReadSeq, time.Now()) {
+		// 水位未推进（旧值不回退），幂等返回。
+		return nil
+	}
+	if err := s.conversations.SaveMember(ctx, mem); err != nil {
+		return wrapInfrastructureError("更新已读水位失败", err)
+	}
+	evt := imevent.NewReadUpdatedEvent(cmd.WorkspaceID, cmd.ConversationID, cmd.UserID, mem.ReadSeq(), time.Now())
+	if err := s.publisher.Publish(ctx, evt); err != nil {
+		loggerx.WithError(ctx, s.logger, "publish read updated event failed", err, slog.Int64("conversationId", cmd.ConversationID))
+	}
+	return nil
+}
+
 // publishCreated 在事务提交后尽力发布消息创建事件（跨模块共享契约）。
 func (s *MessageService) publishCreated(ctx context.Context, workspaceID int64, m *message.Message) {
 	evt := imevent.NewMessageCreatedEvent(workspaceID, m.ConversationID(), m.ID(), m.Seq(), int8(m.SenderType()), m.SenderID(), int8(m.ContentType()), m.ServerTime())

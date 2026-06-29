@@ -49,6 +49,7 @@ func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, bus S
 
 	dispatcher := NewDispatcher(connHub, members, logger)
 	bus.Subscribe(imevent.MessageCreated, dispatcher.OnMessageCreated)
+	bus.Subscribe(imevent.ReadUpdated, dispatcher.OnReadUpdated)
 
 	return &Module{
 		ticketHandler: realtimehandler.NewTicketHandler(ticketSvc),

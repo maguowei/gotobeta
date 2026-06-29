@@ -1153,6 +1153,46 @@ paths:
                 data: null
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/workspaces/{ws}/conversations/{cid}/read:
+    post:
+      operationId: reportRead
+      summary: 上报已读水位
+      description: 单调推进已读水位（read_seq 不回退），用于多端对齐与未读计算，需要是该会话成员。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+        - $ref: '#/components/parameters/ConversationID'
+      requestBody:
+        required: true
+        description: 已读上报请求体
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportReadRequest'
+      responses:
+        '200':
+          description: 上报成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+        '403':
+          description: 非会话成员
+          content:
+            application/json:
+              example:
+                code: 40301
+                message: 不是该会话成员
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/workspaces/{ws}/conversations/{cid}/members/{mid}:
     delete:
       operationId: removeConversationMember
@@ -2081,6 +2121,17 @@ components:
             ticket:
               type: string
               example: 8f3a1c2b9d
+    ReportReadRequest:
+      description: 已读上报请求
+      type: object
+      required:
+        - readSeq
+      properties:
+        readSeq:
+          type: integer
+          format: int64
+          description: 已读到的 seq（单调推进）
+          example: 12
     SendMessageRequest:
       description: 发送消息请求
       type: object

@@ -192,6 +192,41 @@ func TestRecallSelfWritesSystemEntry(t *testing.T) {
 	}
 }
 
+func TestReportReadMonotonicAndEvent(t *testing.T) {
+	convRepo := newMemConvRepo()
+	msgRepo := newMemMsgRepo()
+	pub := &capturePublisher{}
+	seedActiveMember(convRepo, 100, 9)
+	svc := newMsgService(convRepo, msgRepo, pub)
+
+	// 推进到 5。
+	if err := svc.ReportRead(context.Background(), messagingcmd.ReportReadCommand{
+		WorkspaceID: 1, ConversationID: 100, UserID: 9, ReadSeq: 5,
+	}); err != nil {
+		t.Fatalf("上报失败: %v", err)
+	}
+	mem, _ := convRepo.FindMember(context.Background(), 100, conversation.MemberUser, 9)
+	if mem.ReadSeq() != 5 {
+		t.Fatalf("read_seq 应为 5, got %d", mem.ReadSeq())
+	}
+	if len(pub.events) != 1 {
+		t.Fatalf("推进应发 1 事件, got %d", len(pub.events))
+	}
+	// 回退到 3 应幂等无变更、不发事件。
+	if err := svc.ReportRead(context.Background(), messagingcmd.ReportReadCommand{
+		WorkspaceID: 1, ConversationID: 100, UserID: 9, ReadSeq: 3,
+	}); err != nil {
+		t.Fatalf("回退上报应幂等: %v", err)
+	}
+	mem, _ = convRepo.FindMember(context.Background(), 100, conversation.MemberUser, 9)
+	if mem.ReadSeq() != 5 {
+		t.Fatalf("read_seq 不应回退, got %d", mem.ReadSeq())
+	}
+	if len(pub.events) != 1 {
+		t.Fatalf("回退不应发事件, got %d", len(pub.events))
+	}
+}
+
 func TestRecallExpiredWindow(t *testing.T) {
 	convRepo := newMemConvRepo()
 	msgRepo := newMemMsgRepo()
