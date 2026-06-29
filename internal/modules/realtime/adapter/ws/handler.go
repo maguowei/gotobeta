@@ -28,23 +28,27 @@ type EphemeralHandler interface {
 type PresenceReporter interface {
 	OnConnect(ctx context.Context, userID int64)
 	OnDisconnect(ctx context.Context, userID int64)
+	// Refresh 在连接存活期间周期续期在线状态 TTL，防误判离线。
+	Refresh(ctx context.Context, userID int64)
 }
 
 // GatewayConfig 是网关装配参数。
 type GatewayConfig struct {
-	AllowedOrigins []string           // WS 跨域来源白名单（为空仅放行同源/无 Origin）
-	OnOverflow     func(userID int64) // 连接写缓冲溢出断连时回调（供指标计数），可为 nil
+	AllowedOrigins          []string           // WS 跨域来源白名单（为空仅放行同源/无 Origin）
+	OnOverflow              func(userID int64) // 连接写缓冲溢出断连时回调（供指标计数），可为 nil
+	PresenceRefreshInterval time.Duration      // 在线状态续期间隔（应小于 presence TTL），<=0 禁用
 }
 
 // Gateway 处理 WS 升级与连接生命周期。
 type Gateway struct {
-	tickets    port.TicketStore
-	hub        imrt.Registry
-	upgrader   websocket.Upgrader
-	ephemeral  EphemeralHandler
-	presence   PresenceReporter
-	logger     *slog.Logger
-	onOverflow func(userID int64)
+	tickets         port.TicketStore
+	hub             imrt.Registry
+	upgrader        websocket.Upgrader
+	ephemeral       EphemeralHandler
+	presence        PresenceReporter
+	logger          *slog.Logger
+	onOverflow      func(userID int64)
+	presenceRefresh time.Duration
 }
 
 // NewGateway 创建网关。ephemeral 与 presence 可为 nil。
@@ -58,10 +62,11 @@ func NewGateway(tickets port.TicketStore, h imrt.Registry, ephemeral EphemeralHa
 			// 跨域校验按白名单 + 同源策略，叠加 ticket 一次性鉴权。
 			CheckOrigin: originChecker(cfg.AllowedOrigins),
 		},
-		ephemeral:  ephemeral,
-		presence:   presence,
-		logger:     logger,
-		onOverflow: cfg.OnOverflow,
+		ephemeral:       ephemeral,
+		presence:        presence,
+		logger:          logger,
+		onOverflow:      cfg.OnOverflow,
+		presenceRefresh: cfg.PresenceRefreshInterval,
 	}
 }
 
@@ -125,6 +130,9 @@ func (g *Gateway) Handle(c *gin.Context) {
 	conn.Send(mustEncode(Frame{T: TypeAuthOK, UID: userID}))
 	if g.presence != nil {
 		g.presence.OnConnect(c.Request.Context(), userID)
+		if g.presenceRefresh > 0 {
+			go g.refreshPresence(c.Request.Context(), conn, userID)
+		}
 	}
 
 	go conn.writePump()
@@ -134,6 +142,23 @@ func (g *Gateway) Handle(c *gin.Context) {
 	conn.close()
 	if g.presence != nil {
 		g.presence.OnDisconnect(c.Request.Context(), userID)
+	}
+}
+
+// refreshPresence 在连接存活期间周期续期在线状态 TTL，连接关闭或 ctx 取消时退出。
+// 续期间隔小于 presence TTL，避免心跳间隔（pingPeriod）大于 TTL 时被误判离线。
+func (g *Gateway) refreshPresence(ctx context.Context, conn *Conn, userID int64) {
+	ticker := time.NewTicker(g.presenceRefresh)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-conn.closed:
+			return
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			g.presence.Refresh(ctx, userID)
+		}
 	}
 }
 

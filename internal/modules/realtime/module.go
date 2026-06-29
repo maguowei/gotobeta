@@ -60,7 +60,8 @@ func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, reade
 	ephemeral := NewEphemeral(connHub, members, reader, logger)
 	presenceReporter := NewPresence(connHub, presenceStore, members, logger)
 	gateway := ws.NewGateway(ticketStore, connHub, ephemeral, presenceReporter, logger, ws.GatewayConfig{
-		AllowedOrigins: cfg.IM.WSAllowedOrigins,
+		AllowedOrigins:          cfg.IM.WSAllowedOrigins,
+		PresenceRefreshInterval: presenceRefreshInterval(presenceTTL(cfg)),
 	})
 
 	dispatcher := NewDispatcher(connHub, members, logger)
@@ -91,6 +92,15 @@ func ticketTTL(cfg *config.Config) time.Duration {
 
 func presenceTTL(cfg *config.Config) time.Duration {
 	return parseDuration(cfg.IM.PresenceTTL, defaultPresenceTTL)
+}
+
+// presenceRefreshInterval 取 TTL 的一半作为续期间隔（保证小于 TTL，避免误判离线），不低于 5s。
+func presenceRefreshInterval(ttl time.Duration) time.Duration {
+	interval := ttl / 2
+	if interval < 5*time.Second {
+		interval = 5 * time.Second
+	}
+	return interval
 }
 
 func parseDuration(raw string, fallback time.Duration) time.Duration {

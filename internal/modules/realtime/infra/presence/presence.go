@@ -44,6 +44,15 @@ func (s *Store) MarkOnline(ctx context.Context, userID int64) error {
 	return nil
 }
 
+// Refresh 续期在线状态 TTL，防止心跳期间 key 过期被误判离线。
+// Redis 模式重写带 TTL 的 key；内存模式无 TTL，no-op。
+func (s *Store) Refresh(ctx context.Context, userID int64) error {
+	if s.kv != nil {
+		return s.kv.Set(ctx, key(userID), "1", s.ttl)
+	}
+	return nil
+}
+
 // MarkOffline 标记用户离线。
 func (s *Store) MarkOffline(ctx context.Context, userID int64) error {
 	if s.kv != nil {

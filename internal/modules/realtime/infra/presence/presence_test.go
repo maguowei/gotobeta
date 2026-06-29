@@ -74,6 +74,27 @@ func TestMarkOnlineUsesKV(t *testing.T) {
 	}
 }
 
+func TestRefreshReSetsTTL(t *testing.T) {
+	t.Parallel()
+	kv := &fakeKV{}
+	s := NewStore(kv, time.Minute)
+
+	if err := s.Refresh(context.Background(), 42); err != nil {
+		t.Fatalf("续期失败: %v", err)
+	}
+	if kv.setKey != "presence:42" || kv.setVal != "1" || kv.setTTL != time.Minute {
+		t.Fatalf("Refresh 应重写 key 续期 TTL: key=%q val=%q ttl=%v", kv.setKey, kv.setVal, kv.setTTL)
+	}
+}
+
+func TestRefreshInProcNoop(t *testing.T) {
+	t.Parallel()
+	s := NewStore(nil, time.Minute)
+	if err := s.Refresh(context.Background(), 1); err != nil {
+		t.Fatalf("内存模式续期应 no-op，得 %v", err)
+	}
+}
+
 func TestMarkOfflineUsesKV(t *testing.T) {
 	t.Parallel()
 	kv := &fakeKV{}

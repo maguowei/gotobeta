@@ -44,6 +44,13 @@ func (p *Presence) OnDisconnect(ctx context.Context, userID int64) {
 	p.broadcast(ctx, userID, false)
 }
 
+// Refresh 续期在线状态 TTL（不重复广播 presence 帧）。
+func (p *Presence) Refresh(ctx context.Context, userID int64) {
+	if err := p.store.Refresh(ctx, userID); err != nil {
+		loggerx.WithError(ctx, p.logger, "refresh presence failed", err, slog.Int64("userId", userID))
+	}
+}
+
 func (p *Presence) broadcast(ctx context.Context, userID int64, online bool) {
 	peers, err := p.members.UserConversationPeers(ctx, userID)
 	if err != nil {
