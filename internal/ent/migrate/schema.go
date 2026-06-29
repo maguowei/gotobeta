@@ -84,6 +84,80 @@ var (
 			},
 		},
 	}
+	// ConversationsColumns holds the columns for the "conversations" table.
+	ConversationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "biz_id", Type: field.TypeInt64, Unique: true},
+		{Name: "workspace_id", Type: field.TypeInt64},
+		{Name: "type", Type: field.TypeInt8},
+		{Name: "visibility", Type: field.TypeInt8, Default: 2},
+		{Name: "name", Type: field.TypeString, Nullable: true, Size: 100, Default: ""},
+		{Name: "topic", Type: field.TypeString, Nullable: true, Size: 255, Default: ""},
+		{Name: "creator_id", Type: field.TypeInt64},
+		{Name: "dm_key", Type: field.TypeString, Unique: true, Nullable: true, Size: 64},
+		{Name: "last_seq", Type: field.TypeInt64, Default: 0},
+		{Name: "last_msg_id", Type: field.TypeInt64, Default: 0},
+		{Name: "last_msg_digest", Type: field.TypeString, Nullable: true, Size: 255, Default: ""},
+		{Name: "last_msg_at", Type: field.TypeTime, Nullable: true},
+		{Name: "member_count", Type: field.TypeInt, Default: 0},
+		{Name: "status", Type: field.TypeInt8, Default: 1},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
+	}
+	// ConversationsTable holds the schema information for the "conversations" table.
+	ConversationsTable = &schema.Table{
+		Name:       "conversations",
+		Columns:    ConversationsColumns,
+		PrimaryKey: []*schema.Column{ConversationsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "conversation_workspace_id_type",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationsColumns[4], ConversationsColumns[5]},
+			},
+			{
+				Name:    "conversation_last_msg_at",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationsColumns[14]},
+			},
+		},
+	}
+	// ConversationMembersColumns holds the columns for the "conversation_members" table.
+	ConversationMembersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "biz_id", Type: field.TypeInt64, Unique: true},
+		{Name: "conversation_id", Type: field.TypeInt64},
+		{Name: "member_type", Type: field.TypeInt8, Default: 1},
+		{Name: "member_id", Type: field.TypeInt64},
+		{Name: "role", Type: field.TypeInt8, Default: 3},
+		{Name: "read_seq", Type: field.TypeInt64, Default: 0},
+		{Name: "last_read_at", Type: field.TypeTime, Nullable: true},
+		{Name: "is_muted", Type: field.TypeBool, Default: false},
+		{Name: "is_pinned", Type: field.TypeBool, Default: false},
+		{Name: "status", Type: field.TypeInt8, Default: 1},
+		{Name: "joined_at", Type: field.TypeTime},
+	}
+	// ConversationMembersTable holds the schema information for the "conversation_members" table.
+	ConversationMembersTable = &schema.Table{
+		Name:       "conversation_members",
+		Columns:    ConversationMembersColumns,
+		PrimaryKey: []*schema.Column{ConversationMembersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "conversationmember_conversation_id_member_type_member_id",
+				Unique:  true,
+				Columns: []*schema.Column{ConversationMembersColumns[4], ConversationMembersColumns[5], ConversationMembersColumns[6]},
+			},
+			{
+				Name:    "conversationmember_member_type_member_id",
+				Unique:  false,
+				Columns: []*schema.Column{ConversationMembersColumns[5], ConversationMembersColumns[6]},
+			},
+		},
+	}
 	// OauthLoginStatesColumns holds the columns for the "oauth_login_states" table.
 	OauthLoginStatesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -489,6 +563,8 @@ var (
 		AppSettingsTable,
 		AuthActionTokensTable,
 		AuthRefreshTokensTable,
+		ConversationsTable,
+		ConversationMembersTable,
 		OauthLoginStatesTable,
 		RbacACLEntriesTable,
 		RbacPermissionsTable,

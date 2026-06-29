@@ -17,6 +17,8 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/appsetting"
 	"github.com/maguowei/gotobeta/internal/ent/authactiontoken"
 	"github.com/maguowei/gotobeta/internal/ent/authrefreshtoken"
+	"github.com/maguowei/gotobeta/internal/ent/conversation"
+	"github.com/maguowei/gotobeta/internal/ent/conversationmember"
 	"github.com/maguowei/gotobeta/internal/ent/oauthloginstate"
 	"github.com/maguowei/gotobeta/internal/ent/rbacaclentry"
 	"github.com/maguowei/gotobeta/internal/ent/rbacpermission"
@@ -43,6 +45,10 @@ type Client struct {
 	AuthActionToken *AuthActionTokenClient
 	// AuthRefreshToken is the client for interacting with the AuthRefreshToken builders.
 	AuthRefreshToken *AuthRefreshTokenClient
+	// Conversation is the client for interacting with the Conversation builders.
+	Conversation *ConversationClient
+	// ConversationMember is the client for interacting with the ConversationMember builders.
+	ConversationMember *ConversationMemberClient
 	// OAuthLoginState is the client for interacting with the OAuthLoginState builders.
 	OAuthLoginState *OAuthLoginStateClient
 	// RbacAclEntry is the client for interacting with the RbacAclEntry builders.
@@ -83,6 +89,8 @@ func (c *Client) init() {
 	c.AppSetting = NewAppSettingClient(c.config)
 	c.AuthActionToken = NewAuthActionTokenClient(c.config)
 	c.AuthRefreshToken = NewAuthRefreshTokenClient(c.config)
+	c.Conversation = NewConversationClient(c.config)
+	c.ConversationMember = NewConversationMemberClient(c.config)
 	c.OAuthLoginState = NewOAuthLoginStateClient(c.config)
 	c.RbacAclEntry = NewRbacAclEntryClient(c.config)
 	c.RbacPermission = NewRbacPermissionClient(c.config)
@@ -191,6 +199,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		AppSetting:              NewAppSettingClient(cfg),
 		AuthActionToken:         NewAuthActionTokenClient(cfg),
 		AuthRefreshToken:        NewAuthRefreshTokenClient(cfg),
+		Conversation:            NewConversationClient(cfg),
+		ConversationMember:      NewConversationMemberClient(cfg),
 		OAuthLoginState:         NewOAuthLoginStateClient(cfg),
 		RbacAclEntry:            NewRbacAclEntryClient(cfg),
 		RbacPermission:          NewRbacPermissionClient(cfg),
@@ -226,6 +236,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		AppSetting:              NewAppSettingClient(cfg),
 		AuthActionToken:         NewAuthActionTokenClient(cfg),
 		AuthRefreshToken:        NewAuthRefreshTokenClient(cfg),
+		Conversation:            NewConversationClient(cfg),
+		ConversationMember:      NewConversationMemberClient(cfg),
 		OAuthLoginState:         NewOAuthLoginStateClient(cfg),
 		RbacAclEntry:            NewRbacAclEntryClient(cfg),
 		RbacPermission:          NewRbacPermissionClient(cfg),
@@ -268,10 +280,11 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AppSetting, c.AuthActionToken, c.AuthRefreshToken, c.OAuthLoginState,
-		c.RbacAclEntry, c.RbacPermission, c.RbacPermissionChangeLog,
-		c.RbacPermissionVersion, c.RbacRole, c.RbacRolePermission, c.RbacUserRole,
-		c.Todo, c.User, c.UserIdentity, c.Workspace, c.WorkspaceMember,
+		c.AppSetting, c.AuthActionToken, c.AuthRefreshToken, c.Conversation,
+		c.ConversationMember, c.OAuthLoginState, c.RbacAclEntry, c.RbacPermission,
+		c.RbacPermissionChangeLog, c.RbacPermissionVersion, c.RbacRole,
+		c.RbacRolePermission, c.RbacUserRole, c.Todo, c.User, c.UserIdentity,
+		c.Workspace, c.WorkspaceMember,
 	} {
 		n.Use(hooks...)
 	}
@@ -281,10 +294,11 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AppSetting, c.AuthActionToken, c.AuthRefreshToken, c.OAuthLoginState,
-		c.RbacAclEntry, c.RbacPermission, c.RbacPermissionChangeLog,
-		c.RbacPermissionVersion, c.RbacRole, c.RbacRolePermission, c.RbacUserRole,
-		c.Todo, c.User, c.UserIdentity, c.Workspace, c.WorkspaceMember,
+		c.AppSetting, c.AuthActionToken, c.AuthRefreshToken, c.Conversation,
+		c.ConversationMember, c.OAuthLoginState, c.RbacAclEntry, c.RbacPermission,
+		c.RbacPermissionChangeLog, c.RbacPermissionVersion, c.RbacRole,
+		c.RbacRolePermission, c.RbacUserRole, c.Todo, c.User, c.UserIdentity,
+		c.Workspace, c.WorkspaceMember,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -299,6 +313,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AuthActionToken.mutate(ctx, m)
 	case *AuthRefreshTokenMutation:
 		return c.AuthRefreshToken.mutate(ctx, m)
+	case *ConversationMutation:
+		return c.Conversation.mutate(ctx, m)
+	case *ConversationMemberMutation:
+		return c.ConversationMember.mutate(ctx, m)
 	case *OAuthLoginStateMutation:
 		return c.OAuthLoginState.mutate(ctx, m)
 	case *RbacAclEntryMutation:
@@ -726,6 +744,272 @@ func (c *AuthRefreshTokenClient) mutate(ctx context.Context, m *AuthRefreshToken
 		return (&AuthRefreshTokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown AuthRefreshToken mutation op: %q", m.Op())
+	}
+}
+
+// ConversationClient is a client for the Conversation schema.
+type ConversationClient struct {
+	config
+}
+
+// NewConversationClient returns a client for the Conversation from the given config.
+func NewConversationClient(c config) *ConversationClient {
+	return &ConversationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `conversation.Hooks(f(g(h())))`.
+func (c *ConversationClient) Use(hooks ...Hook) {
+	c.hooks.Conversation = append(c.hooks.Conversation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `conversation.Intercept(f(g(h())))`.
+func (c *ConversationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Conversation = append(c.inters.Conversation, interceptors...)
+}
+
+// Create returns a builder for creating a Conversation entity.
+func (c *ConversationClient) Create() *ConversationCreate {
+	mutation := newConversationMutation(c.config, OpCreate)
+	return &ConversationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Conversation entities.
+func (c *ConversationClient) CreateBulk(builders ...*ConversationCreate) *ConversationCreateBulk {
+	return &ConversationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ConversationClient) MapCreateBulk(slice any, setFunc func(*ConversationCreate, int)) *ConversationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ConversationCreateBulk{err: fmt.Errorf("calling to ConversationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ConversationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ConversationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Conversation.
+func (c *ConversationClient) Update() *ConversationUpdate {
+	mutation := newConversationMutation(c.config, OpUpdate)
+	return &ConversationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ConversationClient) UpdateOne(_m *Conversation) *ConversationUpdateOne {
+	mutation := newConversationMutation(c.config, OpUpdateOne, withConversation(_m))
+	return &ConversationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ConversationClient) UpdateOneID(id int) *ConversationUpdateOne {
+	mutation := newConversationMutation(c.config, OpUpdateOne, withConversationID(id))
+	return &ConversationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Conversation.
+func (c *ConversationClient) Delete() *ConversationDelete {
+	mutation := newConversationMutation(c.config, OpDelete)
+	return &ConversationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ConversationClient) DeleteOne(_m *Conversation) *ConversationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ConversationClient) DeleteOneID(id int) *ConversationDeleteOne {
+	builder := c.Delete().Where(conversation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ConversationDeleteOne{builder}
+}
+
+// Query returns a query builder for Conversation.
+func (c *ConversationClient) Query() *ConversationQuery {
+	return &ConversationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeConversation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Conversation entity by its id.
+func (c *ConversationClient) Get(ctx context.Context, id int) (*Conversation, error) {
+	return c.Query().Where(conversation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ConversationClient) GetX(ctx context.Context, id int) *Conversation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ConversationClient) Hooks() []Hook {
+	return c.hooks.Conversation
+}
+
+// Interceptors returns the client interceptors.
+func (c *ConversationClient) Interceptors() []Interceptor {
+	return c.inters.Conversation
+}
+
+func (c *ConversationClient) mutate(ctx context.Context, m *ConversationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ConversationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ConversationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ConversationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ConversationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Conversation mutation op: %q", m.Op())
+	}
+}
+
+// ConversationMemberClient is a client for the ConversationMember schema.
+type ConversationMemberClient struct {
+	config
+}
+
+// NewConversationMemberClient returns a client for the ConversationMember from the given config.
+func NewConversationMemberClient(c config) *ConversationMemberClient {
+	return &ConversationMemberClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `conversationmember.Hooks(f(g(h())))`.
+func (c *ConversationMemberClient) Use(hooks ...Hook) {
+	c.hooks.ConversationMember = append(c.hooks.ConversationMember, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `conversationmember.Intercept(f(g(h())))`.
+func (c *ConversationMemberClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ConversationMember = append(c.inters.ConversationMember, interceptors...)
+}
+
+// Create returns a builder for creating a ConversationMember entity.
+func (c *ConversationMemberClient) Create() *ConversationMemberCreate {
+	mutation := newConversationMemberMutation(c.config, OpCreate)
+	return &ConversationMemberCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ConversationMember entities.
+func (c *ConversationMemberClient) CreateBulk(builders ...*ConversationMemberCreate) *ConversationMemberCreateBulk {
+	return &ConversationMemberCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ConversationMemberClient) MapCreateBulk(slice any, setFunc func(*ConversationMemberCreate, int)) *ConversationMemberCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ConversationMemberCreateBulk{err: fmt.Errorf("calling to ConversationMemberClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ConversationMemberCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ConversationMemberCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ConversationMember.
+func (c *ConversationMemberClient) Update() *ConversationMemberUpdate {
+	mutation := newConversationMemberMutation(c.config, OpUpdate)
+	return &ConversationMemberUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ConversationMemberClient) UpdateOne(_m *ConversationMember) *ConversationMemberUpdateOne {
+	mutation := newConversationMemberMutation(c.config, OpUpdateOne, withConversationMember(_m))
+	return &ConversationMemberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ConversationMemberClient) UpdateOneID(id int) *ConversationMemberUpdateOne {
+	mutation := newConversationMemberMutation(c.config, OpUpdateOne, withConversationMemberID(id))
+	return &ConversationMemberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ConversationMember.
+func (c *ConversationMemberClient) Delete() *ConversationMemberDelete {
+	mutation := newConversationMemberMutation(c.config, OpDelete)
+	return &ConversationMemberDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ConversationMemberClient) DeleteOne(_m *ConversationMember) *ConversationMemberDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ConversationMemberClient) DeleteOneID(id int) *ConversationMemberDeleteOne {
+	builder := c.Delete().Where(conversationmember.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ConversationMemberDeleteOne{builder}
+}
+
+// Query returns a query builder for ConversationMember.
+func (c *ConversationMemberClient) Query() *ConversationMemberQuery {
+	return &ConversationMemberQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeConversationMember},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ConversationMember entity by its id.
+func (c *ConversationMemberClient) Get(ctx context.Context, id int) (*ConversationMember, error) {
+	return c.Query().Where(conversationmember.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ConversationMemberClient) GetX(ctx context.Context, id int) *ConversationMember {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ConversationMemberClient) Hooks() []Hook {
+	return c.hooks.ConversationMember
+}
+
+// Interceptors returns the client interceptors.
+func (c *ConversationMemberClient) Interceptors() []Interceptor {
+	return c.inters.ConversationMember
+}
+
+func (c *ConversationMemberClient) mutate(ctx context.Context, m *ConversationMemberMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ConversationMemberCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ConversationMemberUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ConversationMemberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ConversationMemberDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ConversationMember mutation op: %q", m.Op())
 	}
 }
 
@@ -2461,15 +2745,15 @@ func (c *WorkspaceMemberClient) mutate(ctx context.Context, m *WorkspaceMemberMu
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AppSetting, AuthActionToken, AuthRefreshToken, OAuthLoginState, RbacAclEntry,
-		RbacPermission, RbacPermissionChangeLog, RbacPermissionVersion, RbacRole,
-		RbacRolePermission, RbacUserRole, Todo, User, UserIdentity, Workspace,
-		WorkspaceMember []ent.Hook
+		AppSetting, AuthActionToken, AuthRefreshToken, Conversation, ConversationMember,
+		OAuthLoginState, RbacAclEntry, RbacPermission, RbacPermissionChangeLog,
+		RbacPermissionVersion, RbacRole, RbacRolePermission, RbacUserRole, Todo, User,
+		UserIdentity, Workspace, WorkspaceMember []ent.Hook
 	}
 	inters struct {
-		AppSetting, AuthActionToken, AuthRefreshToken, OAuthLoginState, RbacAclEntry,
-		RbacPermission, RbacPermissionChangeLog, RbacPermissionVersion, RbacRole,
-		RbacRolePermission, RbacUserRole, Todo, User, UserIdentity, Workspace,
-		WorkspaceMember []ent.Interceptor
+		AppSetting, AuthActionToken, AuthRefreshToken, Conversation, ConversationMember,
+		OAuthLoginState, RbacAclEntry, RbacPermission, RbacPermissionChangeLog,
+		RbacPermissionVersion, RbacRole, RbacRolePermission, RbacUserRole, Todo, User,
+		UserIdentity, Workspace, WorkspaceMember []ent.Interceptor
 	}
 )

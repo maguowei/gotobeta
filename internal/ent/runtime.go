@@ -8,6 +8,8 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/appsetting"
 	"github.com/maguowei/gotobeta/internal/ent/authactiontoken"
 	"github.com/maguowei/gotobeta/internal/ent/authrefreshtoken"
+	"github.com/maguowei/gotobeta/internal/ent/conversation"
+	"github.com/maguowei/gotobeta/internal/ent/conversationmember"
 	"github.com/maguowei/gotobeta/internal/ent/oauthloginstate"
 	"github.com/maguowei/gotobeta/internal/ent/rbacaclentry"
 	"github.com/maguowei/gotobeta/internal/ent/rbacpermission"
@@ -113,6 +115,106 @@ func init() {
 	authrefreshtoken.DefaultRevokeReason = authrefreshtokenDescRevokeReason.Default.(string)
 	// authrefreshtoken.RevokeReasonValidator is a validator for the "revoke_reason" field. It is called by the builders before save.
 	authrefreshtoken.RevokeReasonValidator = authrefreshtokenDescRevokeReason.Validators[0].(func(string) error)
+	conversationMixin := schema.Conversation{}.Mixin()
+	conversationMixinFields0 := conversationMixin[0].Fields()
+	_ = conversationMixinFields0
+	conversationFields := schema.Conversation{}.Fields()
+	_ = conversationFields
+	// conversationDescCreatedAt is the schema descriptor for created_at field.
+	conversationDescCreatedAt := conversationMixinFields0[0].Descriptor()
+	// conversation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	conversation.DefaultCreatedAt = conversationDescCreatedAt.Default.(func() time.Time)
+	// conversationDescUpdatedAt is the schema descriptor for updated_at field.
+	conversationDescUpdatedAt := conversationMixinFields0[1].Descriptor()
+	// conversation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	conversation.DefaultUpdatedAt = conversationDescUpdatedAt.Default.(func() time.Time)
+	// conversation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	conversation.UpdateDefaultUpdatedAt = conversationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// conversationDescVisibility is the schema descriptor for visibility field.
+	conversationDescVisibility := conversationFields[3].Descriptor()
+	// conversation.DefaultVisibility holds the default value on creation for the visibility field.
+	conversation.DefaultVisibility = conversationDescVisibility.Default.(int8)
+	// conversationDescName is the schema descriptor for name field.
+	conversationDescName := conversationFields[4].Descriptor()
+	// conversation.DefaultName holds the default value on creation for the name field.
+	conversation.DefaultName = conversationDescName.Default.(string)
+	// conversation.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	conversation.NameValidator = conversationDescName.Validators[0].(func(string) error)
+	// conversationDescTopic is the schema descriptor for topic field.
+	conversationDescTopic := conversationFields[5].Descriptor()
+	// conversation.DefaultTopic holds the default value on creation for the topic field.
+	conversation.DefaultTopic = conversationDescTopic.Default.(string)
+	// conversation.TopicValidator is a validator for the "topic" field. It is called by the builders before save.
+	conversation.TopicValidator = conversationDescTopic.Validators[0].(func(string) error)
+	// conversationDescDmKey is the schema descriptor for dm_key field.
+	conversationDescDmKey := conversationFields[7].Descriptor()
+	// conversation.DmKeyValidator is a validator for the "dm_key" field. It is called by the builders before save.
+	conversation.DmKeyValidator = conversationDescDmKey.Validators[0].(func(string) error)
+	// conversationDescLastSeq is the schema descriptor for last_seq field.
+	conversationDescLastSeq := conversationFields[8].Descriptor()
+	// conversation.DefaultLastSeq holds the default value on creation for the last_seq field.
+	conversation.DefaultLastSeq = conversationDescLastSeq.Default.(int64)
+	// conversationDescLastMsgID is the schema descriptor for last_msg_id field.
+	conversationDescLastMsgID := conversationFields[9].Descriptor()
+	// conversation.DefaultLastMsgID holds the default value on creation for the last_msg_id field.
+	conversation.DefaultLastMsgID = conversationDescLastMsgID.Default.(int64)
+	// conversationDescLastMsgDigest is the schema descriptor for last_msg_digest field.
+	conversationDescLastMsgDigest := conversationFields[10].Descriptor()
+	// conversation.DefaultLastMsgDigest holds the default value on creation for the last_msg_digest field.
+	conversation.DefaultLastMsgDigest = conversationDescLastMsgDigest.Default.(string)
+	// conversation.LastMsgDigestValidator is a validator for the "last_msg_digest" field. It is called by the builders before save.
+	conversation.LastMsgDigestValidator = conversationDescLastMsgDigest.Validators[0].(func(string) error)
+	// conversationDescMemberCount is the schema descriptor for member_count field.
+	conversationDescMemberCount := conversationFields[12].Descriptor()
+	// conversation.DefaultMemberCount holds the default value on creation for the member_count field.
+	conversation.DefaultMemberCount = conversationDescMemberCount.Default.(int)
+	// conversationDescStatus is the schema descriptor for status field.
+	conversationDescStatus := conversationFields[13].Descriptor()
+	// conversation.DefaultStatus holds the default value on creation for the status field.
+	conversation.DefaultStatus = conversationDescStatus.Default.(int8)
+	conversationmemberMixin := schema.ConversationMember{}.Mixin()
+	conversationmemberMixinFields0 := conversationmemberMixin[0].Fields()
+	_ = conversationmemberMixinFields0
+	conversationmemberFields := schema.ConversationMember{}.Fields()
+	_ = conversationmemberFields
+	// conversationmemberDescCreatedAt is the schema descriptor for created_at field.
+	conversationmemberDescCreatedAt := conversationmemberMixinFields0[0].Descriptor()
+	// conversationmember.DefaultCreatedAt holds the default value on creation for the created_at field.
+	conversationmember.DefaultCreatedAt = conversationmemberDescCreatedAt.Default.(func() time.Time)
+	// conversationmemberDescUpdatedAt is the schema descriptor for updated_at field.
+	conversationmemberDescUpdatedAt := conversationmemberMixinFields0[1].Descriptor()
+	// conversationmember.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	conversationmember.DefaultUpdatedAt = conversationmemberDescUpdatedAt.Default.(func() time.Time)
+	// conversationmember.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	conversationmember.UpdateDefaultUpdatedAt = conversationmemberDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// conversationmemberDescMemberType is the schema descriptor for member_type field.
+	conversationmemberDescMemberType := conversationmemberFields[2].Descriptor()
+	// conversationmember.DefaultMemberType holds the default value on creation for the member_type field.
+	conversationmember.DefaultMemberType = conversationmemberDescMemberType.Default.(int8)
+	// conversationmemberDescRole is the schema descriptor for role field.
+	conversationmemberDescRole := conversationmemberFields[4].Descriptor()
+	// conversationmember.DefaultRole holds the default value on creation for the role field.
+	conversationmember.DefaultRole = conversationmemberDescRole.Default.(int8)
+	// conversationmemberDescReadSeq is the schema descriptor for read_seq field.
+	conversationmemberDescReadSeq := conversationmemberFields[5].Descriptor()
+	// conversationmember.DefaultReadSeq holds the default value on creation for the read_seq field.
+	conversationmember.DefaultReadSeq = conversationmemberDescReadSeq.Default.(int64)
+	// conversationmemberDescIsMuted is the schema descriptor for is_muted field.
+	conversationmemberDescIsMuted := conversationmemberFields[7].Descriptor()
+	// conversationmember.DefaultIsMuted holds the default value on creation for the is_muted field.
+	conversationmember.DefaultIsMuted = conversationmemberDescIsMuted.Default.(bool)
+	// conversationmemberDescIsPinned is the schema descriptor for is_pinned field.
+	conversationmemberDescIsPinned := conversationmemberFields[8].Descriptor()
+	// conversationmember.DefaultIsPinned holds the default value on creation for the is_pinned field.
+	conversationmember.DefaultIsPinned = conversationmemberDescIsPinned.Default.(bool)
+	// conversationmemberDescStatus is the schema descriptor for status field.
+	conversationmemberDescStatus := conversationmemberFields[9].Descriptor()
+	// conversationmember.DefaultStatus holds the default value on creation for the status field.
+	conversationmember.DefaultStatus = conversationmemberDescStatus.Default.(int8)
+	// conversationmemberDescJoinedAt is the schema descriptor for joined_at field.
+	conversationmemberDescJoinedAt := conversationmemberFields[10].Descriptor()
+	// conversationmember.DefaultJoinedAt holds the default value on creation for the joined_at field.
+	conversationmember.DefaultJoinedAt = conversationmemberDescJoinedAt.Default.(func() time.Time)
 	oauthloginstateMixin := schema.OAuthLoginState{}.Mixin()
 	oauthloginstateMixinFields0 := oauthloginstateMixin[0].Fields()
 	_ = oauthloginstateMixinFields0
