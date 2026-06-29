@@ -16,12 +16,14 @@ import (
 	"github.com/maguowei/gotobeta/internal/pkg/health"
 	httpmiddleware "github.com/maguowei/gotobeta/internal/pkg/httpx/middleware"
 
+	"github.com/maguowei/gotobeta/internal/infra/cache"
 	"github.com/maguowei/gotobeta/internal/infra/entdb"
 	"github.com/maguowei/gotobeta/internal/infra/eventbus"
 
 	"github.com/maguowei/gotobeta/internal/modules/user"
 
 	"github.com/maguowei/gotobeta/internal/modules/messaging"
+	"github.com/maguowei/gotobeta/internal/modules/realtime"
 	"github.com/maguowei/gotobeta/internal/modules/todo"
 	"github.com/maguowei/gotobeta/internal/modules/workspace"
 )
@@ -122,6 +124,23 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 		return err
 	}
 	messagingMod.Mount(apiV1, userMod.AuthMiddleware())
+
+	redisClient, err := cache.NewRedisClient(cfg.Redis)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if redisClient != nil {
+			if closeErr := cache.CloseRedis(redisClient); closeErr != nil {
+				err = errors.Join(err, fmt.Errorf("close redis client: %w", closeErr))
+			}
+		}
+	}()
+	realtimeMod, err := realtime.New(cfg, cache.NewRedisKV(redisClient), messagingMod.MemberLookup(), eventBus, appLogger)
+	if err != nil {
+		return err
+	}
+	realtimeMod.Mount(apiV1, userMod.AuthMiddleware())
 
 	server := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),

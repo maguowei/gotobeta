@@ -26,7 +26,10 @@ require (
 	golang.org/x/oauth2 v0.36.0
 )
 
-require github.com/go-playground/validator/v10 v10.30.1
+require (
+	github.com/go-playground/validator/v10 v10.30.1
+	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
+)
 
 require (
 	4d63.com/gocheckcompilerdirectives v1.3.0 // indirect
@@ -191,7 +194,6 @@ require (
 	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83 // indirect
 	github.com/gordonklaus/ineffassign v0.2.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
-	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/gostaticanalysis/analysisutil v0.7.1 // indirect
 	github.com/gostaticanalysis/comment v1.5.0 // indirect
 	github.com/gostaticanalysis/forcetypeassert v0.2.0 // indirect

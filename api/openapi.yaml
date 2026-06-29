@@ -19,6 +19,8 @@ tags:
     description: 工作区与动态 RBAC 接口
   - name: messaging
     description: 会话、频道与成员接口
+  - name: realtime
+    description: 实时网关（WS ticket 与 WebSocket 升级）
 paths:
   /health:
     get:
@@ -1192,6 +1194,58 @@ paths:
                 data: null
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/ws/ticket:
+    post:
+      operationId: issueWsTicket
+      summary: 换取 WS 鉴权 ticket
+      description: 用登录态换取一次性短期 ticket，用于建立 WebSocket 连接（JWT 不入 URL）。
+      tags:
+        - realtime
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 签发的 ticket
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  ticket: 8f3a1c2b9d...
+              schema:
+                $ref: '#/components/schemas/TicketResponse'
+  /api/v1/ws:
+    get:
+      operationId: connectWebSocket
+      summary: WebSocket 升级
+      description: |
+        用 ticket 建立 WebSocket 长连接（`GET /api/v1/ws?ticket=...`）。
+        升级成功后服务端先下发 `auth_ok` 帧；随后推送 `signal`/`presence`/`typing`/`read` 帧，
+        客户端可上行 `ping`/`typing`/`read` 帧。详见设计文档第 6 节帧协议。
+      tags:
+        - realtime
+      parameters:
+        - name: ticket
+          in: query
+          description: 由 POST /ws/ticket 换取的一次性 ticket
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: |
+            连接建立（实际为 HTTP 101 协议切换为 WebSocket；此处以 200 表达成功语义以适配 REST 文档）。
+        '401':
+          description: ticket 无效或已过期
+          content:
+            application/json:
+              example:
+                code: 40101
+                message: ticket 无效或已过期
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   parameters:
     OAuthProvider:
@@ -2007,6 +2061,26 @@ components:
               role: 1
           items:
             $ref: '#/components/schemas/ConversationMemberItem'
+    TicketResponse:
+      description: WS ticket 响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            ticket:
+              type: string
+              example: 8f3a1c2b9d
     SendMessageRequest:
       description: 发送消息请求
       type: object
