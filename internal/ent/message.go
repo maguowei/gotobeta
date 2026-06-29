@@ -24,13 +24,13 @@ type Message struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// BizID holds the value of the "biz_id" field.
 	BizID int64 `json:"biz_id,omitempty"`
-	// ConversationID holds the value of the "conversation_id" field.
+	// 逻辑外键 → conversations.biz_id
 	ConversationID int64 `json:"conversation_id,omitempty"`
 	// Seq holds the value of the "seq" field.
 	Seq int64 `json:"seq,omitempty"`
 	// SenderType holds the value of the "sender_type" field.
 	SenderType int8 `json:"sender_type,omitempty"`
-	// SenderID holds the value of the "sender_id" field.
+	// 逻辑外键 → users.biz_id（sender_type=1）
 	SenderID int64 `json:"sender_id,omitempty"`
 	// ClientMsgID holds the value of the "client_msg_id" field.
 	ClientMsgID *string `json:"client_msg_id,omitempty"`
@@ -38,7 +38,7 @@ type Message struct {
 	ContentType int8 `json:"content_type,omitempty"`
 	// Content holds the value of the "content" field.
 	Content map[string]interface{} `json:"content,omitempty"`
-	// ReplyToMsgID holds the value of the "reply_to_msg_id" field.
+	// 逻辑外键 → messages.biz_id（同会话，0=无引用）
 	ReplyToMsgID int64 `json:"reply_to_msg_id,omitempty"`
 	// Status holds the value of the "status" field.
 	Status int8 `json:"status,omitempty"`

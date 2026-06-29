@@ -15,14 +15,16 @@ type Conversation struct {
 func (Conversation) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("biz_id").Unique().Immutable(), // = convID
-		field.Int64("workspace_id"),
+		// 逻辑外键 → workspaces.biz_id（不建数据库外键，一致性由应用层 + 唯一索引保证）
+		field.Int64("workspace_id").Comment("逻辑外键 → workspaces.biz_id"),
 		// type: 1-单聊DM 2-群聊 3-频道channel
 		field.Int8("type"),
 		// visibility: 1-public 2-private
 		field.Int8("visibility").Default(2),
 		field.String("name").MaxLen(100).Optional().Default(""),
 		field.String("topic").MaxLen(255).Optional().Default(""),
-		field.Int64("creator_id"),
+		// 逻辑外键 → users.biz_id（会话创建者）
+		field.Int64("creator_id").Comment("逻辑外键 → users.biz_id"),
 		// dm_key: 单聊去重键 workspace:minUID#maxUID，非单聊为 NULL
 		field.String("dm_key").MaxLen(64).Optional().Nillable().Unique(),
 		field.Int64("last_seq").Default(0),

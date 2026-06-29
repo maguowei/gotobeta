@@ -17,18 +17,21 @@ type Message struct {
 func (Message) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("biz_id").Unique().Immutable(), // = msgID
-		field.Int64("conversation_id"),
+		// 逻辑外键 → conversations.biz_id（不建数据库外键，一致性由应用层 + 唯一索引保证）
+		field.Int64("conversation_id").Comment("逻辑外键 → conversations.biz_id"),
 		field.Int64("seq"),
 		// sender_type: 1-user 2-bot 3-system ← AI 缝
 		field.Int8("sender_type").Default(1),
-		field.Int64("sender_id"),
+		// 逻辑外键 → users.biz_id（sender_type=1 时；系统条目为 0）
+		field.Int64("sender_id").Comment("逻辑外键 → users.biz_id（sender_type=1）"),
 		// client_msg_id: 幂等键；系统/撤回条目为 NULL（NULL 不参与唯一约束）
 		field.String("client_msg_id").MaxLen(64).Optional().Nillable(),
 		// content_type: 1-text 2-image 3-file 4-voice 10-recall 11-system 20-card
 		field.Int8("content_type").Default(1),
 		// content: content blocks 结构化消息体 ← AI 缝
 		field.JSON("content", map[string]any{}).Optional(),
-		field.Int64("reply_to_msg_id").Default(0),
+		// 逻辑外键 → messages.biz_id（同会话内被引用消息，0 表示无引用）
+		field.Int64("reply_to_msg_id").Default(0).Comment("逻辑外键 → messages.biz_id（同会话，0=无引用）"),
 		// status: 1-正常 2-已撤回 3-已删除
 		field.Int8("status").Default(1),
 		field.Time("server_time").Default(time.Now),

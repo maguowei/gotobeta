@@ -24,7 +24,7 @@ type Conversation struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// BizID holds the value of the "biz_id" field.
 	BizID int64 `json:"biz_id,omitempty"`
-	// WorkspaceID holds the value of the "workspace_id" field.
+	// 逻辑外键 → workspaces.biz_id
 	WorkspaceID int64 `json:"workspace_id,omitempty"`
 	// Type holds the value of the "type" field.
 	Type int8 `json:"type,omitempty"`
@@ -34,7 +34,7 @@ type Conversation struct {
 	Name string `json:"name,omitempty"`
 	// Topic holds the value of the "topic" field.
 	Topic string `json:"topic,omitempty"`
-	// CreatorID holds the value of the "creator_id" field.
+	// 逻辑外键 → users.biz_id
 	CreatorID int64 `json:"creator_id,omitempty"`
 	// DmKey holds the value of the "dm_key" field.
 	DmKey *string `json:"dm_key,omitempty"`
