@@ -18,6 +18,7 @@ import (
 	httpmiddleware "github.com/maguowei/gotobeta/internal/pkg/httpx/middleware"
 
 	"github.com/maguowei/gotobeta/internal/infra/cache"
+	"github.com/maguowei/gotobeta/internal/infra/config"
 	"github.com/maguowei/gotobeta/internal/infra/entdb"
 	"github.com/maguowei/gotobeta/internal/infra/eventbus"
 	"github.com/maguowei/gotobeta/internal/infra/objstore"
@@ -34,6 +35,9 @@ import (
 var (
 	listenAndServeHTTP = func(server *http.Server) error {
 		return server.ListenAndServe()
+	}
+	listenAndServeTLS = func(server *http.Server, certFile, keyFile string) error {
+		return server.ListenAndServeTLS(certFile, keyFile)
 	}
 	shutdownHTTP = func(server *http.Server, ctx context.Context) error {
 		return server.Shutdown(ctx)
@@ -183,8 +187,9 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		if err := listenAndServeHTTP(server); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			errCh <- err
+		serveErr := serveHTTP(server, cfg.Server.TLS)
+		if serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			errCh <- serveErr
 			return
 		}
 		errCh <- nil
@@ -205,6 +210,15 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 		}
 		return <-errCh
 	}
+}
+
+// serveHTTP 按 TLS 配置选择监听方式：tls.enabled 时进程内终止 TLS（HTTPS），
+// 否则监听明文 HTTP（部署在 TLS 终止代理之后的常见形态）。
+func serveHTTP(server *http.Server, tls config.TLSConfig) error {
+	if tls.Enabled {
+		return listenAndServeTLS(server, tls.CertFile, tls.KeyFile)
+	}
+	return listenAndServeHTTP(server)
 }
 
 // RunMigrate 执行数据库迁移。

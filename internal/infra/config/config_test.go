@@ -203,6 +203,22 @@ func TestValidateRejectsInvalidRuntimeSettings(t *testing.T) {
 			wantErr: "server.mode 必须是 debug、test 或 release",
 		},
 		{
+			name: "tls enabled without cert files",
+			mutate: func(cfg *Config) {
+				cfg.Server.TLS.Enabled = true
+			},
+			wantErr: "server.tls.enabled=true 时必须提供 server.tls.cert_file 与 server.tls.key_file",
+		},
+		{
+			name: "prod without tls or proxy rejected",
+			mutate: func(cfg *Config) {
+				makeProdValid(cfg)
+				cfg.Server.TLS.Enabled = false
+				cfg.Server.BehindTLSProxy = false
+			},
+			wantErr: "prod 环境必须启用 server.tls.enabled 或声明 server.behind_tls_proxy",
+		},
+		{
 			name: "logger level unsupported",
 			mutate: func(cfg *Config) {
 				cfg.Logger.Level = "trace"
@@ -480,6 +496,33 @@ func TestValidateRejectsInvalidRuntimeSettings(t *testing.T) {
 			}
 		})
 	}
+}
+
+// makeProdValid 把基础配置调整为除传输层加密外满足 prod 校验的状态，
+// 便于聚焦 server.tls / behind_tls_proxy 这一条规则。
+func makeProdValid(cfg *Config) {
+	cfg.Logger.AppEnv = "prod"
+	cfg.Auth.JWT.HMACSecret = "prod-test-hmac-secret-at-least-32-bytes"
+	cfg.Auth.Email.Sender = "disabled"
+}
+
+func TestValidateAcceptsProdWithTLSTermination(t *testing.T) {
+	t.Run("behind tls proxy", func(t *testing.T) {
+		cfg := validConfig()
+		makeProdValid(cfg)
+		cfg.Server.BehindTLSProxy = true
+		if err := cfg.Validate(); err != nil {
+			t.Fatalf("prod + behind_tls_proxy 应通过校验: %v", err)
+		}
+	})
+	t.Run("tls enabled with certs", func(t *testing.T) {
+		cfg := validConfig()
+		makeProdValid(cfg)
+		cfg.Server.TLS = TLSConfig{Enabled: true, CertFile: "/etc/tls/tls.crt", KeyFile: "/etc/tls/tls.key"}
+		if err := cfg.Validate(); err != nil {
+			t.Fatalf("prod + tls.enabled 应通过校验: %v", err)
+		}
+	})
 }
 
 func validConfig() *Config {

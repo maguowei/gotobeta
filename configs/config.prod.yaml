@@ -2,6 +2,8 @@ server:
   host: "0.0.0.0"
   port: 8080
   mode: "release"
+  # 生产部署在 ingress/LB 处终止 TLS；如需进程内直接 HTTPS，改为 tls.enabled + 证书路径。
+  behind_tls_proxy: true
 
 logger:
   level: "info"

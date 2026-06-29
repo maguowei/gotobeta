@@ -82,6 +82,16 @@ type ServerConfig struct {
 	MaxHeaderBytes      int   `mapstructure:"max_header_bytes"`       // 请求头大小上限（字节，<=0 用 net/http 默认 1MB）
 
 	CORSAllowedOrigins []string `mapstructure:"cors_allowed_origins"` // CORS 跨域来源白名单（"*" 放行任意，但不带凭证）
+
+	TLS            TLSConfig `mapstructure:"tls"`
+	BehindTLSProxy bool      `mapstructure:"behind_tls_proxy"` // 部署在 TLS 终止代理（如 ingress/LB）之后；prod 下与 tls.enabled 二选一
+}
+
+// TLSConfig 是 HTTP 服务的 TLS/HTTPS 配置。
+type TLSConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	CertFile string `mapstructure:"cert_file"`
+	KeyFile  string `mapstructure:"key_file"`
 }
 
 // LoggerConfig 是日志配置。
@@ -291,6 +301,12 @@ func (c *Config) Validate() error {
 
 	if !oneOf(c.Server.Mode, "debug", "test", "release") {
 		return errors.New("server.mode 必须是 debug、test 或 release")
+	}
+
+	if c.Server.TLS.Enabled {
+		if strings.TrimSpace(c.Server.TLS.CertFile) == "" || strings.TrimSpace(c.Server.TLS.KeyFile) == "" {
+			return errors.New("server.tls.enabled=true 时必须提供 server.tls.cert_file 与 server.tls.key_file")
+		}
 	}
 
 	if !oneOf(c.Logger.Level, "debug", "info", "warn", "error") {
@@ -507,6 +523,11 @@ func (c *Config) Validate() error {
 		return errors.New("database.conn_max_idle_time 必须大于等于 0")
 	}
 
+	// prod 必须保证传输层加密：要么进程直接终止 TLS，要么声明位于 TLS 终止代理之后。
+	if isProductionEnv(c.Logger.AppEnv) && !c.Server.TLS.Enabled && !c.Server.BehindTLSProxy {
+		return errors.New("prod 环境必须启用 server.tls.enabled 或声明 server.behind_tls_proxy")
+	}
+
 	return nil
 }
 
@@ -558,6 +579,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.max_request_body_bytes", 1048576) // 1MB
 	v.SetDefault("server.max_header_bytes", 1048576)       // 1MB
 	v.SetDefault("server.cors_allowed_origins", []string{})
+	v.SetDefault("server.tls.enabled", false)
+	v.SetDefault("server.tls.cert_file", "")
+	v.SetDefault("server.tls.key_file", "")
+	v.SetDefault("server.behind_tls_proxy", false)
 	v.SetDefault("logger.level", "info")
 	v.SetDefault("logger.path", "./logs")
 	v.SetDefault("logger.app_name", "gotobeta")
@@ -660,6 +685,10 @@ func envKeys() []string {
 		"server.max_request_body_bytes",
 		"server.max_header_bytes",
 		"server.cors_allowed_origins",
+		"server.tls.enabled",
+		"server.tls.cert_file",
+		"server.tls.key_file",
+		"server.behind_tls_proxy",
 		"logger.level",
 		"logger.path",
 		"logger.app_name",

@@ -5,6 +5,11 @@ server:
   max_request_body_bytes: 1048576
   max_header_bytes: 1048576
   cors_allowed_origins: []  # CORS 白名单，"*" 放行任意来源（不带凭证），空表示不放行跨域
+  behind_tls_proxy: false   # 部署在 TLS 终止代理（ingress/LB）之后；prod 下与 tls.enabled 二选一
+  tls:
+    enabled: false          # 进程内直接终止 TLS（HTTPS）；启用时必须提供证书
+    cert_file: ""
+    key_file: ""
 
 logger:
   level: "info"
