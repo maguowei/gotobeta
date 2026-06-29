@@ -37,6 +37,9 @@ type GatewayConfig struct {
 	AllowedOrigins          []string           // WS 跨域来源白名单（为空仅放行同源/无 Origin）
 	OnOverflow              func(userID int64) // 连接写缓冲溢出断连时回调（供指标计数），可为 nil
 	PresenceRefreshInterval time.Duration      // 在线状态续期间隔（应小于 presence TTL），<=0 禁用
+	WriteWait               time.Duration      // 单帧写超时，<=0 用默认 10s
+	PongWait                time.Duration      // 读超时（等待 pong），<=0 用默认 60s
+	ReadLimit               int64              // 单帧读上限（字节），<=0 用默认 4096
 }
 
 // Gateway 处理 WS 升级与连接生命周期。
@@ -49,6 +52,7 @@ type Gateway struct {
 	logger          *slog.Logger
 	onOverflow      func(userID int64)
 	presenceRefresh time.Duration
+	timeouts        wsTimeouts
 }
 
 // NewGateway 创建网关。ephemeral 与 presence 可为 nil。
@@ -67,6 +71,11 @@ func NewGateway(tickets port.TicketStore, h imrt.Registry, ephemeral EphemeralHa
 		logger:          logger,
 		onOverflow:      cfg.OnOverflow,
 		presenceRefresh: cfg.PresenceRefreshInterval,
+		timeouts: wsTimeouts{
+			writeWait: cfg.WriteWait,
+			pongWait:  cfg.PongWait,
+			readLimit: cfg.ReadLimit,
+		}.withDefaults(),
 	}
 }
 
@@ -115,13 +124,13 @@ func (g *Gateway) Handle(c *gin.Context) {
 	if g.onOverflow != nil {
 		overflow = func() { g.onOverflow(userID) }
 	}
-	conn := newConn(userID, wsConn, sendBufferSize, overflow)
+	conn := newConn(userID, wsConn, sendBufferSize, overflow, g.timeouts)
 	if !g.hub.Register(userID, conn) {
 		// 达到连接上限：已完成 WS 握手，按协议用 1013(Try Again Later) 关闭而非 HTTP 503。
 		_ = wsConn.WriteControl(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseTryAgainLater, "connection limit reached"),
-			time.Now().Add(writeWait),
+			time.Now().Add(g.timeouts.writeWait),
 		)
 		_ = wsConn.Close()
 		g.logger.WarnContext(c.Request.Context(), "ws 连接达上限，拒绝接入", slog.Int64("user_id", userID))
@@ -164,10 +173,10 @@ func (g *Gateway) refreshPresence(ctx context.Context, conn *Conn, userID int64)
 
 // readPump 阻塞读取上行帧，处理 ping/typing/read，直到连接关闭。
 func (g *Gateway) readPump(ctx context.Context, conn *Conn) {
-	conn.ws.SetReadLimit(4096)
-	_ = conn.ws.SetReadDeadline(time.Now().Add(pongWait))
+	conn.ws.SetReadLimit(conn.to.readLimit)
+	_ = conn.ws.SetReadDeadline(time.Now().Add(conn.to.pongWait))
 	conn.ws.SetPongHandler(func(string) error {
-		return conn.ws.SetReadDeadline(time.Now().Add(pongWait))
+		return conn.ws.SetReadDeadline(time.Now().Add(conn.to.pongWait))
 	})
 	for {
 		_, raw, err := conn.ws.ReadMessage()

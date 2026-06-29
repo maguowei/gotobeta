@@ -54,6 +54,10 @@ type IMConfig struct {
 	WSHandshakeRatePerMinute int `mapstructure:"ws_handshake_rate_per_minute"` // 单 IP WS 握手稳态速率（次/分钟）
 
 	WSAllowedOrigins []string `mapstructure:"ws_allowed_origins"` // WS 跨域来源白名单（为空仅放行同源/无 Origin）
+
+	WSPongWait  string `mapstructure:"ws_pong_wait"`  // WS 读超时（等待 pong），如 60s
+	WSWriteWait string `mapstructure:"ws_write_wait"` // WS 单帧写超时，如 10s
+	WSReadLimit int64  `mapstructure:"ws_read_limit"` // WS 单帧读上限（字节）
 }
 
 // ObjStoreConfig 是 S3 兼容对象存储配置。dev 指向 MinIO，prod 指向任意 S3 兼容存储。
@@ -626,6 +630,9 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("im.max_conn_per_user", 10)
 	v.SetDefault("im.ws_handshake_rate_per_minute", 60)
 	v.SetDefault("im.ws_allowed_origins", []string{})
+	v.SetDefault("im.ws_pong_wait", "60s")
+	v.SetDefault("im.ws_write_wait", "10s")
+	v.SetDefault("im.ws_read_limit", 4096)
 	v.SetDefault("objstore.endpoint", "")
 	v.SetDefault("objstore.region", "")
 	v.SetDefault("objstore.bucket", "")
@@ -725,6 +732,9 @@ func envKeys() []string {
 		"im.max_conn_per_user",
 		"im.ws_handshake_rate_per_minute",
 		"im.ws_allowed_origins",
+		"im.ws_pong_wait",
+		"im.ws_write_wait",
+		"im.ws_read_limit",
 		"objstore.endpoint",
 		"objstore.region",
 		"objstore.bucket",

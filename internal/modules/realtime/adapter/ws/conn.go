@@ -7,11 +7,35 @@ import (
 )
 
 const (
-	writeWait      = 10 * time.Second
-	pongWait       = 60 * time.Second
-	pingPeriod     = (pongWait * 9) / 10
-	sendBufferSize = 64
+	defaultWriteWait = 10 * time.Second
+	defaultPongWait  = 60 * time.Second
+	defaultReadLimit = 4096
+	sendBufferSize   = 64
 )
+
+// wsTimeouts 是 WS 连接的超时与限额参数（由配置注入，零值回退默认）。
+type wsTimeouts struct {
+	writeWait time.Duration
+	pongWait  time.Duration
+	readLimit int64
+}
+
+// pingPeriod 取 pongWait 的 9/10，保证在对端判定超时前发出 ping。
+func (t wsTimeouts) pingPeriod() time.Duration { return (t.pongWait * 9) / 10 }
+
+// withDefaults 对零值字段回退默认值。
+func (t wsTimeouts) withDefaults() wsTimeouts {
+	if t.writeWait <= 0 {
+		t.writeWait = defaultWriteWait
+	}
+	if t.pongWait <= 0 {
+		t.pongWait = defaultPongWait
+	}
+	if t.readLimit <= 0 {
+		t.readLimit = defaultReadLimit
+	}
+	return t
+}
 
 // Conn 是一条 WS 连接，实现 hub.Connection。写操作经缓冲 channel 串行化到单一写泵。
 type Conn struct {
@@ -20,10 +44,11 @@ type Conn struct {
 	send       chan []byte
 	closed     chan struct{}
 	onOverflow func()
+	to         wsTimeouts
 }
 
 // newConn 创建连接。bufSize 为写缓冲容量；onOverflow 在缓冲溢出主动断连时回调（可为 nil，供指标计数）。
-func newConn(userID int64, wsConn *websocket.Conn, bufSize int, onOverflow func()) *Conn {
+func newConn(userID int64, wsConn *websocket.Conn, bufSize int, onOverflow func(), to wsTimeouts) *Conn {
 	if bufSize <= 0 {
 		bufSize = sendBufferSize
 	}
@@ -33,6 +58,7 @@ func newConn(userID int64, wsConn *websocket.Conn, bufSize int, onOverflow func(
 		send:       make(chan []byte, bufSize),
 		closed:     make(chan struct{}),
 		onOverflow: onOverflow,
+		to:         to.withDefaults(),
 	}
 }
 
@@ -55,7 +81,7 @@ func (c *Conn) Send(frame []byte) {
 
 // writePump 串行写帧并定期发送 ping 维持心跳。
 func (c *Conn) writePump() {
-	ticker := time.NewTicker(pingPeriod)
+	ticker := time.NewTicker(c.to.pingPeriod())
 	defer func() {
 		ticker.Stop()
 		_ = c.ws.Close()
@@ -63,7 +89,7 @@ func (c *Conn) writePump() {
 	for {
 		select {
 		case frame, ok := <-c.send:
-			_ = c.ws.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.ws.SetWriteDeadline(time.Now().Add(c.to.writeWait))
 			if !ok {
 				_ = c.ws.WriteMessage(websocket.CloseMessage, []byte{})
 				return
@@ -72,13 +98,13 @@ func (c *Conn) writePump() {
 				return
 			}
 		case <-ticker.C:
-			_ = c.ws.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.ws.SetWriteDeadline(time.Now().Add(c.to.writeWait))
 			if err := c.ws.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
 		case <-c.closed:
 			// 主动关闭（含优雅停机）时给客户端发送规范 close 帧，便于其立即重连补拉。
-			_ = c.ws.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.ws.SetWriteDeadline(time.Now().Add(c.to.writeWait))
 			_ = c.ws.WriteMessage(websocket.CloseMessage,
 				websocket.FormatCloseMessage(websocket.CloseGoingAway, "server shutting down"))
 			return

@@ -105,6 +105,9 @@ im:
   max_conn_per_user: 10
   ws_handshake_rate_per_minute: 60
   ws_allowed_origins: []
+  ws_pong_wait: "60s"
+  ws_write_wait: "10s"
+  ws_read_limit: 4096
 objstore:
   endpoint: ""
   region: ""

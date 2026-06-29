@@ -64,6 +64,9 @@ func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, reade
 	gateway := ws.NewGateway(ticketStore, connHub, ephemeral, presenceReporter, logger, ws.GatewayConfig{
 		AllowedOrigins:          cfg.IM.WSAllowedOrigins,
 		PresenceRefreshInterval: presenceRefreshInterval(presenceTTL(cfg)),
+		WriteWait:               parseDuration(cfg.IM.WSWriteWait, 0),
+		PongWait:                parseDuration(cfg.IM.WSPongWait, 0),
+		ReadLimit:               cfg.IM.WSReadLimit,
 	})
 
 	dispatcher := NewDispatcher(connHub, members, logger)
