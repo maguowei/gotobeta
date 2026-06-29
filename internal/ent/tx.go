@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// AppSetting is the client for interacting with the AppSetting builders.
 	AppSetting *AppSettingClient
+	// Attachment is the client for interacting with the Attachment builders.
+	Attachment *AttachmentClient
 	// AuthActionToken is the client for interacting with the AuthActionToken builders.
 	AuthActionToken *AuthActionTokenClient
 	// AuthRefreshToken is the client for interacting with the AuthRefreshToken builders.
@@ -184,6 +186,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.AppSetting = NewAppSettingClient(tx.config)
+	tx.Attachment = NewAttachmentClient(tx.config)
 	tx.AuthActionToken = NewAuthActionTokenClient(tx.config)
 	tx.AuthRefreshToken = NewAuthRefreshTokenClient(tx.config)
 	tx.Bot = NewBotClient(tx.config)

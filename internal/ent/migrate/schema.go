@@ -22,6 +22,39 @@ var (
 		Columns:    AppSettingsColumns,
 		PrimaryKey: []*schema.Column{AppSettingsColumns[0]},
 	}
+	// AttachmentsColumns holds the columns for the "attachments" table.
+	AttachmentsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "biz_id", Type: field.TypeInt64, Unique: true},
+		{Name: "workspace_id", Type: field.TypeInt64},
+		{Name: "uploader_id", Type: field.TypeInt64},
+		{Name: "object_key", Type: field.TypeString, Unique: true, Size: 255},
+		{Name: "file_name", Type: field.TypeString, Size: 255},
+		{Name: "content_type", Type: field.TypeString, Size: 100},
+		{Name: "size_bytes", Type: field.TypeInt64, Default: 0},
+		{Name: "status", Type: field.TypeInt8, Default: 1},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
+	}
+	// AttachmentsTable holds the schema information for the "attachments" table.
+	AttachmentsTable = &schema.Table{
+		Name:       "attachments",
+		Columns:    AttachmentsColumns,
+		PrimaryKey: []*schema.Column{AttachmentsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "attachment_uploader_id",
+				Unique:  false,
+				Columns: []*schema.Column{AttachmentsColumns[5]},
+			},
+			{
+				Name:    "attachment_workspace_id",
+				Unique:  false,
+				Columns: []*schema.Column{AttachmentsColumns[4]},
+			},
+		},
+	}
 	// AuthActionTokensColumns holds the columns for the "auth_action_tokens" table.
 	AuthActionTokensColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -628,6 +661,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AppSettingsTable,
+		AttachmentsTable,
 		AuthActionTokensTable,
 		AuthRefreshTokensTable,
 		BotsTable,

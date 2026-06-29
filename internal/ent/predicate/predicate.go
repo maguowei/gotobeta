@@ -9,6 +9,9 @@ import (
 // AppSetting is the predicate function for appsetting builders.
 type AppSetting func(*sql.Selector)
 
+// Attachment is the predicate function for attachment builders.
+type Attachment func(*sql.Selector)
+
 // AuthActionToken is the predicate function for authactiontoken builders.
 type AuthActionToken func(*sql.Selector)
 

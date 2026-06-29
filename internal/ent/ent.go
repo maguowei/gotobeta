@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/maguowei/gotobeta/internal/ent/appsetting"
+	"github.com/maguowei/gotobeta/internal/ent/attachment"
 	"github.com/maguowei/gotobeta/internal/ent/authactiontoken"
 	"github.com/maguowei/gotobeta/internal/ent/authrefreshtoken"
 	"github.com/maguowei/gotobeta/internal/ent/bot"
@@ -93,6 +94,7 @@ func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			appsetting.Table:              appsetting.ValidColumn,
+			attachment.Table:              attachment.ValidColumn,
 			authactiontoken.Table:         authactiontoken.ValidColumn,
 			authrefreshtoken.Table:        authrefreshtoken.ValidColumn,
 			bot.Table:                     bot.ValidColumn,

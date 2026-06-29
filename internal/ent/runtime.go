@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/maguowei/gotobeta/internal/ent/appsetting"
+	"github.com/maguowei/gotobeta/internal/ent/attachment"
 	"github.com/maguowei/gotobeta/internal/ent/authactiontoken"
 	"github.com/maguowei/gotobeta/internal/ent/authrefreshtoken"
 	"github.com/maguowei/gotobeta/internal/ent/bot"
@@ -51,6 +52,41 @@ func init() {
 	appsettingDescValue := appsettingFields[1].Descriptor()
 	// appsetting.DefaultValue holds the default value on creation for the value field.
 	appsetting.DefaultValue = appsettingDescValue.Default.(string)
+	attachmentMixin := schema.Attachment{}.Mixin()
+	attachmentMixinFields0 := attachmentMixin[0].Fields()
+	_ = attachmentMixinFields0
+	attachmentFields := schema.Attachment{}.Fields()
+	_ = attachmentFields
+	// attachmentDescCreatedAt is the schema descriptor for created_at field.
+	attachmentDescCreatedAt := attachmentMixinFields0[0].Descriptor()
+	// attachment.DefaultCreatedAt holds the default value on creation for the created_at field.
+	attachment.DefaultCreatedAt = attachmentDescCreatedAt.Default.(func() time.Time)
+	// attachmentDescUpdatedAt is the schema descriptor for updated_at field.
+	attachmentDescUpdatedAt := attachmentMixinFields0[1].Descriptor()
+	// attachment.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	attachment.DefaultUpdatedAt = attachmentDescUpdatedAt.Default.(func() time.Time)
+	// attachment.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	attachment.UpdateDefaultUpdatedAt = attachmentDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// attachmentDescObjectKey is the schema descriptor for object_key field.
+	attachmentDescObjectKey := attachmentFields[3].Descriptor()
+	// attachment.ObjectKeyValidator is a validator for the "object_key" field. It is called by the builders before save.
+	attachment.ObjectKeyValidator = attachmentDescObjectKey.Validators[0].(func(string) error)
+	// attachmentDescFileName is the schema descriptor for file_name field.
+	attachmentDescFileName := attachmentFields[4].Descriptor()
+	// attachment.FileNameValidator is a validator for the "file_name" field. It is called by the builders before save.
+	attachment.FileNameValidator = attachmentDescFileName.Validators[0].(func(string) error)
+	// attachmentDescContentType is the schema descriptor for content_type field.
+	attachmentDescContentType := attachmentFields[5].Descriptor()
+	// attachment.ContentTypeValidator is a validator for the "content_type" field. It is called by the builders before save.
+	attachment.ContentTypeValidator = attachmentDescContentType.Validators[0].(func(string) error)
+	// attachmentDescSizeBytes is the schema descriptor for size_bytes field.
+	attachmentDescSizeBytes := attachmentFields[6].Descriptor()
+	// attachment.DefaultSizeBytes holds the default value on creation for the size_bytes field.
+	attachment.DefaultSizeBytes = attachmentDescSizeBytes.Default.(int64)
+	// attachmentDescStatus is the schema descriptor for status field.
+	attachmentDescStatus := attachmentFields[7].Descriptor()
+	// attachment.DefaultStatus holds the default value on creation for the status field.
+	attachment.DefaultStatus = attachmentDescStatus.Default.(int8)
 	authactiontokenMixin := schema.AuthActionToken{}.Mixin()
 	authactiontokenMixinFields0 := authactiontokenMixin[0].Fields()
 	_ = authactiontokenMixinFields0
