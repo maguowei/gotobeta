@@ -15,8 +15,10 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/appsetting"
 	"github.com/maguowei/gotobeta/internal/ent/authactiontoken"
 	"github.com/maguowei/gotobeta/internal/ent/authrefreshtoken"
+	"github.com/maguowei/gotobeta/internal/ent/bot"
 	"github.com/maguowei/gotobeta/internal/ent/conversation"
 	"github.com/maguowei/gotobeta/internal/ent/conversationmember"
+	"github.com/maguowei/gotobeta/internal/ent/message"
 	"github.com/maguowei/gotobeta/internal/ent/oauthloginstate"
 	"github.com/maguowei/gotobeta/internal/ent/rbacaclentry"
 	"github.com/maguowei/gotobeta/internal/ent/rbacpermission"
@@ -93,8 +95,10 @@ func checkColumn(t, c string) error {
 			appsetting.Table:              appsetting.ValidColumn,
 			authactiontoken.Table:         authactiontoken.ValidColumn,
 			authrefreshtoken.Table:        authrefreshtoken.ValidColumn,
+			bot.Table:                     bot.ValidColumn,
 			conversation.Table:            conversation.ValidColumn,
 			conversationmember.Table:      conversationmember.ValidColumn,
+			message.Table:                 message.ValidColumn,
 			oauthloginstate.Table:         oauthloginstate.ValidColumn,
 			rbacaclentry.Table:            rbacaclentry.ValidColumn,
 			rbacpermission.Table:          rbacpermission.ValidColumn,

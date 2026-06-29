@@ -18,10 +18,14 @@ type Tx struct {
 	AuthActionToken *AuthActionTokenClient
 	// AuthRefreshToken is the client for interacting with the AuthRefreshToken builders.
 	AuthRefreshToken *AuthRefreshTokenClient
+	// Bot is the client for interacting with the Bot builders.
+	Bot *BotClient
 	// Conversation is the client for interacting with the Conversation builders.
 	Conversation *ConversationClient
 	// ConversationMember is the client for interacting with the ConversationMember builders.
 	ConversationMember *ConversationMemberClient
+	// Message is the client for interacting with the Message builders.
+	Message *MessageClient
 	// OAuthLoginState is the client for interacting with the OAuthLoginState builders.
 	OAuthLoginState *OAuthLoginStateClient
 	// RbacAclEntry is the client for interacting with the RbacAclEntry builders.
@@ -182,8 +186,10 @@ func (tx *Tx) init() {
 	tx.AppSetting = NewAppSettingClient(tx.config)
 	tx.AuthActionToken = NewAuthActionTokenClient(tx.config)
 	tx.AuthRefreshToken = NewAuthRefreshTokenClient(tx.config)
+	tx.Bot = NewBotClient(tx.config)
 	tx.Conversation = NewConversationClient(tx.config)
 	tx.ConversationMember = NewConversationMemberClient(tx.config)
+	tx.Message = NewMessageClient(tx.config)
 	tx.OAuthLoginState = NewOAuthLoginStateClient(tx.config)
 	tx.RbacAclEntry = NewRbacAclEntryClient(tx.config)
 	tx.RbacPermission = NewRbacPermissionClient(tx.config)

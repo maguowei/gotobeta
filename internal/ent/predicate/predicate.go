@@ -15,11 +15,17 @@ type AuthActionToken func(*sql.Selector)
 // AuthRefreshToken is the predicate function for authrefreshtoken builders.
 type AuthRefreshToken func(*sql.Selector)
 
+// Bot is the predicate function for bot builders.
+type Bot func(*sql.Selector)
+
 // Conversation is the predicate function for conversation builders.
 type Conversation func(*sql.Selector)
 
 // ConversationMember is the predicate function for conversationmember builders.
 type ConversationMember func(*sql.Selector)
+
+// Message is the predicate function for message builders.
+type Message func(*sql.Selector)
 
 // OAuthLoginState is the predicate function for oauthloginstate builders.
 type OAuthLoginState func(*sql.Selector)

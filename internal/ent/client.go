@@ -17,8 +17,10 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/appsetting"
 	"github.com/maguowei/gotobeta/internal/ent/authactiontoken"
 	"github.com/maguowei/gotobeta/internal/ent/authrefreshtoken"
+	"github.com/maguowei/gotobeta/internal/ent/bot"
 	"github.com/maguowei/gotobeta/internal/ent/conversation"
 	"github.com/maguowei/gotobeta/internal/ent/conversationmember"
+	"github.com/maguowei/gotobeta/internal/ent/message"
 	"github.com/maguowei/gotobeta/internal/ent/oauthloginstate"
 	"github.com/maguowei/gotobeta/internal/ent/rbacaclentry"
 	"github.com/maguowei/gotobeta/internal/ent/rbacpermission"
@@ -45,10 +47,14 @@ type Client struct {
 	AuthActionToken *AuthActionTokenClient
 	// AuthRefreshToken is the client for interacting with the AuthRefreshToken builders.
 	AuthRefreshToken *AuthRefreshTokenClient
+	// Bot is the client for interacting with the Bot builders.
+	Bot *BotClient
 	// Conversation is the client for interacting with the Conversation builders.
 	Conversation *ConversationClient
 	// ConversationMember is the client for interacting with the ConversationMember builders.
 	ConversationMember *ConversationMemberClient
+	// Message is the client for interacting with the Message builders.
+	Message *MessageClient
 	// OAuthLoginState is the client for interacting with the OAuthLoginState builders.
 	OAuthLoginState *OAuthLoginStateClient
 	// RbacAclEntry is the client for interacting with the RbacAclEntry builders.
@@ -89,8 +95,10 @@ func (c *Client) init() {
 	c.AppSetting = NewAppSettingClient(c.config)
 	c.AuthActionToken = NewAuthActionTokenClient(c.config)
 	c.AuthRefreshToken = NewAuthRefreshTokenClient(c.config)
+	c.Bot = NewBotClient(c.config)
 	c.Conversation = NewConversationClient(c.config)
 	c.ConversationMember = NewConversationMemberClient(c.config)
+	c.Message = NewMessageClient(c.config)
 	c.OAuthLoginState = NewOAuthLoginStateClient(c.config)
 	c.RbacAclEntry = NewRbacAclEntryClient(c.config)
 	c.RbacPermission = NewRbacPermissionClient(c.config)
@@ -199,8 +207,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		AppSetting:              NewAppSettingClient(cfg),
 		AuthActionToken:         NewAuthActionTokenClient(cfg),
 		AuthRefreshToken:        NewAuthRefreshTokenClient(cfg),
+		Bot:                     NewBotClient(cfg),
 		Conversation:            NewConversationClient(cfg),
 		ConversationMember:      NewConversationMemberClient(cfg),
+		Message:                 NewMessageClient(cfg),
 		OAuthLoginState:         NewOAuthLoginStateClient(cfg),
 		RbacAclEntry:            NewRbacAclEntryClient(cfg),
 		RbacPermission:          NewRbacPermissionClient(cfg),
@@ -236,8 +246,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		AppSetting:              NewAppSettingClient(cfg),
 		AuthActionToken:         NewAuthActionTokenClient(cfg),
 		AuthRefreshToken:        NewAuthRefreshTokenClient(cfg),
+		Bot:                     NewBotClient(cfg),
 		Conversation:            NewConversationClient(cfg),
 		ConversationMember:      NewConversationMemberClient(cfg),
+		Message:                 NewMessageClient(cfg),
 		OAuthLoginState:         NewOAuthLoginStateClient(cfg),
 		RbacAclEntry:            NewRbacAclEntryClient(cfg),
 		RbacPermission:          NewRbacPermissionClient(cfg),
@@ -280,11 +292,11 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AppSetting, c.AuthActionToken, c.AuthRefreshToken, c.Conversation,
-		c.ConversationMember, c.OAuthLoginState, c.RbacAclEntry, c.RbacPermission,
-		c.RbacPermissionChangeLog, c.RbacPermissionVersion, c.RbacRole,
-		c.RbacRolePermission, c.RbacUserRole, c.Todo, c.User, c.UserIdentity,
-		c.Workspace, c.WorkspaceMember,
+		c.AppSetting, c.AuthActionToken, c.AuthRefreshToken, c.Bot, c.Conversation,
+		c.ConversationMember, c.Message, c.OAuthLoginState, c.RbacAclEntry,
+		c.RbacPermission, c.RbacPermissionChangeLog, c.RbacPermissionVersion,
+		c.RbacRole, c.RbacRolePermission, c.RbacUserRole, c.Todo, c.User,
+		c.UserIdentity, c.Workspace, c.WorkspaceMember,
 	} {
 		n.Use(hooks...)
 	}
@@ -294,11 +306,11 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AppSetting, c.AuthActionToken, c.AuthRefreshToken, c.Conversation,
-		c.ConversationMember, c.OAuthLoginState, c.RbacAclEntry, c.RbacPermission,
-		c.RbacPermissionChangeLog, c.RbacPermissionVersion, c.RbacRole,
-		c.RbacRolePermission, c.RbacUserRole, c.Todo, c.User, c.UserIdentity,
-		c.Workspace, c.WorkspaceMember,
+		c.AppSetting, c.AuthActionToken, c.AuthRefreshToken, c.Bot, c.Conversation,
+		c.ConversationMember, c.Message, c.OAuthLoginState, c.RbacAclEntry,
+		c.RbacPermission, c.RbacPermissionChangeLog, c.RbacPermissionVersion,
+		c.RbacRole, c.RbacRolePermission, c.RbacUserRole, c.Todo, c.User,
+		c.UserIdentity, c.Workspace, c.WorkspaceMember,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -313,10 +325,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AuthActionToken.mutate(ctx, m)
 	case *AuthRefreshTokenMutation:
 		return c.AuthRefreshToken.mutate(ctx, m)
+	case *BotMutation:
+		return c.Bot.mutate(ctx, m)
 	case *ConversationMutation:
 		return c.Conversation.mutate(ctx, m)
 	case *ConversationMemberMutation:
 		return c.ConversationMember.mutate(ctx, m)
+	case *MessageMutation:
+		return c.Message.mutate(ctx, m)
 	case *OAuthLoginStateMutation:
 		return c.OAuthLoginState.mutate(ctx, m)
 	case *RbacAclEntryMutation:
@@ -747,6 +763,139 @@ func (c *AuthRefreshTokenClient) mutate(ctx context.Context, m *AuthRefreshToken
 	}
 }
 
+// BotClient is a client for the Bot schema.
+type BotClient struct {
+	config
+}
+
+// NewBotClient returns a client for the Bot from the given config.
+func NewBotClient(c config) *BotClient {
+	return &BotClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `bot.Hooks(f(g(h())))`.
+func (c *BotClient) Use(hooks ...Hook) {
+	c.hooks.Bot = append(c.hooks.Bot, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `bot.Intercept(f(g(h())))`.
+func (c *BotClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Bot = append(c.inters.Bot, interceptors...)
+}
+
+// Create returns a builder for creating a Bot entity.
+func (c *BotClient) Create() *BotCreate {
+	mutation := newBotMutation(c.config, OpCreate)
+	return &BotCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Bot entities.
+func (c *BotClient) CreateBulk(builders ...*BotCreate) *BotCreateBulk {
+	return &BotCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BotClient) MapCreateBulk(slice any, setFunc func(*BotCreate, int)) *BotCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BotCreateBulk{err: fmt.Errorf("calling to BotClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BotCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BotCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Bot.
+func (c *BotClient) Update() *BotUpdate {
+	mutation := newBotMutation(c.config, OpUpdate)
+	return &BotUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BotClient) UpdateOne(_m *Bot) *BotUpdateOne {
+	mutation := newBotMutation(c.config, OpUpdateOne, withBot(_m))
+	return &BotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BotClient) UpdateOneID(id int) *BotUpdateOne {
+	mutation := newBotMutation(c.config, OpUpdateOne, withBotID(id))
+	return &BotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Bot.
+func (c *BotClient) Delete() *BotDelete {
+	mutation := newBotMutation(c.config, OpDelete)
+	return &BotDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BotClient) DeleteOne(_m *Bot) *BotDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BotClient) DeleteOneID(id int) *BotDeleteOne {
+	builder := c.Delete().Where(bot.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BotDeleteOne{builder}
+}
+
+// Query returns a query builder for Bot.
+func (c *BotClient) Query() *BotQuery {
+	return &BotQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBot},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Bot entity by its id.
+func (c *BotClient) Get(ctx context.Context, id int) (*Bot, error) {
+	return c.Query().Where(bot.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BotClient) GetX(ctx context.Context, id int) *Bot {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *BotClient) Hooks() []Hook {
+	return c.hooks.Bot
+}
+
+// Interceptors returns the client interceptors.
+func (c *BotClient) Interceptors() []Interceptor {
+	return c.inters.Bot
+}
+
+func (c *BotClient) mutate(ctx context.Context, m *BotMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BotCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BotUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BotDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Bot mutation op: %q", m.Op())
+	}
+}
+
 // ConversationClient is a client for the Conversation schema.
 type ConversationClient struct {
 	config
@@ -1010,6 +1159,139 @@ func (c *ConversationMemberClient) mutate(ctx context.Context, m *ConversationMe
 		return (&ConversationMemberDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ConversationMember mutation op: %q", m.Op())
+	}
+}
+
+// MessageClient is a client for the Message schema.
+type MessageClient struct {
+	config
+}
+
+// NewMessageClient returns a client for the Message from the given config.
+func NewMessageClient(c config) *MessageClient {
+	return &MessageClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `message.Hooks(f(g(h())))`.
+func (c *MessageClient) Use(hooks ...Hook) {
+	c.hooks.Message = append(c.hooks.Message, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `message.Intercept(f(g(h())))`.
+func (c *MessageClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Message = append(c.inters.Message, interceptors...)
+}
+
+// Create returns a builder for creating a Message entity.
+func (c *MessageClient) Create() *MessageCreate {
+	mutation := newMessageMutation(c.config, OpCreate)
+	return &MessageCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Message entities.
+func (c *MessageClient) CreateBulk(builders ...*MessageCreate) *MessageCreateBulk {
+	return &MessageCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *MessageClient) MapCreateBulk(slice any, setFunc func(*MessageCreate, int)) *MessageCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &MessageCreateBulk{err: fmt.Errorf("calling to MessageClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*MessageCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &MessageCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Message.
+func (c *MessageClient) Update() *MessageUpdate {
+	mutation := newMessageMutation(c.config, OpUpdate)
+	return &MessageUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MessageClient) UpdateOne(_m *Message) *MessageUpdateOne {
+	mutation := newMessageMutation(c.config, OpUpdateOne, withMessage(_m))
+	return &MessageUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MessageClient) UpdateOneID(id int) *MessageUpdateOne {
+	mutation := newMessageMutation(c.config, OpUpdateOne, withMessageID(id))
+	return &MessageUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Message.
+func (c *MessageClient) Delete() *MessageDelete {
+	mutation := newMessageMutation(c.config, OpDelete)
+	return &MessageDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MessageClient) DeleteOne(_m *Message) *MessageDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MessageClient) DeleteOneID(id int) *MessageDeleteOne {
+	builder := c.Delete().Where(message.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MessageDeleteOne{builder}
+}
+
+// Query returns a query builder for Message.
+func (c *MessageClient) Query() *MessageQuery {
+	return &MessageQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMessage},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Message entity by its id.
+func (c *MessageClient) Get(ctx context.Context, id int) (*Message, error) {
+	return c.Query().Where(message.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MessageClient) GetX(ctx context.Context, id int) *Message {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *MessageClient) Hooks() []Hook {
+	return c.hooks.Message
+}
+
+// Interceptors returns the client interceptors.
+func (c *MessageClient) Interceptors() []Interceptor {
+	return c.inters.Message
+}
+
+func (c *MessageClient) mutate(ctx context.Context, m *MessageMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MessageCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MessageUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MessageUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MessageDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Message mutation op: %q", m.Op())
 	}
 }
 
@@ -2745,15 +3027,16 @@ func (c *WorkspaceMemberClient) mutate(ctx context.Context, m *WorkspaceMemberMu
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AppSetting, AuthActionToken, AuthRefreshToken, Conversation, ConversationMember,
-		OAuthLoginState, RbacAclEntry, RbacPermission, RbacPermissionChangeLog,
-		RbacPermissionVersion, RbacRole, RbacRolePermission, RbacUserRole, Todo, User,
-		UserIdentity, Workspace, WorkspaceMember []ent.Hook
+		AppSetting, AuthActionToken, AuthRefreshToken, Bot, Conversation,
+		ConversationMember, Message, OAuthLoginState, RbacAclEntry, RbacPermission,
+		RbacPermissionChangeLog, RbacPermissionVersion, RbacRole, RbacRolePermission,
+		RbacUserRole, Todo, User, UserIdentity, Workspace, WorkspaceMember []ent.Hook
 	}
 	inters struct {
-		AppSetting, AuthActionToken, AuthRefreshToken, Conversation, ConversationMember,
-		OAuthLoginState, RbacAclEntry, RbacPermission, RbacPermissionChangeLog,
-		RbacPermissionVersion, RbacRole, RbacRolePermission, RbacUserRole, Todo, User,
-		UserIdentity, Workspace, WorkspaceMember []ent.Interceptor
+		AppSetting, AuthActionToken, AuthRefreshToken, Bot, Conversation,
+		ConversationMember, Message, OAuthLoginState, RbacAclEntry, RbacPermission,
+		RbacPermissionChangeLog, RbacPermissionVersion, RbacRole, RbacRolePermission,
+		RbacUserRole, Todo, User, UserIdentity, Workspace,
+		WorkspaceMember []ent.Interceptor
 	}
 )

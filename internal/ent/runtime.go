@@ -8,8 +8,10 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/appsetting"
 	"github.com/maguowei/gotobeta/internal/ent/authactiontoken"
 	"github.com/maguowei/gotobeta/internal/ent/authrefreshtoken"
+	"github.com/maguowei/gotobeta/internal/ent/bot"
 	"github.com/maguowei/gotobeta/internal/ent/conversation"
 	"github.com/maguowei/gotobeta/internal/ent/conversationmember"
+	"github.com/maguowei/gotobeta/internal/ent/message"
 	"github.com/maguowei/gotobeta/internal/ent/oauthloginstate"
 	"github.com/maguowei/gotobeta/internal/ent/rbacaclentry"
 	"github.com/maguowei/gotobeta/internal/ent/rbacpermission"
@@ -115,6 +117,37 @@ func init() {
 	authrefreshtoken.DefaultRevokeReason = authrefreshtokenDescRevokeReason.Default.(string)
 	// authrefreshtoken.RevokeReasonValidator is a validator for the "revoke_reason" field. It is called by the builders before save.
 	authrefreshtoken.RevokeReasonValidator = authrefreshtokenDescRevokeReason.Validators[0].(func(string) error)
+	botMixin := schema.Bot{}.Mixin()
+	botMixinFields0 := botMixin[0].Fields()
+	_ = botMixinFields0
+	botFields := schema.Bot{}.Fields()
+	_ = botFields
+	// botDescCreatedAt is the schema descriptor for created_at field.
+	botDescCreatedAt := botMixinFields0[0].Descriptor()
+	// bot.DefaultCreatedAt holds the default value on creation for the created_at field.
+	bot.DefaultCreatedAt = botDescCreatedAt.Default.(func() time.Time)
+	// botDescUpdatedAt is the schema descriptor for updated_at field.
+	botDescUpdatedAt := botMixinFields0[1].Descriptor()
+	// bot.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	bot.DefaultUpdatedAt = botDescUpdatedAt.Default.(func() time.Time)
+	// bot.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	bot.UpdateDefaultUpdatedAt = botDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// botDescName is the schema descriptor for name field.
+	botDescName := botFields[2].Descriptor()
+	// bot.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	bot.NameValidator = botDescName.Validators[0].(func(string) error)
+	// botDescType is the schema descriptor for type field.
+	botDescType := botFields[3].Descriptor()
+	// bot.DefaultType holds the default value on creation for the type field.
+	bot.DefaultType = botDescType.Default.(int8)
+	// botDescOwnerUserID is the schema descriptor for owner_user_id field.
+	botDescOwnerUserID := botFields[4].Descriptor()
+	// bot.DefaultOwnerUserID holds the default value on creation for the owner_user_id field.
+	bot.DefaultOwnerUserID = botDescOwnerUserID.Default.(int64)
+	// botDescStatus is the schema descriptor for status field.
+	botDescStatus := botFields[6].Descriptor()
+	// bot.DefaultStatus holds the default value on creation for the status field.
+	bot.DefaultStatus = botDescStatus.Default.(int8)
 	conversationMixin := schema.Conversation{}.Mixin()
 	conversationMixinFields0 := conversationMixin[0].Fields()
 	_ = conversationMixinFields0
@@ -215,6 +248,45 @@ func init() {
 	conversationmemberDescJoinedAt := conversationmemberFields[10].Descriptor()
 	// conversationmember.DefaultJoinedAt holds the default value on creation for the joined_at field.
 	conversationmember.DefaultJoinedAt = conversationmemberDescJoinedAt.Default.(func() time.Time)
+	messageMixin := schema.Message{}.Mixin()
+	messageMixinFields0 := messageMixin[0].Fields()
+	_ = messageMixinFields0
+	messageFields := schema.Message{}.Fields()
+	_ = messageFields
+	// messageDescCreatedAt is the schema descriptor for created_at field.
+	messageDescCreatedAt := messageMixinFields0[0].Descriptor()
+	// message.DefaultCreatedAt holds the default value on creation for the created_at field.
+	message.DefaultCreatedAt = messageDescCreatedAt.Default.(func() time.Time)
+	// messageDescUpdatedAt is the schema descriptor for updated_at field.
+	messageDescUpdatedAt := messageMixinFields0[1].Descriptor()
+	// message.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	message.DefaultUpdatedAt = messageDescUpdatedAt.Default.(func() time.Time)
+	// message.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	message.UpdateDefaultUpdatedAt = messageDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// messageDescSenderType is the schema descriptor for sender_type field.
+	messageDescSenderType := messageFields[3].Descriptor()
+	// message.DefaultSenderType holds the default value on creation for the sender_type field.
+	message.DefaultSenderType = messageDescSenderType.Default.(int8)
+	// messageDescClientMsgID is the schema descriptor for client_msg_id field.
+	messageDescClientMsgID := messageFields[5].Descriptor()
+	// message.ClientMsgIDValidator is a validator for the "client_msg_id" field. It is called by the builders before save.
+	message.ClientMsgIDValidator = messageDescClientMsgID.Validators[0].(func(string) error)
+	// messageDescContentType is the schema descriptor for content_type field.
+	messageDescContentType := messageFields[6].Descriptor()
+	// message.DefaultContentType holds the default value on creation for the content_type field.
+	message.DefaultContentType = messageDescContentType.Default.(int8)
+	// messageDescReplyToMsgID is the schema descriptor for reply_to_msg_id field.
+	messageDescReplyToMsgID := messageFields[8].Descriptor()
+	// message.DefaultReplyToMsgID holds the default value on creation for the reply_to_msg_id field.
+	message.DefaultReplyToMsgID = messageDescReplyToMsgID.Default.(int64)
+	// messageDescStatus is the schema descriptor for status field.
+	messageDescStatus := messageFields[9].Descriptor()
+	// message.DefaultStatus holds the default value on creation for the status field.
+	message.DefaultStatus = messageDescStatus.Default.(int8)
+	// messageDescServerTime is the schema descriptor for server_time field.
+	messageDescServerTime := messageFields[10].Descriptor()
+	// message.DefaultServerTime holds the default value on creation for the server_time field.
+	message.DefaultServerTime = messageDescServerTime.Default.(func() time.Time)
 	oauthloginstateMixin := schema.OAuthLoginState{}.Mixin()
 	oauthloginstateMixinFields0 := oauthloginstateMixin[0].Fields()
 	_ = oauthloginstateMixinFields0

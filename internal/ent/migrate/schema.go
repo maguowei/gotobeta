@@ -84,6 +84,32 @@ var (
 			},
 		},
 	}
+	// BotsColumns holds the columns for the "bots" table.
+	BotsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "biz_id", Type: field.TypeInt64, Unique: true},
+		{Name: "workspace_id", Type: field.TypeInt64},
+		{Name: "name", Type: field.TypeString, Size: 100},
+		{Name: "type", Type: field.TypeInt8, Default: 1},
+		{Name: "owner_user_id", Type: field.TypeInt64, Default: 0},
+		{Name: "config", Type: field.TypeJSON, Nullable: true},
+		{Name: "status", Type: field.TypeInt8, Default: 1},
+	}
+	// BotsTable holds the schema information for the "bots" table.
+	BotsTable = &schema.Table{
+		Name:       "bots",
+		Columns:    BotsColumns,
+		PrimaryKey: []*schema.Column{BotsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "bot_workspace_id",
+				Unique:  false,
+				Columns: []*schema.Column{BotsColumns[4]},
+			},
+		},
+	}
 	// ConversationsColumns holds the columns for the "conversations" table.
 	ConversationsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -155,6 +181,47 @@ var (
 				Name:    "conversationmember_member_type_member_id",
 				Unique:  false,
 				Columns: []*schema.Column{ConversationMembersColumns[5], ConversationMembersColumns[6]},
+			},
+		},
+	}
+	// MessagesColumns holds the columns for the "messages" table.
+	MessagesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "biz_id", Type: field.TypeInt64, Unique: true},
+		{Name: "conversation_id", Type: field.TypeInt64},
+		{Name: "seq", Type: field.TypeInt64},
+		{Name: "sender_type", Type: field.TypeInt8, Default: 1},
+		{Name: "sender_id", Type: field.TypeInt64},
+		{Name: "client_msg_id", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "content_type", Type: field.TypeInt8, Default: 1},
+		{Name: "content", Type: field.TypeJSON, Nullable: true},
+		{Name: "reply_to_msg_id", Type: field.TypeInt64, Default: 0},
+		{Name: "status", Type: field.TypeInt8, Default: 1},
+		{Name: "server_time", Type: field.TypeTime},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
+	}
+	// MessagesTable holds the schema information for the "messages" table.
+	MessagesTable = &schema.Table{
+		Name:       "messages",
+		Columns:    MessagesColumns,
+		PrimaryKey: []*schema.Column{MessagesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "message_conversation_id_seq",
+				Unique:  true,
+				Columns: []*schema.Column{MessagesColumns[4], MessagesColumns[5]},
+			},
+			{
+				Name:    "message_conversation_id_client_msg_id",
+				Unique:  true,
+				Columns: []*schema.Column{MessagesColumns[4], MessagesColumns[8]},
+			},
+			{
+				Name:    "message_conversation_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{MessagesColumns[4], MessagesColumns[1]},
 			},
 		},
 	}
@@ -563,8 +630,10 @@ var (
 		AppSettingsTable,
 		AuthActionTokensTable,
 		AuthRefreshTokensTable,
+		BotsTable,
 		ConversationsTable,
 		ConversationMembersTable,
+		MessagesTable,
 		OauthLoginStatesTable,
 		RbacACLEntriesTable,
 		RbacPermissionsTable,
