@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -55,6 +56,63 @@ func TestAuthJWTRejectsMissingBearerToken(t *testing.T) {
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+}
+
+// stubRevoker 按预置集合判定 jti 是否吊销。
+type stubRevoker struct{ revoked map[string]bool }
+
+func (r stubRevoker) IsRevoked(_ context.Context, jti string) (bool, error) {
+	return r.revoked[jti], nil
+}
+
+func TestAuthJWTRejectsRevokedToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	cfg := testAuthJWTConfig()
+	cfg.Revoker = stubRevoker{revoked: map[string]bool{"jti-1": true}}
+	token := signedAuthToken(t, cfg, jwt.RegisteredClaims{
+		ID:        "jti-1",
+		Issuer:    cfg.Issuer,
+		Audience:  jwt.ClaimStrings{cfg.Audience},
+		Subject:   "user-1",
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+	})
+	router := gin.New()
+	router.Use(AuthJWT(cfg))
+	router.GET("/private", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+	req := httptest.NewRequest(http.MethodGet, "/private", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("吊销 token 应被拒，status = %d, want 401", rec.Code)
+	}
+}
+
+func TestAuthJWTAllowsNonRevokedToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	cfg := testAuthJWTConfig()
+	cfg.Revoker = stubRevoker{revoked: map[string]bool{"other": true}}
+	token := signedAuthToken(t, cfg, jwt.RegisteredClaims{
+		ID:        "jti-live",
+		Issuer:    cfg.Issuer,
+		Audience:  jwt.ClaimStrings{cfg.Audience},
+		Subject:   "user-1",
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+	})
+	router := gin.New()
+	router.Use(AuthJWT(cfg))
+	router.GET("/private", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+	req := httptest.NewRequest(http.MethodGet, "/private", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("未吊销 token 应放行，status = %d, want 204", rec.Code)
 	}
 }
 

@@ -68,6 +68,59 @@ func TestAuthServiceRegisterLoginRefreshAndLogout(t *testing.T) {
 	}
 }
 
+// fakeTokenRevoker 记录被吊销的 jti 与 TTL。
+type fakeTokenRevoker struct {
+	revoked map[string]time.Duration
+}
+
+func (r *fakeTokenRevoker) Revoke(_ context.Context, jti string, ttl time.Duration) error {
+	if r.revoked == nil {
+		r.revoked = map[string]time.Duration{}
+	}
+	r.revoked[jti] = ttl
+	return nil
+}
+
+func TestLogoutRevokesAccessToken(t *testing.T) {
+	svc, _, _, _, _ := newTestAuthService()
+	rev := &fakeTokenRevoker{}
+	svc.tokenRevoker = rev
+
+	err := svc.Logout(t.Context(), usercmd.LogoutCommand{
+		RefreshToken:         "whatever",
+		AccessTokenID:        "jti-123",
+		AccessTokenExpiresAt: svc.now().Add(10 * time.Minute),
+	})
+	if err != nil {
+		t.Fatalf("Logout() error = %v", err)
+	}
+	ttl, ok := rev.revoked["jti-123"]
+	if !ok {
+		t.Fatal("logout 应把 access token 的 jti 加入吊销黑名单")
+	}
+	if ttl <= 0 || ttl > 10*time.Minute {
+		t.Fatalf("吊销 TTL = %s, 应为剩余有效期(<=10m)", ttl)
+	}
+}
+
+func TestLogoutSkipsRevokeForExpiredAccessToken(t *testing.T) {
+	svc, _, _, _, _ := newTestAuthService()
+	rev := &fakeTokenRevoker{}
+	svc.tokenRevoker = rev
+
+	err := svc.Logout(t.Context(), usercmd.LogoutCommand{
+		RefreshToken:         "whatever",
+		AccessTokenID:        "jti-expired",
+		AccessTokenExpiresAt: svc.now().Add(-time.Minute),
+	})
+	if err != nil {
+		t.Fatalf("Logout() error = %v", err)
+	}
+	if _, ok := rev.revoked["jti-expired"]; ok {
+		t.Fatal("已过期 access token 不应写入黑名单")
+	}
+}
+
 func TestAuthServiceProfilePasswordAndEmailActions(t *testing.T) {
 	svc, _, email, _, _ := newTestAuthService()
 	out, err := svc.Register(t.Context(), usercmd.RegisterCommand{
@@ -350,6 +403,7 @@ func newTestAuthService() (*AuthService, *fakeStore, *fakeEmailSender, *fakeOAut
 		fakePasswordHasher{},
 		secrets,
 		fakeAccessIssuer{},
+		nil,
 		providers,
 		email,
 		Config{

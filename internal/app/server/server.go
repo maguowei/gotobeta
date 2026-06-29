@@ -122,7 +122,7 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 	}
 
 	apiV1 := router.Group("/api/v1")
-	userMod, err := user.New(client, appLogger, cfg)
+	userMod, err := user.New(client, appLogger, cfg, redisKV)
 	if err != nil {
 		return err
 	}

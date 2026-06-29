@@ -2,12 +2,29 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
+
+// RevocationChecker 查询某个 token（按 jti）是否已被吊销，供鉴权中间件注入。
+// 实现位于 user 模块基础设施（Redis 黑名单）；nil 时表示不启用吊销检查。
+type RevocationChecker interface {
+	IsRevoked(ctx context.Context, jti string) (bool, error)
+}
+
+// newJTI 生成 128 位随机 token 标识，用于吊销黑名单定位。
+func newJTI() (string, error) {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b[:]), nil
+}
 
 type claimsContextKey struct{}
 
@@ -98,9 +115,14 @@ func IssueAccessToken(userID int64, email string, cfg TokenConfig, now time.Time
 	if ttl <= 0 {
 		ttl = 15 * time.Minute
 	}
+	jti, err := newJTI()
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("generate jti: %w", err)
+	}
 	expiresAt := now.Add(ttl)
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        jti,
 			Issuer:    cfg.Issuer,
 			Subject:   fmt.Sprintf("%d", userID),
 			ExpiresAt: jwt.NewNumericDate(expiresAt),

@@ -74,6 +74,29 @@ func TestIssueAccessTokenIncludesUserClaims(t *testing.T) {
 	if claims.UserID != 42 || claims.Email != "alice@example.com" || claims.Subject != "42" {
 		t.Fatalf("claims = %+v, want user claims", claims)
 	}
+	if claims.ID == "" {
+		t.Fatal("签发的 token 必须带 jti（用于吊销黑名单定位）")
+	}
+}
+
+func TestIssueAccessTokenGeneratesUniqueJTI(t *testing.T) {
+	cfg := testJWTConfig()
+	now := time.Now()
+	issue := func() string {
+		token, _, err := IssueAccessToken(42, "alice@example.com", cfg, now)
+		if err != nil {
+			t.Fatalf("IssueAccessToken() error = %v", err)
+		}
+		claims, err := ParseToken(token, cfg)
+		if err != nil {
+			t.Fatalf("ParseToken() error = %v", err)
+		}
+		return claims.ID
+	}
+	first, second := issue(), issue()
+	if first == second {
+		t.Fatal("两次签发的 jti 不应相同")
+	}
 }
 
 func testJWTConfig() TokenConfig {

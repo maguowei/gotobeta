@@ -175,7 +175,12 @@ func TestAuthHandlerEndpoints(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, tc.path, strings.NewReader(tc.body))
+			ctx := t.Context()
+			// logout 在生产中位于 JWT 中间件之后，handler 依赖 context 中的 claims 取 jti。
+			if tc.name == "logout" {
+				ctx = auth.WithClaims(ctx, &auth.Claims{UserID: 42})
+			}
+			req := httptest.NewRequestWithContext(ctx, http.MethodPost, tc.path, strings.NewReader(tc.body))
 			req.Header.Set("Content-Type", "application/json")
 			rec := httptest.NewRecorder()
 			router.ServeHTTP(rec, req)

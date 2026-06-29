@@ -7,16 +7,19 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/maguowei/gotobeta/internal/ent"
+	"github.com/maguowei/gotobeta/internal/infra/cache"
 	"github.com/maguowei/gotobeta/internal/infra/config"
 	"github.com/maguowei/gotobeta/internal/infra/entdb"
 	"github.com/maguowei/gotobeta/internal/infra/localid"
 	userhandler "github.com/maguowei/gotobeta/internal/modules/user/adapter/http/handler"
 	userrouter "github.com/maguowei/gotobeta/internal/modules/user/adapter/http/router"
+	userport "github.com/maguowei/gotobeta/internal/modules/user/application/port"
 	usersvc "github.com/maguowei/gotobeta/internal/modules/user/application/service"
 	useremail "github.com/maguowei/gotobeta/internal/modules/user/infra/email"
 	useroauth "github.com/maguowei/gotobeta/internal/modules/user/infra/oauth"
 	userpersist "github.com/maguowei/gotobeta/internal/modules/user/infra/persistence"
 	usersecurity "github.com/maguowei/gotobeta/internal/modules/user/infra/security"
+	"github.com/maguowei/gotobeta/internal/pkg/auth"
 	httpmiddleware "github.com/maguowei/gotobeta/internal/pkg/httpx/middleware"
 )
 
@@ -29,7 +32,8 @@ type Module struct {
 }
 
 // New 完成 User 模块的全部装配（repo -> service -> handler + middleware）。
-func New(client *ent.Client, logger *slog.Logger, cfg *config.Config) (*Module, error) {
+// kv 为 nil（Redis 未启用）时 JWT 吊销黑名单降级为不可用。
+func New(client *ent.Client, logger *slog.Logger, cfg *config.Config, kv *cache.RedisKV) (*Module, error) {
 	accessTTL, err := time.ParseDuration(cfg.Auth.JWT.AccessTTL)
 	if err != nil {
 		return nil, err
@@ -55,6 +59,15 @@ func New(client *ent.Client, logger *slog.Logger, cfg *config.Config) (*Module, 
 		return nil, err
 	}
 
+	// JWT 吊销黑名单：Redis 启用时构造，否则保持 nil 接口（吊销降级，logout 仅撤 refresh）。
+	var tokenRevoker userport.TokenRevoker
+	var jwtRevoker auth.RevocationChecker
+	if kv != nil {
+		blacklist := usersecurity.NewTokenBlacklist(kv)
+		tokenRevoker = blacklist
+		jwtRevoker = blacklist
+	}
+
 	secrets := usersecurity.NewRandomSecretGenerator()
 	svc := usersvc.NewAuthService(
 		usersvc.Repositories{
@@ -69,6 +82,7 @@ func New(client *ent.Client, logger *slog.Logger, cfg *config.Config) (*Module, 
 		usersecurity.NewBcryptPasswordHasher(0),
 		secrets,
 		usersecurity.NewJWTIssuer(cfg.Auth.JWT, accessTTL),
+		tokenRevoker,
 		useroauth.NewRegistry(cfg.Auth.OAuth),
 		useremail.NewSender(cfg.Auth.Email.Sender, logger),
 		usersvc.Config{
@@ -91,6 +105,7 @@ func New(client *ent.Client, logger *slog.Logger, cfg *config.Config) (*Module, 
 			Audience:   cfg.Auth.JWT.Audience,
 			HMACSecret: cfg.Auth.JWT.HMACSecret,
 			ClockSkew:  cfg.Auth.JWT.ClockSkew,
+			Revoker:    jwtRevoker,
 		}),
 		rateLimit: buildRateLimit(cfg),
 	}, nil

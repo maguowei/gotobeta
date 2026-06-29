@@ -26,6 +26,12 @@ type AccessTokenIssuer interface {
 	IssueAccessToken(u *userdomain.User, now time.Time) (token string, expiresAt time.Time, err error)
 }
 
+// TokenRevoker 把已签发的 access token（按 jti）加入吊销黑名单。
+// ttl 为 token 剩余有效期，过期后黑名单条目自动清理；实现可降级（黑名单不可用时静默成功）。
+type TokenRevoker interface {
+	Revoke(ctx context.Context, jti string, ttl time.Duration) error
+}
+
 // OAuthProvider 是单个 OAuth provider 适配器。
 type OAuthProvider interface {
 	AuthCodeURL(state string) string

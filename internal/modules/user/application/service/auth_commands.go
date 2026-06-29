@@ -146,13 +146,22 @@ func (s *AuthService) Refresh(ctx context.Context, cmd usercmd.RefreshTokenComma
 	return out, nil
 }
 
-// Logout 撤销 refresh token。
+// Logout 撤销 refresh token，并把当前 access token 的 jti 加入吊销黑名单。
 func (s *AuthService) Logout(ctx context.Context, cmd usercmd.LogoutCommand) error {
-	token, err := s.repos.RefreshTokens.FindByHash(ctx, s.secrets.HashToken(cmd.RefreshToken), s.now())
+	now := s.now()
+	// 吊销 access token：在剩余有效期内拒绝复用，黑名单不可用时静默降级。
+	if s.tokenRevoker != nil && cmd.AccessTokenID != "" {
+		if ttl := cmd.AccessTokenExpiresAt.Sub(now); ttl > 0 {
+			if err := s.tokenRevoker.Revoke(ctx, cmd.AccessTokenID, ttl); err != nil {
+				return wrapInfrastructureError("吊销 access token 失败", err)
+			}
+		}
+	}
+	token, err := s.repos.RefreshTokens.FindByHash(ctx, s.secrets.HashToken(cmd.RefreshToken), now)
 	if err != nil {
 		return nil
 	}
-	return s.repos.RefreshTokens.Revoke(ctx, token.TokenID, "", "logout", s.now())
+	return s.repos.RefreshTokens.Revoke(ctx, token.TokenID, "", "logout", now)
 }
 
 // UpdateProfile 更新当前用户资料。

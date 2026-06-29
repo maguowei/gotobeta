@@ -87,7 +87,17 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	if !bindJSON(c, &req) {
 		return
 	}
-	if err := h.usecase.Logout(c.Request.Context(), req.ToCommand()); err != nil {
+	// logout 路由已过 JWT 中间件，从 claims 取当前 access token 的 jti/exp 加入吊销黑名单。
+	claims, ok := httpmiddleware.RequireClaims(c)
+	if !ok {
+		return
+	}
+	cmd := req.ToCommand()
+	cmd.AccessTokenID = claims.ID
+	if claims.ExpiresAt != nil {
+		cmd.AccessTokenExpiresAt = claims.ExpiresAt.Time
+	}
+	if err := h.usecase.Logout(c.Request.Context(), cmd); err != nil {
 		httpresponse.Error(c, err)
 		return
 	}

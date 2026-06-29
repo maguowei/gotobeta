@@ -18,6 +18,8 @@ type AuthJWTOptions struct {
 	Audience   string
 	HMACSecret string
 	ClockSkew  string
+	// Revoker 校验 token 是否已被吊销（logout 黑名单）；nil 时跳过吊销检查。
+	Revoker auth.RevocationChecker
 }
 
 // AuthJWT 校验 Bearer JWT，并把 claims 写入请求 context。
@@ -43,6 +45,15 @@ func AuthJWT(opts AuthJWTOptions) gin.HandlerFunc {
 			httpresponse.Error(c, apperr.Unauthorized("invalid bearer token"))
 			c.Abort()
 			return
+		}
+		// 吊销检查 fail-open：黑名单不可用（如 Redis 故障）时放行，避免误杀正常请求；
+		// access token 短时有效，吊销不可用窗口的风险有限。
+		if opts.Revoker != nil && claims.ID != "" {
+			if revoked, err := opts.Revoker.IsRevoked(c.Request.Context(), claims.ID); err == nil && revoked {
+				httpresponse.Error(c, apperr.Unauthorized("token has been revoked"))
+				c.Abort()
+				return
+			}
 		}
 		c.Request = c.Request.WithContext(auth.WithClaims(c.Request.Context(), claims))
 		c.Next()

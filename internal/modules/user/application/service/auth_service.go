@@ -48,6 +48,7 @@ type AuthService struct {
 	passwordHasher userport.PasswordHasher
 	secrets        userport.SecretGenerator
 	tokenIssuer    userport.AccessTokenIssuer
+	tokenRevoker   userport.TokenRevoker
 	oauthProviders userport.OAuthProviders
 	emailSender    userport.EmailSender
 	cfg            Config
@@ -63,6 +64,7 @@ func NewAuthService(
 	passwordHasher userport.PasswordHasher,
 	secrets userport.SecretGenerator,
 	tokenIssuer userport.AccessTokenIssuer,
+	tokenRevoker userport.TokenRevoker,
 	oauthProviders userport.OAuthProviders,
 	emailSender userport.EmailSender,
 	cfg Config,
@@ -75,6 +77,7 @@ func NewAuthService(
 		passwordHasher: passwordHasher,
 		secrets:        secrets,
 		tokenIssuer:    tokenIssuer,
+		tokenRevoker:   tokenRevoker,
 		oauthProviders: oauthProviders,
 		emailSender:    emailSender,
 		cfg:            cfg,
