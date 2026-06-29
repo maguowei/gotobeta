@@ -1,4 +1,4 @@
-.PHONY: help run run-dev run-test migrate test test-architecture coverage-collect test-coverage coverage-check build build-linux generate fmt tidy lint lint-actions lint-go lint-openapi lint-secrets modernize-check mod-verify vuln-check smoke verify clean tools-download lefthook-install lefthook-validate lefthook-run docker-build docker-run docker-stop docker-clean docker-logs docker-shell docker-push test-integration-compile test-integration
+.PHONY: help run run-dev run-test migrate test test-architecture coverage-collect test-coverage coverage-check build build-linux generate fmt tidy lint lint-actions lint-go lint-openapi lint-secrets modernize-check mod-verify vuln-check smoke verify pre-push-verify clean tools-download lefthook-install lefthook-validate lefthook-run docker-build docker-run docker-stop docker-clean docker-logs docker-shell docker-push test-integration-compile test-integration
 
 DOCKER_IMAGE ?= example.com/codego/gotobeta
 GIT_BRANCH   := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null | tr '/' '-')
@@ -117,18 +117,46 @@ smoke: ## 运行冒烟验证
 	$(MAKE) build
 
 verify: ## 运行完整质量门禁
-	$(MAKE) generate
-	$(MAKE) tidy
-	$(MAKE) modernize-check
-	$(MAKE) lint-actions
-	$(MAKE) lint
-	$(MAKE) lint-secrets
-	$(MAKE) mod-verify
-	$(MAKE) vuln-check
-	$(MAKE) coverage-check
-	$(MAKE) test-architecture
-	$(MAKE) test-integration-compile
-	$(MAKE) build
+	@echo "==> [1/12] generate 代码生成"
+	@$(MAKE) --no-print-directory -s generate
+	@echo "✅ [1/12] generate 代码生成"
+	@echo "==> [2/12] tidy 依赖整理"
+	@$(MAKE) --no-print-directory -s tidy
+	@echo "✅ [2/12] tidy 依赖整理"
+	@echo "==> [3/12] modernize-check 现代化检查"
+	@$(MAKE) --no-print-directory -s modernize-check
+	@echo "✅ [3/12] modernize-check 现代化检查"
+	@echo "==> [4/12] lint-actions GitHub Actions 校验"
+	@$(MAKE) --no-print-directory -s lint-actions
+	@echo "✅ [4/12] lint-actions GitHub Actions 校验"
+	@echo "==> [5/12] lint 代码与 OpenAPI 检查"
+	@$(MAKE) --no-print-directory -s lint
+	@echo "✅ [5/12] lint 代码与 OpenAPI 检查"
+	@echo "==> [6/12] lint-secrets 密钥扫描"
+	@$(MAKE) --no-print-directory -s lint-secrets
+	@echo "✅ [6/12] lint-secrets 密钥扫描"
+	@echo "==> [7/12] mod-verify 模块完整性校验"
+	@$(MAKE) --no-print-directory -s mod-verify
+	@echo "✅ [7/12] mod-verify 模块完整性校验"
+	@echo "==> [8/12] vuln-check 依赖漏洞扫描"
+	@$(MAKE) --no-print-directory -s vuln-check
+	@echo "✅ [8/12] vuln-check 依赖漏洞扫描"
+	@echo "==> [9/12] coverage-check 测试与覆盖率"
+	@$(MAKE) --no-print-directory -s coverage-check
+	@echo "✅ [9/12] coverage-check 测试与覆盖率"
+	@echo "==> [10/12] test-architecture 分层依赖校验"
+	@$(MAKE) --no-print-directory -s test-architecture
+	@echo "✅ [10/12] test-architecture 分层依赖校验"
+	@echo "==> [11/12] test-integration-compile 集成测试编译"
+	@$(MAKE) --no-print-directory -s test-integration-compile
+	@echo "✅ [11/12] test-integration-compile 集成测试编译"
+	@echo "==> [12/12] build 构建二进制"
+	@$(MAKE) --no-print-directory -s build
+	@echo "✅ [12/12] build 构建二进制"
+	@echo "✅ verify 完成：全部检查通过"
+
+pre-push-verify: ## 运行带本地成功缓存的 pre-push 门禁
+	bash .lefthook/pre-push/verify-cache.sh
 
 clean: ## 清理构建产物
 	rm -rf bin/

@@ -10,13 +10,26 @@ pre-commit:
     secrets:
       run: go tool gitleaks git --pre-commit --staged --redact --no-banner
     lint-go:
+      glob:
+        - "*.go"
+        - "go.mod"
+        - "go.sum"
+        - ".golangci.yml"
       run: make lint-go
     lint-openapi:
       glob: "api/openapi.yaml"
       run: make lint-openapi
     test:
+      glob:
+        - "*.go"
+        - "go.mod"
+        - "go.sum"
       run: make test
     architecture:
+      glob:
+        - "*.go"
+        - "go.mod"
+        - "go.sum"
       run: make test-architecture
 commit-msg:
   commands:
@@ -24,7 +37,8 @@ commit-msg:
       run: bash .lefthook/commit-msg/validate-message.sh {1}
 pre-push:
   parallel: false
+  # 实时透传 make verify 的 stdout，避免长时间无输出看上去卡住
   follow: true
   commands:
     verify:
-      run: bash .lefthook/pre-push/verify-cache.sh
+      run: make pre-push-verify
