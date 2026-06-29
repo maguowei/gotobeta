@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/maguowei/gotobeta/internal/ent"
+	entrole "github.com/maguowei/gotobeta/internal/ent/rbacrole"
 	"github.com/maguowei/gotobeta/internal/infra/config"
 	"github.com/maguowei/gotobeta/internal/infra/entdb"
 	"github.com/maguowei/gotobeta/internal/infra/localid"
@@ -50,12 +51,12 @@ func (s *RBACSuite) SetupSuite() {
 	s.client = client
 
 	logger := slog.New(slog.DiscardHandler)
+	idGen := localid.New()
 	wsRepo := workspacepersist.NewWorkspaceRepository(client, logger)
 	memRepo := workspacepersist.NewMembershipRepository(client, logger)
-	rbacRepo := workspacepersist.NewRBACRepository(client, logger)
+	rbacRepo := workspacepersist.NewRBACRepository(client, logger, idGen)
 	aclRepo := workspacepersist.NewACLRepository(client, logger)
 	checker := workspaceauthz.NewChecker(rbacRepo, aclRepo)
-	idGen := localid.New()
 	txRunner := entdb.NewEntTxRunner(client)
 
 	// 平台模板（workspace_id=0）必须先 seed，CreateWorkspace 才能从模板复制角色并绑定权限。
@@ -98,6 +99,76 @@ func (s *RBACSuite) TestResolveUserActionsAfterAssignRole() {
 		expected[code] = struct{}{}
 	}
 	s.Equal(expected, actions)
+}
+
+// TestVersionBumpAndAuditOnAssignRole 断言 AssignRole 后递增目标用户权限版本号并写入审计日志（A2.2/A2.4）。
+func (s *RBACSuite) TestVersionBumpAndAuditOnAssignRole() {
+	ctx := context.Background()
+	const ownerID int64 = 9101
+	const memberID int64 = 9102
+
+	ws, err := s.svc.CreateWorkspace(ctx, workspacecmd.CreateWorkspaceCommand{
+		Slug:        "rbac-audit",
+		Name:        "RBAC Audit",
+		OwnerUserID: ownerID,
+	})
+	s.Require().NoError(err)
+
+	before, err := s.rbacRepo.GetUserVersion(ctx, ws.ID, memberID)
+	s.Require().NoError(err)
+
+	s.Require().NoError(s.svc.AssignRole(ctx, workspacecmd.AssignRoleCommand{
+		WorkspaceID:    ws.ID,
+		OperatorUserID: ownerID,
+		TargetUserID:   memberID,
+		RoleCode:       rbac.RoleMember,
+	}))
+
+	after, err := s.rbacRepo.GetUserVersion(ctx, ws.ID, memberID)
+	s.Require().NoError(err)
+	s.Greater(after, before, "AssignRole 应递增目标用户权限版本号")
+
+	// 审计日志应至少有一条针对该用户的变更记录。
+	logs, err := s.client.RbacPermissionChangeLog.Query().All(ctx)
+	s.Require().NoError(err)
+	var found bool
+	for _, l := range logs {
+		if l.TargetID == memberID && l.OperatorID == ownerID {
+			found = true
+		}
+	}
+	s.True(found, "AssignRole 应写入授权变更审计日志")
+}
+
+// TestDisabledRoleNotResolved 断言停用角色后其权限不再被解析（A2.1）。
+func (s *RBACSuite) TestDisabledRoleNotResolved() {
+	ctx := context.Background()
+	const ownerID int64 = 9201
+	const memberID int64 = 9202
+
+	ws, err := s.svc.CreateWorkspace(ctx, workspacecmd.CreateWorkspaceCommand{
+		Slug:        "rbac-disable",
+		Name:        "RBAC Disable",
+		OwnerUserID: ownerID,
+	})
+	s.Require().NoError(err)
+	s.Require().NoError(s.svc.AssignRole(ctx, workspacecmd.AssignRoleCommand{
+		WorkspaceID:    ws.ID,
+		OperatorUserID: ownerID,
+		TargetUserID:   memberID,
+		RoleCode:       rbac.RoleMember,
+	}))
+
+	// 停用该工作区的 member 角色。
+	_, err = s.client.RbacRole.Update().
+		Where(entrole.WorkspaceID(ws.ID), entrole.Code(rbac.RoleMember)).
+		SetStatus(2).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	actions, err := s.rbacRepo.ResolveUserActions(ctx, ws.ID, memberID)
+	s.Require().NoError(err)
+	s.Empty(actions, "停用角色后不应再解析出任何权限")
 }
 
 func TestRBACSuite(t *testing.T) {

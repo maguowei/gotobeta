@@ -3,20 +3,26 @@ package workspace
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/maguowei/gotobeta/internal/ent"
+	"github.com/maguowei/gotobeta/internal/infra/cache"
 	"github.com/maguowei/gotobeta/internal/infra/config"
 	"github.com/maguowei/gotobeta/internal/infra/entdb"
 	"github.com/maguowei/gotobeta/internal/infra/localid"
 	workspacehandler "github.com/maguowei/gotobeta/internal/modules/workspace/adapter/http/handler"
 	workspacerouter "github.com/maguowei/gotobeta/internal/modules/workspace/adapter/http/router"
 	workspacesvc "github.com/maguowei/gotobeta/internal/modules/workspace/application/service"
+	"github.com/maguowei/gotobeta/internal/modules/workspace/domain/rbac"
 	workspaceauthz "github.com/maguowei/gotobeta/internal/modules/workspace/infra/authz"
 	workspacepersist "github.com/maguowei/gotobeta/internal/modules/workspace/infra/persistence"
 	"github.com/maguowei/gotobeta/internal/pkg/authz"
 )
+
+// defaultPermCacheTTL 是权限动作集缓存的兜底 TTL（精准失效靠版本号，TTL 仅作上限）。
+const defaultPermCacheTTL = time.Hour
 
 // Module 持有装配好的 workspace HTTP 入口与权限裁决器。
 type Module struct {
@@ -25,16 +31,23 @@ type Module struct {
 }
 
 // New 完成 workspace 模块装配（repo -> checker -> service -> handler）。
-func New(client *ent.Client, logger *slog.Logger, _ *config.Config) (*Module, error) {
+// kv 可为 nil（无 Redis）：此时权限解析直查 DB，不做版本化缓存。
+func New(client *ent.Client, logger *slog.Logger, _ *config.Config, kv *cache.RedisKV) (*Module, error) {
+	generator := localid.New()
 	wsRepo := workspacepersist.NewWorkspaceRepository(client, logger)
 	memRepo := workspacepersist.NewMembershipRepository(client, logger)
-	rbacRepo := workspacepersist.NewRBACRepository(client, logger)
+	rbacRepo := workspacepersist.NewRBACRepository(client, logger, generator)
 	aclRepo := workspacepersist.NewACLRepository(client, logger)
 
-	checker := workspaceauthz.NewChecker(rbacRepo, aclRepo)
+	// 权限裁决走带版本化缓存的解析器（kv 可用时）；写操作仍用原始 rbacRepo。
+	var resolver rbac.Repository = rbacRepo
+	if kv != nil {
+		resolver = workspaceauthz.NewCachedResolver(rbacRepo, kv, defaultPermCacheTTL)
+	}
+	checker := workspaceauthz.NewChecker(resolver, aclRepo)
 	svc := workspacesvc.NewWorkspaceService(
 		wsRepo, memRepo, rbacRepo, checker,
-		localid.New(), entdb.NewEntTxRunner(client), logger,
+		generator, entdb.NewEntTxRunner(client), logger,
 	)
 
 	return &Module{

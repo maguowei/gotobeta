@@ -12,17 +12,19 @@ import (
 	entur "github.com/maguowei/gotobeta/internal/ent/rbacuserrole"
 	"github.com/maguowei/gotobeta/internal/infra/entdb"
 	"github.com/maguowei/gotobeta/internal/modules/workspace/domain/rbac"
+	"github.com/maguowei/gotobeta/internal/pkg/idgen"
 )
 
 // RBACRepository 是动态 RBAC 仓储的 Ent 实现。
 type RBACRepository struct {
 	client *ent.Client
 	logger *slog.Logger
+	idgen  idgen.Generator
 }
 
-// NewRBACRepository 创建仓储。
-func NewRBACRepository(client *ent.Client, logger *slog.Logger) *RBACRepository {
-	return &RBACRepository{client: client, logger: logger}
+// NewRBACRepository 创建仓储。idgen 用于生成审计日志主键。
+func NewRBACRepository(client *ent.Client, logger *slog.Logger, generator idgen.Generator) *RBACRepository {
+	return &RBACRepository{client: client, logger: logger, idgen: generator}
 }
 
 // CreateRole 新增角色。
@@ -184,8 +186,17 @@ func (r *RBACRepository) ResolveUserActions(ctx context.Context, workspaceID, us
 		roleIDs = append(roleIDs, ur.RoleID)
 	}
 
+	// 过滤已停用角色：停用角色的权限不应再解析（A2.1）。
+	activeRoleIDs, err := r.activeRoleIDs(ctx, roleIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(activeRoleIDs) == 0 {
+		return map[string]struct{}{}, nil
+	}
+
 	rpRows, err := client.RbacRolePermission.Query().
-		Where(entrp.RoleIDIn(roleIDs...)).
+		Where(entrp.RoleIDIn(activeRoleIDs...)).
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -228,6 +239,27 @@ func (r *RBACRepository) ListUserRoleIDs(ctx context.Context, workspaceID, userI
 	ids := make([]int64, 0, len(rows))
 	for _, row := range rows {
 		ids = append(ids, row.RoleID)
+	}
+	// 仅返回仍有效（status=1）的角色，停用角色不参与 ACL 主体匹配（A2.1）。
+	return r.activeRoleIDs(ctx, ids)
+}
+
+// activeRoleIDs 在给定角色 ID 中筛出 status=1 的有效角色。
+func (r *RBACRepository) activeRoleIDs(ctx context.Context, roleIDs []int64) ([]int64, error) {
+	if len(roleIDs) == 0 {
+		return nil, nil
+	}
+	client := entdb.ClientFromCtx(ctx, r.client)
+	rows, err := client.RbacRole.Query().
+		Where(entrole.BizIDIn(roleIDs...), entrole.StatusEQ(1)).
+		Select(entrole.FieldBizID).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]int64, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.BizID)
 	}
 	return ids, nil
 }

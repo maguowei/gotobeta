@@ -36,6 +36,9 @@ func (fakeRBAC) ListPermissions(context.Context, int64) ([]*rbac.Permission, err
 func (fakeRBAC) BindRolePermission(context.Context, int64, int64, int64) error      { return nil }
 func (fakeRBAC) AssignRole(context.Context, *rbac.UserRole) error                   { return nil }
 func (fakeRBAC) RevokeRole(context.Context, int64, int64, int64) error              { return nil }
+func (fakeRBAC) BumpUserVersion(context.Context, int64, int64) (int64, error)       { return 0, nil }
+func (fakeRBAC) GetUserVersion(context.Context, int64, int64) (int64, error)        { return 0, nil }
+func (fakeRBAC) RecordChange(context.Context, rbac.ChangeLogEntry) error            { return nil }
 
 type fakeACL struct {
 	decisive *acl.Entry

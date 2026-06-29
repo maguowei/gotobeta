@@ -33,8 +33,9 @@ func Run(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 	}()
 
 	// 初始化平台级 RBAC 模板（权限目录 + 模板角色，workspace_id=0），幂等可重入。
-	rbacRepo := workspacepersist.NewRBACRepository(client, rt.AppLogger)
-	if err := workspaceseed.SeedPlatformTemplates(ctx, rbacRepo, localid.New()); err != nil {
+	generator := localid.New()
+	rbacRepo := workspacepersist.NewRBACRepository(client, rt.AppLogger, generator)
+	if err := workspaceseed.SeedPlatformTemplates(ctx, rbacRepo, generator); err != nil {
 		return fmt.Errorf("seed platform rbac templates: %w", err)
 	}
 	rt.AppLogger.InfoContext(ctx, "platform rbac templates seeded")

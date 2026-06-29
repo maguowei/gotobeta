@@ -54,12 +54,12 @@ func (s *MessagingDMSuite) SetupSuite() {
 	s.client = client
 
 	logger := slog.New(slog.DiscardHandler)
+	idGen := localid.New()
 	wsRepo := workspacepersist.NewWorkspaceRepository(client, logger)
 	memRepo := workspacepersist.NewMembershipRepository(client, logger)
-	rbacRepo := workspacepersist.NewRBACRepository(client, logger)
+	rbacRepo := workspacepersist.NewRBACRepository(client, logger, idGen)
 	aclRepo := workspacepersist.NewACLRepository(client, logger)
 	checker := workspaceauthz.NewChecker(rbacRepo, aclRepo)
-	idGen := localid.New()
 	txRunner := entdb.NewEntTxRunner(client)
 
 	// 平台模板必须先 seed，CreateWorkspace 才能复制角色与权限。

@@ -13,6 +13,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/pkg/apperr"
 	"github.com/maguowei/gotobeta/internal/pkg/authz"
 	loggerx "github.com/maguowei/gotobeta/internal/pkg/logger"
+	"github.com/maguowei/gotobeta/internal/pkg/requestctx"
 )
 
 // CreateWorkspace 创建工作区：建工作区 + 复制平台模板角色并绑定权限 + 把 owner 加入并赋 owner 角色。
@@ -136,6 +137,21 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, cmd workspacecmd.In
 		if err := s.rbac.AssignRole(txCtx, rbac.NewUserRole(cmd.WorkspaceID, cmd.TargetUserID, role.ID())); err != nil {
 			return wrapInfrastructureError("分配角色失败", err)
 		}
+		if _, err := s.rbac.BumpUserVersion(txCtx, cmd.WorkspaceID, cmd.TargetUserID); err != nil {
+			return wrapInfrastructureError("递增权限版本失败", err)
+		}
+		if err := s.rbac.RecordChange(txCtx, rbac.ChangeLogEntry{
+			WorkspaceID: cmd.WorkspaceID,
+			ChangeType:  rbac.ChangeAssignRole,
+			TargetType:  rbac.TargetTypeUser,
+			TargetID:    cmd.TargetUserID,
+			OperatorID:  cmd.OperatorUserID,
+			RequestID:   requestctx.GetRequestID(txCtx),
+			After:       map[string]any{"roleCode": cmd.RoleCode, "roleId": role.ID()},
+			Reason:      "invite member",
+		}); err != nil {
+			return wrapInfrastructureError("记录授权审计失败", err)
+		}
 		mem = m
 		return nil
 	})
@@ -163,8 +179,28 @@ func (s *WorkspaceService) AssignRole(ctx context.Context, cmd workspacecmd.Assi
 		}
 		return wrapInfrastructureError("查询角色失败", err)
 	}
-	if err := s.rbac.AssignRole(ctx, rbac.NewUserRole(cmd.WorkspaceID, cmd.TargetUserID, role.ID())); err != nil {
-		return wrapInfrastructureError("分配角色失败", err)
+	err = s.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
+		if err := s.rbac.AssignRole(txCtx, rbac.NewUserRole(cmd.WorkspaceID, cmd.TargetUserID, role.ID())); err != nil {
+			return wrapInfrastructureError("分配角色失败", err)
+		}
+		// 精准失效目标用户权限缓存 + 记录授权变更审计（A2.2/A2.4）。
+		if _, err := s.rbac.BumpUserVersion(txCtx, cmd.WorkspaceID, cmd.TargetUserID); err != nil {
+			return wrapInfrastructureError("递增权限版本失败", err)
+		}
+		return s.rbac.RecordChange(txCtx, rbac.ChangeLogEntry{
+			WorkspaceID: cmd.WorkspaceID,
+			ChangeType:  rbac.ChangeAssignRole,
+			TargetType:  rbac.TargetTypeUser,
+			TargetID:    cmd.TargetUserID,
+			OperatorID:  cmd.OperatorUserID,
+			RequestID:   requestctx.GetRequestID(txCtx),
+			After:       map[string]any{"roleCode": cmd.RoleCode, "roleId": role.ID()},
+			Reason:      "assign role",
+		})
+	})
+	if err != nil {
+		loggerx.WithError(ctx, s.logger, "assign role failed", err, slog.Int64("workspaceId", cmd.WorkspaceID), slog.Int64("targetUserId", cmd.TargetUserID))
+		return err
 	}
 	s.logger.InfoContext(ctx, "role assigned", slog.Int64("workspaceId", cmd.WorkspaceID), slog.Int64("targetUserId", cmd.TargetUserID), slog.String("role", cmd.RoleCode))
 	return nil

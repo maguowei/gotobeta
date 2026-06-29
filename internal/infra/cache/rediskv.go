@@ -32,6 +32,18 @@ func (k *RedisKV) Del(ctx context.Context, key string) error {
 	return k.client.Del(ctx, key).Err()
 }
 
+// Get 读取键值；键不存在时 found=false。
+func (k *RedisKV) Get(ctx context.Context, key string) (value string, found bool, err error) {
+	val, err := k.client.Get(ctx, key).Result()
+	if errors.Is(err, redis.Nil) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return val, true, nil
+}
+
 // GetDel 原子读取并删除键；键不存在时 found=false。
 func (k *RedisKV) GetDel(ctx context.Context, key string) (value string, found bool, err error) {
 	val, err := k.client.GetDel(ctx, key).Result()

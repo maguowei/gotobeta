@@ -132,6 +132,43 @@ type Repository interface {
 	ListUserRoleIDs(ctx context.Context, workspaceID, userID int64) ([]int64, error)
 	// HasRoleCode 判断用户是否拥有某角色编码（如 owner 短路）。
 	HasRoleCode(ctx context.Context, workspaceID, userID int64, code string) (bool, error)
+
+	// BumpUserVersion 递增用户的权限版本号并返回新值，用于精准失效权限缓存。
+	BumpUserVersion(ctx context.Context, workspaceID, userID int64) (int64, error)
+	// GetUserVersion 返回用户当前权限版本号，无记录时返回 0。
+	GetUserVersion(ctx context.Context, workspaceID, userID int64) (int64, error)
+	// RecordChange 记录一条授权变更审计日志。
+	RecordChange(ctx context.Context, entry ChangeLogEntry) error
+}
+
+// 权限主体类型（rbac_permission_versions.subject_type）。
+const (
+	SubjectTypeUser int8 = 1
+	SubjectTypeRole int8 = 2
+)
+
+// 授权变更类型（rbac_permission_change_logs.change_type）。
+const (
+	ChangeAssignRole   int8 = 1
+	ChangeRevokeRole   int8 = 2
+	ChangeBindRolePerm int8 = 3
+	ChangeACLGrant     int8 = 4
+	ChangeACLRevoke    int8 = 5
+	TargetTypeUser     int8 = 1
+	TargetTypeRole     int8 = 2
+)
+
+// ChangeLogEntry 是一条授权变更审计记录的输入。
+type ChangeLogEntry struct {
+	WorkspaceID int64
+	ChangeType  int8
+	TargetType  int8
+	TargetID    int64
+	OperatorID  int64
+	RequestID   string
+	Before      map[string]any
+	After       map[string]any
+	Reason      string
 }
 
 // DefaultRoleTemplates 返回平台模板角色（workspace_id=0 seed 用）。

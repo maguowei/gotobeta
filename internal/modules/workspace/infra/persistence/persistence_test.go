@@ -19,7 +19,7 @@ func TestConstructorsInjectDependencies(t *testing.T) {
 	if NewMembershipRepository(nil, logger) == nil {
 		t.Fatal("NewMembershipRepository = nil")
 	}
-	if NewRBACRepository(nil, logger) == nil {
+	if NewRBACRepository(nil, logger, nil) == nil {
 		t.Fatal("NewRBACRepository = nil")
 	}
 	if NewACLRepository(nil, logger) == nil {
