@@ -20,7 +20,7 @@ func newLimiterRouter(l *Limiter, keyFunc func(*gin.Context) string) *gin.Engine
 
 func TestLimiterAllowsWithinBurst(t *testing.T) {
 	r := newLimiterRouter(NewLimiter(60, 3), nil)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.RemoteAddr = "1.2.3.4:1111"
@@ -34,7 +34,7 @@ func TestLimiterAllowsWithinBurst(t *testing.T) {
 func TestLimiterRejectsOverBurst(t *testing.T) {
 	r := newLimiterRouter(NewLimiter(60, 2), nil)
 	codes := make([]int, 0, 3)
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.RemoteAddr = "5.6.7.8:2222"

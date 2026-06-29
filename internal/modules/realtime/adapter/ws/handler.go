@@ -133,7 +133,7 @@ func (g *Gateway) Handle(c *gin.Context) {
 			time.Now().Add(g.timeouts.writeWait),
 		)
 		_ = wsConn.Close()
-		g.logger.WarnContext(c.Request.Context(), "ws 连接达上限，拒绝接入", slog.Int64("user_id", userID))
+		g.logger.WarnContext(c.Request.Context(), "ws 连接达上限，拒绝接入", slog.Int64("userId", userID))
 		return
 	}
 	conn.Send(mustEncode(Frame{T: TypeAuthOK, UID: userID}))

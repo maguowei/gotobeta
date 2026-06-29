@@ -39,7 +39,7 @@ func (c *CachedResolver) ResolveUserActions(ctx context.Context, workspaceID, us
 		return c.Repository.ResolveUserActions(ctx, workspaceID, userID)
 	}
 
-	version, err := c.Repository.GetUserVersion(ctx, workspaceID, userID)
+	version, err := c.GetUserVersion(ctx, workspaceID, userID)
 	if err != nil {
 		return nil, err
 	}

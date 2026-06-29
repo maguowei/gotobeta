@@ -117,11 +117,7 @@ func presenceTTL(cfg *config.Config) time.Duration {
 
 // presenceRefreshInterval 取 TTL 的一半作为续期间隔（保证小于 TTL，避免误判离线），不低于 5s。
 func presenceRefreshInterval(ttl time.Duration) time.Duration {
-	interval := ttl / 2
-	if interval < 5*time.Second {
-		interval = 5 * time.Second
-	}
-	return interval
+	return max(ttl/2, 5*time.Second)
 }
 
 func parseDuration(raw string, fallback time.Duration) time.Duration {

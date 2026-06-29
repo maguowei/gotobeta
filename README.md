@@ -44,6 +44,12 @@ make test-architecture  # 校验 DDD 分层依赖边界
 
 单节点 MVP，关键边界（事件总线、对象存储、缓存）通过端口接口预留演进路径；集成测试（seq 并发分配、RBAC 解析、单聊去重）见 `internal/integration/`（`make test-integration`，需 Docker）。完整设计见 `docs/superpowers/specs/`。
 
+### 生产加固（阶段 A）
+
+在 MVP 基础上完成单实例生产加固：发消息/握手限流与连接上限、WS 健壮性（心跳、超时、连接排空、1013 过载关闭）、可观测性补全（WS 连接数、消息 e2e 延迟、seq 分配耗时、push 结果指标 + dispatch span）、健康检查（`/readyz` 聚合 DB/Redis/对象存储探针）、迁移分布式锁、安全加固（输入范围校验、CORS 白名单、JWT 吊销/logout 黑名单、TLS/HTTPS 与生产校验）。
+
+**单实例部署约束**：进程内 Hub/EventBus 不跨实例广播，WS 网关与消息发送必须同实例，`replicas: 1` + `sessionAffinity: ClientIP`；水平扩展为阶段 B 工作。运维要点见 `docs/tech/im-production-runbook.md`，存储演进见 `docs/tech/im-storage-partition-archive.md`。
+
 ## Demo API
 
 | 方法 | 路径 | 说明 |

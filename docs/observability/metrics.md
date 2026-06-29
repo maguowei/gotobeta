@@ -21,6 +21,21 @@ HTTP 请求指标由 `internal/pkg/httpx/middleware/metrics.go` 自动采集。`
 
 事件总线通过 `ObserveEventBus` 记录 inbox/outbox 处理次数和耗时，`status` 使用 `published`、`processed`、`ignored`、`retry`、`dead`、`error` 等有限值。
 
+## IM 指标清单
+
+阶段 A 为 IM 链路补充的指标（namespace 来自 `metrics.namespace`，默认 `gotobeta`）：
+
+| 指标 | 类型 | label | 含义 |
+|---|---|---|---|
+| `<ns>_ws_connections_active` | Gauge | 无 | 当前活跃 WebSocket 连接数；Hub 在注册/注销时更新 |
+| `<ns>_message_e2e_latency_seconds` | Histogram | 无 | 消息端到端延迟（SendMessage 入口到投递完成） |
+| `<ns>_seq_alloc_duration_seconds` | Histogram | 无 | 每会话 seq 分配耗时（识别热点会话锁争用） |
+| `<ns>_push_total` | Counter | `result` | 实时下行推送次数；`result` 限 `success`/`error` |
+
+埋点位置：`message_service` 经注入的 `MessageMetrics` 端口记录 seq 分配与 e2e 延迟；
+`realtime` dispatcher 经 `PushMetrics` 记录 push 结果；Hub 经 `ConnGauge` 维护连接数。
+所有 Collector 方法 nil-safe，未启用 metrics 时为 no-op。
+
 ## 暴露方式
 
 - HTTP server 通过 `server.host:server.port` 暴露 `metrics.path`。
