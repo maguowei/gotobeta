@@ -211,6 +211,27 @@ func (r *RBACRepository) ResolveUserActions(ctx context.Context, workspaceID, us
 	return set, nil
 }
 
+// ListUserRoleIDs 返回用户在工作区内的有效角色 ID 列表。
+func (r *RBACRepository) ListUserRoleIDs(ctx context.Context, workspaceID, userID int64) ([]int64, error) {
+	client := entdb.ClientFromCtx(ctx, r.client)
+	now := time.Now()
+	rows, err := client.RbacUserRole.Query().
+		Where(
+			entur.WorkspaceID(workspaceID),
+			entur.UserID(userID),
+			entur.Or(entur.EffectiveEndAtIsNil(), entur.EffectiveEndAtGT(now)),
+		).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]int64, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.RoleID)
+	}
+	return ids, nil
+}
+
 // HasRoleCode 判断用户是否拥有某角色编码。
 func (r *RBACRepository) HasRoleCode(ctx context.Context, workspaceID, userID int64, code string) (bool, error) {
 	client := entdb.ClientFromCtx(ctx, r.client)

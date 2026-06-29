@@ -128,6 +128,8 @@ type Repository interface {
 
 	// ResolveUserActions 解析用户在工作区内的全部有效权限编码集合。
 	ResolveUserActions(ctx context.Context, workspaceID, userID int64) (map[string]struct{}, error)
+	// ListUserRoleIDs 返回用户在工作区内的有效角色 ID 列表（供 ACL 角色主体匹配）。
+	ListUserRoleIDs(ctx context.Context, workspaceID, userID int64) ([]int64, error)
 	// HasRoleCode 判断用户是否拥有某角色编码（如 owner 短路）。
 	HasRoleCode(ctx context.Context, workspaceID, userID int64, code string) (bool, error)
 }
