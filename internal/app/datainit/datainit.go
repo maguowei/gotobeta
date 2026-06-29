@@ -7,6 +7,9 @@ import (
 
 	"github.com/maguowei/gotobeta/internal/app/bootstrap"
 	"github.com/maguowei/gotobeta/internal/infra/entdb"
+	"github.com/maguowei/gotobeta/internal/infra/localid"
+	workspacepersist "github.com/maguowei/gotobeta/internal/modules/workspace/infra/persistence"
+	workspaceseed "github.com/maguowei/gotobeta/internal/modules/workspace/infra/seed"
 )
 
 // Run 执行数据初始化。
@@ -29,8 +32,12 @@ func Run(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 		}
 	}()
 
-	// 在此添加初始化数据逻辑（可使用 rt.AppLogger）。
-	_ = ctx
+	// 初始化平台级 RBAC 模板（权限目录 + 模板角色，workspace_id=0），幂等可重入。
+	rbacRepo := workspacepersist.NewRBACRepository(client, rt.AppLogger)
+	if err := workspaceseed.SeedPlatformTemplates(ctx, rbacRepo, localid.New()); err != nil {
+		return fmt.Errorf("seed platform rbac templates: %w", err)
+	}
+	rt.AppLogger.InfoContext(ctx, "platform rbac templates seeded")
 
 	return nil
 }

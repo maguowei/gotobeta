@@ -15,6 +15,8 @@ tags:
     description: 当前用户资料接口
   - name: todos
     description: Todo 示例资源接口
+  - name: workspaces
+    description: 工作区与动态 RBAC 接口
 paths:
   /health:
     get:
@@ -668,6 +670,182 @@ paths:
                   updatedAt: "2026-04-21T15:04:05Z"
               schema:
                 $ref: '#/components/schemas/TodoResponse'
+  /api/v1/workspaces:
+    get:
+      operationId: listMyWorkspaces
+      summary: 列出我加入的工作区
+      description: 返回当前登录用户加入的全部工作区列表。
+      tags:
+        - workspaces
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 工作区列表
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  - workspaceId: "1"
+                    slug: acme-team
+                    name: Acme Team
+                    ownerUserId: "9"
+                    status: 1
+                    createdAt: "2026-06-29 10:00:00"
+              schema:
+                $ref: '#/components/schemas/WorkspaceListResponse'
+    post:
+      operationId: createWorkspace
+      summary: 创建工作区
+      description: 创建工作区并把当前用户设为所有者，自动复制平台模板角色。
+      tags:
+        - workspaces
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        description: 创建工作区请求体
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkspaceRequest'
+      responses:
+        '200':
+          description: 创建后的工作区
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  workspaceId: "1"
+                  slug: acme-team
+                  name: Acme Team
+                  ownerUserId: "9"
+                  status: 1
+                  createdAt: "2026-06-29 10:00:00"
+              schema:
+                $ref: '#/components/schemas/WorkspaceResponse'
+        '409':
+          description: 工作区标识已被占用
+          content:
+            application/json:
+              example:
+                code: 42201
+                message: 工作区标识已被占用
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/workspaces/{ws}/members:
+    post:
+      operationId: inviteWorkspaceMember
+      summary: 邀请成员加入工作区
+      description: 邀请用户加入工作区并赋予指定角色，需要邀请权限。
+      tags:
+        - workspaces
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+      requestBody:
+        required: true
+        description: 邀请成员请求体
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteMemberRequest'
+      responses:
+        '200':
+          description: 加入后的成员
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  workspaceId: "1"
+                  userId: "1024"
+                  status: 1
+                  joinedAt: "2026-06-29 10:00:00"
+              schema:
+                $ref: '#/components/schemas/MemberResponse'
+        '403':
+          description: 无邀请权限
+          content:
+            application/json:
+              example:
+                code: 40301
+                message: 没有执行该操作的权限
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/workspaces/{ws}/members/{uid}/roles:
+    post:
+      operationId: assignWorkspaceRole
+      summary: 给成员分配角色
+      description: 给工作区内指定成员分配角色，需要角色管理权限。
+      tags:
+        - workspaces
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+        - $ref: '#/components/parameters/MemberUserID'
+      requestBody:
+        required: true
+        description: 分配角色请求体
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRoleRequest'
+      responses:
+        '200':
+          description: 分配成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+        '403':
+          description: 无角色管理权限
+          content:
+            application/json:
+              example:
+                code: 40301
+                message: 没有执行该操作的权限
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/workspaces/{ws}/roles:
+    get:
+      operationId: listWorkspaceRoles
+      summary: 列出工作区角色
+      description: 列出工作区内的角色，需要是工作区成员。
+      tags:
+        - workspaces
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+      responses:
+        '200':
+          description: 角色列表
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  - roleId: "5"
+                    code: admin
+                    name: 管理员
+              schema:
+                $ref: '#/components/schemas/RoleListResponse'
 components:
   parameters:
     OAuthProvider:
@@ -682,6 +860,22 @@ components:
       name: id
       in: path
       description: Todo ID
+      required: true
+      schema:
+        type: integer
+        format: int64
+    WorkspaceID:
+      name: ws
+      in: path
+      description: 工作区 ID
+      required: true
+      schema:
+        type: integer
+        format: int64
+    MemberUserID:
+      name: uid
+      in: path
+      description: 成员用户 ID
       required: true
       schema:
         type: integer
@@ -1082,3 +1276,162 @@ components:
               updatedAt: "2026-04-21T15:04:05Z"
           items:
             $ref: '#/components/schemas/TodoItem'
+    CreateWorkspaceRequest:
+      description: 创建工作区请求
+      type: object
+      required:
+        - slug
+        - name
+      properties:
+        slug:
+          type: string
+          example: acme-team
+        name:
+          type: string
+          example: Acme Team
+    InviteMemberRequest:
+      description: 邀请成员请求
+      type: object
+      required:
+        - userId
+        - roleCode
+      properties:
+        userId:
+          type: string
+          example: "1024"
+        roleCode:
+          type: string
+          example: member
+    AssignRoleRequest:
+      description: 分配角色请求
+      type: object
+      required:
+        - roleCode
+      properties:
+        roleCode:
+          type: string
+          example: admin
+    WorkspaceItem:
+      description: 工作区
+      type: object
+      properties:
+        workspaceId:
+          type: string
+          example: "1"
+        slug:
+          type: string
+          example: acme-team
+        name:
+          type: string
+          example: Acme Team
+        ownerUserId:
+          type: string
+          example: "9"
+        status:
+          type: integer
+          example: 1
+        createdAt:
+          type: string
+          example: "2026-06-29 10:00:00"
+    WorkspaceResponse:
+      description: 单个工作区响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          $ref: '#/components/schemas/WorkspaceItem'
+    WorkspaceListResponse:
+      description: 工作区列表响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: array
+          example:
+            - workspaceId: "1"
+              slug: acme-team
+              name: Acme Team
+              ownerUserId: "9"
+              status: 1
+              createdAt: "2026-06-29 10:00:00"
+          items:
+            $ref: '#/components/schemas/WorkspaceItem'
+    MemberResponse:
+      description: 成员响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            workspaceId:
+              type: string
+              example: "1"
+            userId:
+              type: string
+              example: "1024"
+            status:
+              type: integer
+              example: 1
+            joinedAt:
+              type: string
+              example: "2026-06-29 10:00:00"
+    RoleListResponse:
+      description: 角色列表响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: array
+          example:
+            - roleId: "5"
+              code: admin
+              name: 管理员
+          items:
+            type: object
+            properties:
+              roleId:
+                type: string
+                example: "5"
+              code:
+                type: string
+                example: admin
+              name:
+                type: string
+                example: 管理员

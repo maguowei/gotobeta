@@ -21,6 +21,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/modules/user"
 
 	"github.com/maguowei/gotobeta/internal/modules/todo"
+	"github.com/maguowei/gotobeta/internal/modules/workspace"
 )
 
 var (
@@ -106,6 +107,12 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 	}
 	// 启用 user-auth 时，demo 业务路由必须要求登录，避免在鉴权服务里出现公开可写端点。
 	todoMod.Mount(apiV1, userMod.AuthMiddleware())
+
+	workspaceMod, err := workspace.New(client, appLogger, cfg)
+	if err != nil {
+		return err
+	}
+	workspaceMod.Mount(apiV1, userMod.AuthMiddleware())
 
 	server := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
