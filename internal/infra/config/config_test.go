@@ -48,6 +48,12 @@ func TestLoadAppliesIMAndObjStoreDefaults(t *testing.T) {
 	if cfg.IM.MessagePageSize != 100 {
 		t.Fatalf("IM.MessagePageSize = %d, want 100", cfg.IM.MessagePageSize)
 	}
+	if cfg.IM.MessageRatePerMinute != 120 {
+		t.Fatalf("IM.MessageRatePerMinute = %d, want 120", cfg.IM.MessageRatePerMinute)
+	}
+	if cfg.IM.MessageRateBurst != 20 {
+		t.Fatalf("IM.MessageRateBurst = %d, want 20", cfg.IM.MessageRateBurst)
+	}
 	if cfg.IM.WSTicketTTL != "30s" {
 		t.Fatalf("IM.WSTicketTTL = %q, want 30s", cfg.IM.WSTicketTTL)
 	}

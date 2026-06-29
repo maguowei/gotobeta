@@ -97,6 +97,8 @@ im:
   presence_ttl: "30s"
   ws_ticket_ttl: "30s"
   message_page_size: 100
+  message_rate_per_minute: 120
+  message_rate_burst: 20
 objstore:
   endpoint: ""
   region: ""

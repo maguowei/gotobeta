@@ -45,6 +45,9 @@ type IMConfig struct {
 	PresenceTTL     string `mapstructure:"presence_ttl"`      // 在线状态 Redis TTL，如 30s
 	WSTicketTTL     string `mapstructure:"ws_ticket_ttl"`     // WS 一次性 ticket TTL，如 30s
 	MessagePageSize int    `mapstructure:"message_page_size"` // 增量拉取默认页大小
+
+	MessageRatePerMinute int `mapstructure:"message_rate_per_minute"` // 单用户发消息稳态速率（条/分钟）
+	MessageRateBurst     int `mapstructure:"message_rate_burst"`      // 单用户发消息突发容量
 }
 
 // ObjStoreConfig 是 S3 兼容对象存储配置。dev 指向 MinIO，prod 指向任意 S3 兼容存储。
@@ -606,6 +609,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("im.presence_ttl", "30s")
 	v.SetDefault("im.ws_ticket_ttl", "30s")
 	v.SetDefault("im.message_page_size", 100)
+	v.SetDefault("im.message_rate_per_minute", 120)
+	v.SetDefault("im.message_rate_burst", 20)
 	v.SetDefault("objstore.endpoint", "")
 	v.SetDefault("objstore.region", "")
 	v.SetDefault("objstore.bucket", "")
@@ -697,6 +702,8 @@ func envKeys() []string {
 		"im.presence_ttl",
 		"im.ws_ticket_ttl",
 		"im.message_page_size",
+		"im.message_rate_per_minute",
+		"im.message_rate_burst",
 		"objstore.endpoint",
 		"objstore.region",
 		"objstore.bucket",

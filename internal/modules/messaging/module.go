@@ -20,6 +20,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/modules/messaging/infra/seqalloc"
 	"github.com/maguowei/gotobeta/internal/pkg/authz"
 	"github.com/maguowei/gotobeta/internal/pkg/event"
+	httpmiddleware "github.com/maguowei/gotobeta/internal/pkg/httpx/middleware"
 	"github.com/maguowei/gotobeta/internal/pkg/imrt"
 )
 
@@ -28,10 +29,11 @@ const defaultRecallWindow = 2 * time.Minute
 
 // Module 持有装配好的 messaging HTTP 入口。
 type Module struct {
-	convHandler *messaginghandler.ConversationHandler
-	msgHandler  *messaginghandler.MessageHandler
-	convSvc     *messagingsvc.ConversationService
-	msgSvc      *messagingsvc.MessageService
+	convHandler   *messaginghandler.ConversationHandler
+	msgHandler    *messaginghandler.MessageHandler
+	convSvc       *messagingsvc.ConversationService
+	msgSvc        *messagingsvc.MessageService
+	sendRateLimit gin.HandlerFunc
 }
 
 // New 完成 messaging 模块装配（repo -> service -> handler）。
@@ -50,11 +52,14 @@ func New(client *ent.Client, logger *slog.Logger, cfg *config.Config, checker au
 		recallWindow(cfg), cfg.IM.MessagePageSize, logger,
 	)
 
+	sendLimiter := httpmiddleware.NewLimiter(cfg.IM.MessageRatePerMinute, cfg.IM.MessageRateBurst)
+
 	return &Module{
-		convHandler: messaginghandler.NewConversationHandler(convSvc),
-		msgHandler:  messaginghandler.NewMessageHandler(msgSvc),
-		convSvc:     convSvc,
-		msgSvc:      msgSvc,
+		convHandler:   messaginghandler.NewConversationHandler(convSvc),
+		msgHandler:    messaginghandler.NewMessageHandler(msgSvc),
+		convSvc:       convSvc,
+		msgSvc:        msgSvc,
+		sendRateLimit: sendLimiter.Middleware(messagingrouter.UserRateKey),
 	}, nil
 }
 
@@ -83,7 +88,7 @@ func (r readReporter) ReportRead(ctx context.Context, conversationID, userID, re
 
 // Mount 把会话与消息路由挂到给定路由组。
 func (m *Module) Mount(rg *gin.RouterGroup, middlewares ...gin.HandlerFunc) {
-	messagingrouter.RegisterRoutes(rg, m.convHandler, m.msgHandler, middlewares...)
+	messagingrouter.RegisterRoutes(rg, m.convHandler, m.msgHandler, m.sendRateLimit, middlewares...)
 }
 
 func recallWindow(cfg *config.Config) time.Duration {

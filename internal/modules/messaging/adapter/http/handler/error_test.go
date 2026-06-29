@@ -58,7 +58,7 @@ func newErrRouter(err error) *gin.Engine {
 		c.Request = c.Request.WithContext(auth.WithClaims(c.Request.Context(), &auth.Claims{UserID: 9}))
 		c.Next()
 	}
-	messagingrouter.RegisterRoutes(e.Group("/api/v1"), convH, msgH, authMW)
+	messagingrouter.RegisterRoutes(e.Group("/api/v1"), convH, msgH, nil, authMW)
 	return e
 }
 
@@ -70,7 +70,7 @@ func newNoAuthRouter() *gin.Engine {
 	msgH := messaginghandler.NewMessageHandler(uc)
 	e := gin.New()
 	passthrough := func(c *gin.Context) { c.Next() }
-	messagingrouter.RegisterRoutes(e.Group("/api/v1"), convH, msgH, passthrough)
+	messagingrouter.RegisterRoutes(e.Group("/api/v1"), convH, msgH, nil, passthrough)
 	return e
 }
 

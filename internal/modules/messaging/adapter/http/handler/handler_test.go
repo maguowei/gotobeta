@@ -51,7 +51,7 @@ func newRouter() *gin.Engine {
 		c.Request = c.Request.WithContext(auth.WithClaims(c.Request.Context(), &auth.Claims{UserID: 9}))
 		c.Next()
 	}
-	messagingrouter.RegisterRoutes(e.Group("/api/v1"), convH, msgH, authMW)
+	messagingrouter.RegisterRoutes(e.Group("/api/v1"), convH, msgH, nil, authMW)
 	return e
 }
 
