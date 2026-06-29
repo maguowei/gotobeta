@@ -4,7 +4,7 @@ go 1.26.3
 
 require (
 	entgo.io/ent v0.14.5
-	github.com/getsentry/sentry-go v0.40.0
+	github.com/getsentry/sentry-go v0.47.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-resty/resty/v2 v2.17.2
 	github.com/go-sql-driver/mysql v1.9.3
