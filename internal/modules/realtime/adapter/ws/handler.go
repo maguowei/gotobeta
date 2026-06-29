@@ -139,7 +139,7 @@ func (g *Gateway) Handle(c *gin.Context) {
 	g.readPump(c.Request.Context(), conn)
 
 	g.hub.Unregister(userID, conn)
-	conn.close()
+	conn.Close()
 	if g.presence != nil {
 		g.presence.OnDisconnect(c.Request.Context(), userID)
 	}

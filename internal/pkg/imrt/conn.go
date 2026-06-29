@@ -7,6 +7,8 @@ package imrt
 type Connection interface {
 	// Send 非阻塞投递一帧；写队列已满或已关闭时丢弃（推送尽力而为）。
 	Send(frame []byte)
+	// Close 主动关闭连接（幂等），用于优雅关闭时由注册表统一断开。
+	Close()
 }
 
 // Registry 是连接注册表（由 infra/hub 实现），供 WS 网关注册/注销连接。

@@ -27,6 +27,7 @@ func (s stubMembers) UserConversationPeers(context.Context, int64) ([]int64, err
 type recvConn struct{ frames [][]byte }
 
 func (c *recvConn) Send(frame []byte) { c.frames = append(c.frames, frame) }
+func (c *recvConn) Close()            {}
 
 func TestDispatcherPushesSignalToOnlineMembers(t *testing.T) {
 	h := hub.New(0, 0)

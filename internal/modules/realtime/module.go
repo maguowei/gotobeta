@@ -2,6 +2,7 @@
 package realtime
 
 import (
+	"context"
 	"log/slog"
 	"time"
 
@@ -40,6 +41,7 @@ type Module struct {
 	ticketHandler  *realtimehandler.TicketHandler
 	gateway        *ws.Gateway
 	handshakeLimit gin.HandlerFunc
+	hub            *hub.Hub
 }
 
 // New 完成 realtime 模块装配，并把分发器订阅到事件总线。
@@ -78,7 +80,14 @@ func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, reade
 		ticketHandler:  realtimehandler.NewTicketHandler(ticketSvc),
 		gateway:        gateway,
 		handshakeLimit: handshakeLimiter.Middleware(nil),
+		hub:            connHub,
 	}, nil
+}
+
+// Shutdown 优雅关闭：广播 close 帧并等待全部 WS 连接断开，直到 ctx 取消/超时。
+// 应在 HTTP server.Shutdown 之前调用，让客户端尽快重连补拉。
+func (m *Module) Shutdown(ctx context.Context) error {
+	return m.hub.GracefulShutdown(ctx)
 }
 
 // Mount 把 ticket 与 WS 路由挂到给定路由组。authMiddlewares 仅作用于 POST /ws/ticket。

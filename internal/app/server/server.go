@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -184,6 +185,10 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 	case <-ctx.Done():
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+		// 先优雅关闭 WS：广播 close 帧并等待连接排空，客户端据此重连补拉，避免 HTTP 关闭时硬断。
+		if err := realtimeMod.Shutdown(shutdownCtx); err != nil {
+			appLogger.WarnContext(ctx, "realtime 优雅关闭未完全排空", slog.String("error", err.Error()))
+		}
 		if err := shutdownHTTP(server, shutdownCtx); err != nil {
 			return fmt.Errorf("shutdown http server: %w", err)
 		}

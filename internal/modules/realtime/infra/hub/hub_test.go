@@ -1,19 +1,34 @@
 package hub
 
 import (
+	"context"
 	"sync"
 	"testing"
+	"time"
 )
 
 type fakeConn struct {
 	mu     sync.Mutex
 	frames [][]byte
+	closed bool
 }
 
 func (c *fakeConn) Send(frame []byte) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.frames = append(c.frames, frame)
+}
+
+func (c *fakeConn) Close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.closed = true
+}
+
+func (c *fakeConn) isClosed() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.closed
 }
 
 func (c *fakeConn) count() int {
@@ -95,6 +110,50 @@ func TestRegisterRejectsOverTotalLimit(t *testing.T) {
 	}
 	if got := h.ConnectionCount(); got != 1 {
 		t.Fatalf("全局连接数 = %d, want 1", got)
+	}
+}
+
+// drainConn 在 Close 时把自己从 Hub 注销，模拟真实连接断开后 readPump 触发的 Unregister。
+type drainConn struct {
+	fakeConn
+	h   *Hub
+	uid int64
+}
+
+func (d *drainConn) Close() {
+	d.fakeConn.Close()
+	d.h.Unregister(d.uid, d)
+}
+
+func TestGracefulShutdownClosesAndDrains(t *testing.T) {
+	t.Parallel()
+	h := New(0, 0)
+	d1 := &drainConn{h: h, uid: 1}
+	d2 := &drainConn{h: h, uid: 2}
+	h.Register(1, d1)
+	h.Register(2, d2)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := h.GracefulShutdown(ctx); err != nil {
+		t.Fatalf("应正常排空，得 %v", err)
+	}
+	if !d1.isClosed() || !d2.isClosed() {
+		t.Fatal("所有连接应被 Close")
+	}
+	if got := h.ConnectionCount(); got != 0 {
+		t.Fatalf("排空后连接数应为 0，得 %d", got)
+	}
+}
+
+func TestGracefulShutdownTimesOutWhenStuck(t *testing.T) {
+	t.Parallel()
+	h := New(0, 0)
+	h.Register(1, &fakeConn{}) // fakeConn.Close 不注销，连接无法排空
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if err := h.GracefulShutdown(ctx); err == nil {
+		t.Fatal("无法排空时应返回超时错误")
 	}
 }
 

@@ -2,10 +2,15 @@
 package hub
 
 import (
+	"context"
 	"sync"
+	"time"
 
 	"github.com/maguowei/gotobeta/internal/pkg/imrt"
 )
+
+// drainPollInterval 是优雅关闭时轮询连接是否排空的间隔。
+const drainPollInterval = 20 * time.Millisecond
 
 // Hub 维护 userID → 多连接 的注册表，线程安全，实现 imrt.Registry。
 // maxTotal / maxPerUser 为连接数上限（<=0 表示不限），用于过载保护。
@@ -105,4 +110,34 @@ func (h *Hub) UserConnectionCount(userID int64) int {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	return len(h.conns[userID])
+}
+
+// GracefulShutdown 主动关闭全部连接（触发 close 帧下发），并轮询等待连接排空，
+// 直到 ConnectionCount 归零或 ctx 取消/超时。连接断开后由各自的读循环负责 Unregister。
+func (h *Hub) GracefulShutdown(ctx context.Context) error {
+	h.mu.RLock()
+	conns := make([]imrt.Connection, 0, h.total)
+	for _, set := range h.conns {
+		for c := range set {
+			conns = append(conns, c)
+		}
+	}
+	h.mu.RUnlock()
+
+	for _, c := range conns {
+		c.Close()
+	}
+
+	ticker := time.NewTicker(drainPollInterval)
+	defer ticker.Stop()
+	for {
+		if h.ConnectionCount() == 0 {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
 }

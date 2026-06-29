@@ -49,7 +49,7 @@ func (c *Conn) Send(frame []byte) {
 		if c.onOverflow != nil {
 			c.onOverflow()
 		}
-		c.close()
+		c.Close()
 	}
 }
 
@@ -77,13 +77,17 @@ func (c *Conn) writePump() {
 				return
 			}
 		case <-c.closed:
+			// 主动关闭（含优雅停机）时给客户端发送规范 close 帧，便于其立即重连补拉。
+			_ = c.ws.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.ws.WriteMessage(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.CloseGoingAway, "server shutting down"))
 			return
 		}
 	}
 }
 
-// close 关闭连接（幂等）。
-func (c *Conn) close() {
+// Close 关闭连接（幂等）。
+func (c *Conn) Close() {
 	select {
 	case <-c.closed:
 	default:

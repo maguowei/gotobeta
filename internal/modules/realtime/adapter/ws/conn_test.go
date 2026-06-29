@@ -26,7 +26,7 @@ func TestSendOverflowTriggersCloseAndHook(t *testing.T) {
 
 func TestSendAfterCloseIsNoop(t *testing.T) {
 	c := newConn(1, nil, 1, nil)
-	c.close()
+	c.Close()
 	// 已关闭后发送不应 panic，也不触发钩子（nil hook）。
 	c.Send([]byte("x"))
 }
