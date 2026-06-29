@@ -30,19 +30,21 @@ type PresenceReporter interface {
 	OnDisconnect(ctx context.Context, userID int64)
 }
 
-// GatewayConfig 是网关装配参数。AllowedOrigins 为 WS 跨域来源白名单（为空仅放行同源/无 Origin）。
+// GatewayConfig 是网关装配参数。
 type GatewayConfig struct {
-	AllowedOrigins []string
+	AllowedOrigins []string           // WS 跨域来源白名单（为空仅放行同源/无 Origin）
+	OnOverflow     func(userID int64) // 连接写缓冲溢出断连时回调（供指标计数），可为 nil
 }
 
 // Gateway 处理 WS 升级与连接生命周期。
 type Gateway struct {
-	tickets   port.TicketStore
-	hub       imrt.Registry
-	upgrader  websocket.Upgrader
-	ephemeral EphemeralHandler
-	presence  PresenceReporter
-	logger    *slog.Logger
+	tickets    port.TicketStore
+	hub        imrt.Registry
+	upgrader   websocket.Upgrader
+	ephemeral  EphemeralHandler
+	presence   PresenceReporter
+	logger     *slog.Logger
+	onOverflow func(userID int64)
 }
 
 // NewGateway 创建网关。ephemeral 与 presence 可为 nil。
@@ -56,9 +58,10 @@ func NewGateway(tickets port.TicketStore, h imrt.Registry, ephemeral EphemeralHa
 			// 跨域校验按白名单 + 同源策略，叠加 ticket 一次性鉴权。
 			CheckOrigin: originChecker(cfg.AllowedOrigins),
 		},
-		ephemeral: ephemeral,
-		presence:  presence,
-		logger:    logger,
+		ephemeral:  ephemeral,
+		presence:   presence,
+		logger:     logger,
+		onOverflow: cfg.OnOverflow,
 	}
 }
 
@@ -103,7 +106,11 @@ func (g *Gateway) Handle(c *gin.Context) {
 		return
 	}
 
-	conn := newConn(userID, wsConn)
+	var overflow func()
+	if g.onOverflow != nil {
+		overflow = func() { g.onOverflow(userID) }
+	}
+	conn := newConn(userID, wsConn, sendBufferSize, overflow)
 	if !g.hub.Register(userID, conn) {
 		// 达到连接上限：已完成 WS 握手，按协议用 1013(Try Again Later) 关闭而非 HTTP 503。
 		_ = wsConn.WriteControl(

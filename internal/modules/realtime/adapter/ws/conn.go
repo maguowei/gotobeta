@@ -15,30 +15,41 @@ const (
 
 // Conn 是一条 WS 连接，实现 hub.Connection。写操作经缓冲 channel 串行化到单一写泵。
 type Conn struct {
-	userID int64
-	ws     *websocket.Conn
-	send   chan []byte
-	closed chan struct{}
+	userID     int64
+	ws         *websocket.Conn
+	send       chan []byte
+	closed     chan struct{}
+	onOverflow func()
 }
 
-func newConn(userID int64, wsConn *websocket.Conn) *Conn {
+// newConn 创建连接。bufSize 为写缓冲容量；onOverflow 在缓冲溢出主动断连时回调（可为 nil，供指标计数）。
+func newConn(userID int64, wsConn *websocket.Conn, bufSize int, onOverflow func()) *Conn {
+	if bufSize <= 0 {
+		bufSize = sendBufferSize
+	}
 	return &Conn{
-		userID: userID,
-		ws:     wsConn,
-		send:   make(chan []byte, sendBufferSize),
-		closed: make(chan struct{}),
+		userID:     userID,
+		ws:         wsConn,
+		send:       make(chan []byte, bufSize),
+		closed:     make(chan struct{}),
+		onOverflow: onOverflow,
 	}
 }
 
 // UserID 返回连接绑定的用户。
 func (c *Conn) UserID() int64 { return c.userID }
 
-// Send 非阻塞投递一帧；写队列已满或连接已关闭时丢弃（推送尽力而为，由拉取补偿）。
+// Send 非阻塞投递一帧。连接已关闭时丢弃；写缓冲已满时不静默丢弃，而是触发溢出钩子
+// 并主动断连——客户端重连后按 last_seq 走 HTTP 增量拉取补偿，避免消息空洞。
 func (c *Conn) Send(frame []byte) {
 	select {
 	case <-c.closed:
 	case c.send <- frame:
 	default:
+		if c.onOverflow != nil {
+			c.onOverflow()
+		}
+		c.close()
 	}
 }
 
