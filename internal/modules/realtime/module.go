@@ -59,7 +59,9 @@ func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, reade
 	ticketSvc := realtimesvc.NewTicketService(ticketStore)
 	ephemeral := NewEphemeral(connHub, members, reader, logger)
 	presenceReporter := NewPresence(connHub, presenceStore, members, logger)
-	gateway := ws.NewGateway(ticketStore, connHub, ephemeral, presenceReporter, logger)
+	gateway := ws.NewGateway(ticketStore, connHub, ephemeral, presenceReporter, logger, ws.GatewayConfig{
+		AllowedOrigins: cfg.IM.WSAllowedOrigins,
+	})
 
 	dispatcher := NewDispatcher(connHub, members, logger)
 	bus.Subscribe(imevent.MessageCreated, dispatcher.OnMessageCreated)

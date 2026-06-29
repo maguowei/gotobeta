@@ -5,6 +5,8 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -28,6 +30,11 @@ type PresenceReporter interface {
 	OnDisconnect(ctx context.Context, userID int64)
 }
 
+// GatewayConfig 是网关装配参数。AllowedOrigins 为 WS 跨域来源白名单（为空仅放行同源/无 Origin）。
+type GatewayConfig struct {
+	AllowedOrigins []string
+}
+
 // Gateway 处理 WS 升级与连接生命周期。
 type Gateway struct {
 	tickets   port.TicketStore
@@ -39,19 +46,45 @@ type Gateway struct {
 }
 
 // NewGateway 创建网关。ephemeral 与 presence 可为 nil。
-func NewGateway(tickets port.TicketStore, h imrt.Registry, ephemeral EphemeralHandler, presence PresenceReporter, logger *slog.Logger) *Gateway {
+func NewGateway(tickets port.TicketStore, h imrt.Registry, ephemeral EphemeralHandler, presence PresenceReporter, logger *slog.Logger, cfg GatewayConfig) *Gateway {
 	return &Gateway{
 		tickets: tickets,
 		hub:     h,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
-			// 跨域校验交由网关/反向代理与 ticket 一次性鉴权兜底。
-			CheckOrigin: func(*http.Request) bool { return true },
+			// 跨域校验按白名单 + 同源策略，叠加 ticket 一次性鉴权。
+			CheckOrigin: originChecker(cfg.AllowedOrigins),
 		},
 		ephemeral: ephemeral,
 		presence:  presence,
 		logger:    logger,
+	}
+}
+
+// originChecker 返回 WS 跨域校验函数：
+//   - 无 Origin 头（多为原生客户端）放行，鉴权由 ticket 兜底；
+//   - 配置了白名单时，仅放行白名单内的 Origin；
+//   - 未配置白名单时，仅放行同源请求（Origin.Host == 请求 Host）。
+func originChecker(allowed []string) func(*http.Request) bool {
+	set := make(map[string]struct{}, len(allowed))
+	for _, o := range allowed {
+		set[o] = struct{}{}
+	}
+	return func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true
+		}
+		if len(set) > 0 {
+			_, ok := set[origin]
+			return ok
+		}
+		u, err := url.Parse(origin)
+		if err != nil {
+			return false
+		}
+		return strings.EqualFold(u.Host, r.Host)
 	}
 }
 

@@ -52,6 +52,8 @@ type IMConfig struct {
 	MaxWSConnections         int `mapstructure:"max_ws_connections"`           // 单实例 WS 全局连接上限
 	MaxConnPerUser           int `mapstructure:"max_conn_per_user"`            // 单用户 WS 连接上限（多端）
 	WSHandshakeRatePerMinute int `mapstructure:"ws_handshake_rate_per_minute"` // 单 IP WS 握手稳态速率（次/分钟）
+
+	WSAllowedOrigins []string `mapstructure:"ws_allowed_origins"` // WS 跨域来源白名单（为空仅放行同源/无 Origin）
 }
 
 // ObjStoreConfig 是 S3 兼容对象存储配置。dev 指向 MinIO，prod 指向任意 S3 兼容存储。
@@ -623,6 +625,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("im.max_ws_connections", 10000)
 	v.SetDefault("im.max_conn_per_user", 10)
 	v.SetDefault("im.ws_handshake_rate_per_minute", 60)
+	v.SetDefault("im.ws_allowed_origins", []string{})
 	v.SetDefault("objstore.endpoint", "")
 	v.SetDefault("objstore.region", "")
 	v.SetDefault("objstore.bucket", "")
@@ -721,6 +724,7 @@ func envKeys() []string {
 		"im.max_ws_connections",
 		"im.max_conn_per_user",
 		"im.ws_handshake_rate_per_minute",
+		"im.ws_allowed_origins",
 		"objstore.endpoint",
 		"objstore.region",
 		"objstore.bucket",
