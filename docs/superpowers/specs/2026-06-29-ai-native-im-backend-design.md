@@ -69,11 +69,11 @@ workspace/   工作区 + 成员 + RBAC/DataScope 鉴权
 messaging/   会话 + 消息聚合；发送/同步/已读/撤回用例（IM 核心）
 realtime/    WS 网关 adapter + 进程内 Hub + 事件分发器(订阅 eventbus 扇出)
              presence/typing 也在此（Redis，可选，不落库）
-media/       附件 + 对象存储端口（本地磁盘 dev / S3 prod 可插拔）
+media/       附件 + 对象存储端口（S3 兼容：dev=MinIO / prod=任意 S3 兼容存储）
 
 共享:
   internal/infra/eventbus   进程内 EventBus（端口+实现，演进 Redis/Kafka）
-  internal/infra/objstore   对象存储端口
+  internal/infra/objstore   对象存储端口（S3 兼容实现，预签名直传）
   internal/pkg/authz        PermissionChecker 端口（workspace 实现，注入 messaging）
 ```
 
@@ -385,7 +385,7 @@ GET    /ws                                       WebSocket 升级(?ticket)
 4. **M4 实时网关**：WS ticket 鉴权、进程内 Hub、事件分发器(signal 扇出)、心跳重连。
 5. **M5 已读与多端**：read_seq 上报与对齐、已读回执、多端 signal 路由。
 6. **M6 presence/typing**：Redis 在线状态与输入中广播。
-7. **M7 附件**：objstore 端口(本地/S3)、预签名、attachment 提交。
+7. **M7 附件**：objstore 端口（S3 兼容，dev=MinIO/prod=S3 兼容）、预签名直传、attachment 提交。
 8. 横切：OpenAPI 契约、单测/集成测试、`make verify`、可观测性(metrics/trace)。
 
 每个里程碑独立可测、可演示，遵循"行为变更先写测试 / API 变更先改 openapi.yaml"。
