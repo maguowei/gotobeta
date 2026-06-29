@@ -20,6 +20,7 @@ import (
 
 	"github.com/maguowei/gotobeta/internal/modules/user"
 
+	"github.com/maguowei/gotobeta/internal/modules/messaging"
 	"github.com/maguowei/gotobeta/internal/modules/todo"
 	"github.com/maguowei/gotobeta/internal/modules/workspace"
 )
@@ -113,6 +114,12 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 		return err
 	}
 	workspaceMod.Mount(apiV1, userMod.AuthMiddleware())
+
+	messagingMod, err := messaging.New(client, appLogger, cfg, workspaceMod.Checker())
+	if err != nil {
+		return err
+	}
+	messagingMod.Mount(apiV1, userMod.AuthMiddleware())
 
 	server := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),

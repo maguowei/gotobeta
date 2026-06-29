@@ -17,6 +17,8 @@ tags:
     description: Todo 示例资源接口
   - name: workspaces
     description: 工作区与动态 RBAC 接口
+  - name: messaging
+    description: 会话、频道与成员接口
 paths:
   /health:
     get:
@@ -846,6 +848,218 @@ paths:
                     name: 管理员
               schema:
                 $ref: '#/components/schemas/RoleListResponse'
+  /api/v1/workspaces/{ws}/conversations:
+    get:
+      operationId: listConversations
+      summary: 列出我的会话
+      description: 返回当前用户在该工作区加入的会话列表，含未读数，按最近消息时间倒序。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+      responses:
+        '200':
+          description: 会话列表
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  - conversationId: "100"
+                    workspaceId: "1"
+                    type: 2
+                    visibility: 2
+                    name: 产品组
+                    topic: ""
+                    creatorId: "9"
+                    lastSeq: 12
+                    lastMsgId: "8001"
+                    lastMsgDigest: 明天发布
+                    lastMsgAt: "2026-06-29 10:00:00"
+                    memberCount: 3
+                    readSeq: 10
+                    unread: 2
+                    status: 1
+                    createdAt: "2026-06-29 09:00:00"
+              schema:
+                $ref: '#/components/schemas/ConversationListResponse'
+    post:
+      operationId: createConversation
+      summary: 创建会话/频道
+      description: 创建单聊、群聊或频道；单聊按 dm_key 幂等去重，重复创建返回已有会话。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+      requestBody:
+        required: true
+        description: 创建会话请求体
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConversationRequest'
+      responses:
+        '200':
+          description: 创建后的会话
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  conversationId: "100"
+                  workspaceId: "1"
+                  type: 2
+                  visibility: 2
+                  name: 产品组
+                  topic: ""
+                  creatorId: "9"
+                  lastSeq: 0
+                  lastMsgId: "0"
+                  lastMsgDigest: ""
+                  memberCount: 1
+                  readSeq: 0
+                  unread: 0
+                  status: 1
+                  createdAt: "2026-06-29 09:00:00"
+              schema:
+                $ref: '#/components/schemas/ConversationResponse'
+        '403':
+          description: 无创建权限
+          content:
+            application/json:
+              example:
+                code: 40301
+                message: 没有执行该操作的权限
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/workspaces/{ws}/conversations/{cid}/members:
+    get:
+      operationId: listConversationMembers
+      summary: 列出会话成员
+      description: 列出会话的全部成员，需要是该会话成员。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+        - $ref: '#/components/parameters/ConversationID'
+      responses:
+        '200':
+          description: 会话成员列表
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  - conversationId: "100"
+                    memberType: 1
+                    memberId: "9"
+                    role: 1
+                    readSeq: 10
+                    isMuted: false
+                    isPinned: false
+                    status: 1
+                    joinedAt: "2026-06-29 09:00:00"
+              schema:
+                $ref: '#/components/schemas/ConversationMemberListResponse'
+    post:
+      operationId: addConversationMember
+      summary: 加入会话成员
+      description: 向群聊/频道加入成员，需要会话 owner/admin 权限。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+        - $ref: '#/components/parameters/ConversationID'
+      requestBody:
+        required: true
+        description: 加入成员请求体
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMemberRequest'
+      responses:
+        '200':
+          description: 加入后的成员
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  conversationId: "100"
+                  memberType: 1
+                  memberId: "1024"
+                  role: 3
+                  readSeq: 0
+                  isMuted: false
+                  isPinned: false
+                  status: 1
+                  joinedAt: "2026-06-29 10:00:00"
+              schema:
+                $ref: '#/components/schemas/ConversationMemberResponse'
+        '403':
+          description: 无会话管理权限
+          content:
+            application/json:
+              example:
+                code: 40301
+                message: 需要会话管理员权限
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/workspaces/{ws}/conversations/{cid}/members/{mid}:
+    delete:
+      operationId: removeConversationMember
+      summary: 移除会话成员
+      description: 从群聊/频道移除成员；操作者需为 owner/admin 或移除自己。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+        - $ref: '#/components/parameters/ConversationID'
+        - $ref: '#/components/parameters/ConvMemberID'
+        - name: memberType
+          in: query
+          description: 成员主体类型 1-user 2-bot，缺省按 user
+          required: false
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: 移除成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+        '403':
+          description: 无会话管理权限
+          content:
+            application/json:
+              example:
+                code: 40301
+                message: 需要会话管理员权限
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   parameters:
     OAuthProvider:
@@ -876,6 +1090,22 @@ components:
       name: uid
       in: path
       description: 成员用户 ID
+      required: true
+      schema:
+        type: integer
+        format: int64
+    ConversationID:
+      name: cid
+      in: path
+      description: 会话 ID
+      required: true
+      schema:
+        type: integer
+        format: int64
+    ConvMemberID:
+      name: mid
+      in: path
+      description: 会话成员主体 ID
       required: true
       schema:
         type: integer
@@ -1435,3 +1665,205 @@ components:
               name:
                 type: string
                 example: 管理员
+    CreateConversationRequest:
+      description: 创建会话请求
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: integer
+          description: 1-单聊 2-群聊 3-频道
+          example: 2
+        peerUserId:
+          type: string
+          description: 单聊对端用户 ID（type=1 必填）
+          example: "1024"
+        name:
+          type: string
+          example: 产品组
+        topic:
+          type: string
+          example: ""
+        visibility:
+          type: integer
+          description: 1-public 2-private（频道用）
+          example: 2
+    AddMemberRequest:
+      description: 加入会话成员请求
+      type: object
+      required:
+        - memberId
+      properties:
+        memberType:
+          type: integer
+          description: 1-user 2-bot，缺省按 user
+          example: 1
+        memberId:
+          type: string
+          example: "1024"
+        role:
+          type: integer
+          description: 2-admin 3-member，缺省按 member
+          example: 3
+    ConversationItem:
+      description: 会话
+      type: object
+      properties:
+        conversationId:
+          type: string
+          example: "100"
+        workspaceId:
+          type: string
+          example: "1"
+        type:
+          type: integer
+          example: 2
+        visibility:
+          type: integer
+          example: 2
+        name:
+          type: string
+          example: 产品组
+        topic:
+          type: string
+          example: ""
+        creatorId:
+          type: string
+          example: "9"
+        lastSeq:
+          type: integer
+          example: 12
+        lastMsgId:
+          type: string
+          example: "8001"
+        lastMsgDigest:
+          type: string
+          example: 明天发布
+        lastMsgAt:
+          type: string
+          example: "2026-06-29 10:00:00"
+        memberCount:
+          type: integer
+          example: 3
+        readSeq:
+          type: integer
+          example: 10
+        unread:
+          type: integer
+          example: 2
+        status:
+          type: integer
+          example: 1
+        createdAt:
+          type: string
+          example: "2026-06-29 09:00:00"
+    ConversationMemberItem:
+      description: 会话成员
+      type: object
+      properties:
+        conversationId:
+          type: string
+          example: "100"
+        memberType:
+          type: integer
+          example: 1
+        memberId:
+          type: string
+          example: "1024"
+        role:
+          type: integer
+          example: 3
+        readSeq:
+          type: integer
+          example: 0
+        isMuted:
+          type: boolean
+          example: false
+        isPinned:
+          type: boolean
+          example: false
+        status:
+          type: integer
+          example: 1
+        joinedAt:
+          type: string
+          example: "2026-06-29 10:00:00"
+    ConversationResponse:
+      description: 单个会话响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          $ref: '#/components/schemas/ConversationItem'
+    ConversationListResponse:
+      description: 会话列表响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: array
+          example:
+            - conversationId: "100"
+              workspaceId: "1"
+              type: 2
+              name: 产品组
+              unread: 2
+          items:
+            $ref: '#/components/schemas/ConversationItem'
+    ConversationMemberResponse:
+      description: 单个会话成员响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          $ref: '#/components/schemas/ConversationMemberItem'
+    ConversationMemberListResponse:
+      description: 会话成员列表响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: array
+          example:
+            - conversationId: "100"
+              memberId: "9"
+              role: 1
+          items:
+            $ref: '#/components/schemas/ConversationMemberItem'

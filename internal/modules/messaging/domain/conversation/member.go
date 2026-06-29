@@ -83,6 +83,16 @@ func UnmarshalMemberFromDB(id, conversationID int64, memberType MemberType, memb
 	}
 }
 
+// Leave 将成员标记为已退出；已退出时返回 false。
+func (m *Member) Leave() bool {
+	if m.status == MemberLeft {
+		return false
+	}
+	m.status = MemberLeft
+	m.updatedAt = time.Now()
+	return true
+}
+
 // Unread 根据会话当前 last_seq 计算未读数（不为负）。
 func (m *Member) Unread(lastSeq int64) int64 {
 	if lastSeq > m.readSeq {
