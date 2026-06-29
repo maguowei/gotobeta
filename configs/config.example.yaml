@@ -92,3 +92,17 @@ database:
   max_idle_conns: 5
   conn_max_lifetime: 300
   conn_max_idle_time: 180
+im:
+  recall_window: "2m"
+  presence_ttl: "30s"
+  ws_ticket_ttl: "30s"
+  message_page_size: 100
+objstore:
+  endpoint: ""
+  region: ""
+  bucket: ""
+  access_key: ""
+  secret_key: ""
+  use_ssl: false
+  public_base_url: ""
+  presign_ttl: "15m"

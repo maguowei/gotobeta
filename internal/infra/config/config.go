@@ -32,7 +32,31 @@ type Config struct {
 
 	Database DatabaseConfig `mapstructure:"database"`
 
+	IM IMConfig `mapstructure:"im"`
+
+	ObjStore ObjStoreConfig `mapstructure:"objstore"`
+
 	LoadedFiles []string `mapstructure:"-"`
+}
+
+// IMConfig 是即时通讯相关配置。
+type IMConfig struct {
+	RecallWindow    string `mapstructure:"recall_window"`     // 撤回时间窗口，如 2m
+	PresenceTTL     string `mapstructure:"presence_ttl"`      // 在线状态 Redis TTL，如 30s
+	WSTicketTTL     string `mapstructure:"ws_ticket_ttl"`     // WS 一次性 ticket TTL，如 30s
+	MessagePageSize int    `mapstructure:"message_page_size"` // 增量拉取默认页大小
+}
+
+// ObjStoreConfig 是 S3 兼容对象存储配置。dev 指向 MinIO，prod 指向任意 S3 兼容存储。
+type ObjStoreConfig struct {
+	Endpoint      string `mapstructure:"endpoint"`        // 形如 127.0.0.1:9000（不含协议）
+	Region        string `mapstructure:"region"`          // 区域，可空
+	Bucket        string `mapstructure:"bucket"`          // 桶名
+	AccessKey     string `mapstructure:"access_key"`      // 访问密钥 ID
+	SecretKey     string `mapstructure:"secret_key"`      // 访问密钥
+	UseSSL        bool   `mapstructure:"use_ssl"`         // 是否 https
+	PublicBaseURL string `mapstructure:"public_base_url"` // 对外访问基址，可空
+	PresignTTL    string `mapstructure:"presign_ttl"`     // 预签名有效期，如 15m
 }
 
 // ServerConfig 是 HTTP 服务配置。
@@ -578,6 +602,18 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("database.max_idle_conns", 5)
 	v.SetDefault("database.conn_max_lifetime", 300)
 	v.SetDefault("database.conn_max_idle_time", 180)
+	v.SetDefault("im.recall_window", "2m")
+	v.SetDefault("im.presence_ttl", "30s")
+	v.SetDefault("im.ws_ticket_ttl", "30s")
+	v.SetDefault("im.message_page_size", 100)
+	v.SetDefault("objstore.endpoint", "")
+	v.SetDefault("objstore.region", "")
+	v.SetDefault("objstore.bucket", "")
+	v.SetDefault("objstore.access_key", "")
+	v.SetDefault("objstore.secret_key", "")
+	v.SetDefault("objstore.use_ssl", false)
+	v.SetDefault("objstore.public_base_url", "")
+	v.SetDefault("objstore.presign_ttl", "15m")
 }
 
 func envKeys() []string {
@@ -655,6 +691,20 @@ func envKeys() []string {
 		"database.max_idle_conns",
 		"database.conn_max_lifetime",
 		"database.conn_max_idle_time",
+	)
+	keys = append(keys,
+		"im.recall_window",
+		"im.presence_ttl",
+		"im.ws_ticket_ttl",
+		"im.message_page_size",
+		"objstore.endpoint",
+		"objstore.region",
+		"objstore.bucket",
+		"objstore.access_key",
+		"objstore.secret_key",
+		"objstore.use_ssl",
+		"objstore.public_base_url",
+		"objstore.presign_ttl",
 	)
 
 	return keys

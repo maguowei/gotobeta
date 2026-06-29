@@ -32,6 +32,30 @@ func TestLoadPresetConfigs(t *testing.T) {
 		})
 	}
 }
+func TestLoadAppliesIMAndObjStoreDefaults(t *testing.T) {
+	configDir := filepath.Join("..", "..", "..", "configs")
+	t.Setenv("APP_ENV", "example")
+	t.Setenv("APP_CONFIG_DIR", configDir)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.IM.RecallWindow != "2m" {
+		t.Fatalf("IM.RecallWindow = %q, want 2m", cfg.IM.RecallWindow)
+	}
+	if cfg.IM.MessagePageSize != 100 {
+		t.Fatalf("IM.MessagePageSize = %d, want 100", cfg.IM.MessagePageSize)
+	}
+	if cfg.IM.WSTicketTTL != "30s" {
+		t.Fatalf("IM.WSTicketTTL = %q, want 30s", cfg.IM.WSTicketTTL)
+	}
+	if cfg.ObjStore.PresignTTL != "15m" {
+		t.Fatalf("ObjStore.PresignTTL = %q, want 15m", cfg.ObjStore.PresignTTL)
+	}
+}
+
 func TestLoadRejectsProductionPlaceholdersWithoutRuntimeOverrides(t *testing.T) {
 	configDir := filepath.Join("..", "..", "..", "configs")
 	t.Setenv("APP_ENV", "prod")
