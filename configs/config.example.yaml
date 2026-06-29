@@ -4,6 +4,7 @@ server:
   mode: "release"
   max_request_body_bytes: 1048576
   max_header_bytes: 1048576
+  cors_allowed_origins: []  # CORS 白名单，"*" 放行任意来源（不带凭证），空表示不放行跨域
 
 logger:
   level: "info"

@@ -57,6 +57,7 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 	router := gin.New()
 	router.Use(httpmiddleware.Recovery(appLogger))
 	router.Use(httpmiddleware.BodyLimit(cfg.Server.MaxRequestBodyBytes))
+	router.Use(httpmiddleware.CORS(cfg.Server.CORSAllowedOrigins))
 	router.Use(httpmiddleware.TraceContext(cfg.Tracing.ServiceName))
 	router.Use(httpmiddleware.RequestID())
 	router.Use(httpmiddleware.Logger(appLogger))

@@ -80,6 +80,8 @@ type ServerConfig struct {
 
 	MaxRequestBodyBytes int64 `mapstructure:"max_request_body_bytes"` // 请求体大小上限（字节，<=0 不限）；大文件走 media 预签名直传，不经此
 	MaxHeaderBytes      int   `mapstructure:"max_header_bytes"`       // 请求头大小上限（字节，<=0 用 net/http 默认 1MB）
+
+	CORSAllowedOrigins []string `mapstructure:"cors_allowed_origins"` // CORS 跨域来源白名单（"*" 放行任意，但不带凭证）
 }
 
 // LoggerConfig 是日志配置。
@@ -555,6 +557,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.mode", "release")
 	v.SetDefault("server.max_request_body_bytes", 1048576) // 1MB
 	v.SetDefault("server.max_header_bytes", 1048576)       // 1MB
+	v.SetDefault("server.cors_allowed_origins", []string{})
 	v.SetDefault("logger.level", "info")
 	v.SetDefault("logger.path", "./logs")
 	v.SetDefault("logger.app_name", "gotobeta")
@@ -656,6 +659,7 @@ func envKeys() []string {
 		"server.mode",
 		"server.max_request_body_bytes",
 		"server.max_header_bytes",
+		"server.cors_allowed_origins",
 		"logger.level",
 		"logger.path",
 		"logger.app_name",
