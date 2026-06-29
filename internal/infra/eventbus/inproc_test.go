@@ -1,0 +1,67 @@
+package eventbus_test
+
+import (
+	"context"
+	"errors"
+	"io"
+	"log/slog"
+	"testing"
+	"time"
+
+	"github.com/maguowei/gotobeta/internal/infra/eventbus"
+	"github.com/maguowei/gotobeta/internal/pkg/event"
+)
+
+type sampleEvent struct {
+	event.BaseEvent
+}
+
+func newSample(name string) sampleEvent {
+	return sampleEvent{BaseEvent: event.NewBaseEvent(name, time.Unix(0, 0))}
+}
+
+func newBus() *eventbus.InProc {
+	return eventbus.NewInProc(slog.New(slog.NewTextHandler(io.Discard, nil)))
+}
+
+func TestPublishInvokesSubscribers(t *testing.T) {
+	bus := newBus()
+	called := 0
+	bus.Subscribe("a.created", func(_ context.Context, _ event.Event) error {
+		called++
+		return nil
+	})
+
+	if err := bus.Publish(context.Background(), newSample("a.created")); err != nil {
+		t.Fatalf("Publish error: %v", err)
+	}
+	if called != 1 {
+		t.Fatalf("handler called %d times, want 1", called)
+	}
+}
+
+func TestPublishSwallowsHandlerError(t *testing.T) {
+	bus := newBus()
+	second := false
+	bus.Subscribe("a.created", func(_ context.Context, _ event.Event) error {
+		return errors.New("boom")
+	})
+	bus.Subscribe("a.created", func(_ context.Context, _ event.Event) error {
+		second = true
+		return nil
+	})
+
+	if err := bus.Publish(context.Background(), newSample("a.created")); err != nil {
+		t.Fatalf("Publish should swallow handler error, got %v", err)
+	}
+	if !second {
+		t.Fatal("second handler should still run after first errored")
+	}
+}
+
+func TestPublishUnsubscribedNoPanic(t *testing.T) {
+	bus := newBus()
+	if err := bus.Publish(context.Background(), newSample("nobody.listening")); err != nil {
+		t.Fatalf("Publish error: %v", err)
+	}
+}
