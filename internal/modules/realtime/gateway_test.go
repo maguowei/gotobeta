@@ -45,7 +45,7 @@ func TestGatewayHandshakeAndPing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("握手失败: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	var f ws.Frame
 	if err := readFrame(conn, &f); err != nil {
@@ -84,7 +84,7 @@ func TestGatewaySignalDelivery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("握手失败: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	var skip ws.Frame
 	if err := readFrame(conn, &skip); err != nil {
 		t.Fatalf("读取 auth_ok 失败: %v", err)

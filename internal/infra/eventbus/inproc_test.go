@@ -3,7 +3,6 @@ package eventbus_test
 import (
 	"context"
 	"errors"
-	"io"
 	"log/slog"
 	"testing"
 	"time"
@@ -21,7 +20,7 @@ func newSample(name string) sampleEvent {
 }
 
 func newBus() *eventbus.InProc {
-	return eventbus.NewInProc(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	return eventbus.NewInProc(slog.New(slog.DiscardHandler))
 }
 
 func TestPublishInvokesSubscribers(t *testing.T) {

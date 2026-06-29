@@ -87,8 +87,8 @@ func (p *capturePublisher) Publish(_ context.Context, evts ...event.Event) error
 
 func seedActiveMember(repo *memConvRepo, convID, userID int64) {
 	conv, _ := conversation.NewGroup(convID, 1, "g", userID)
-	repo.Create(context.Background(), conv)
-	repo.AddMember(context.Background(), conversation.NewMember(userID*1000, convID, conversation.MemberUser, userID, conversation.RoleOwner))
+	_ = repo.Create(context.Background(), conv)
+	_ = repo.AddMember(context.Background(), conversation.NewMember(userID*1000, convID, conversation.MemberUser, userID, conversation.RoleOwner))
 }
 
 func newMsgService(convRepo *memConvRepo, msgRepo *memMsgRepo, pub *capturePublisher) *MessageService {
