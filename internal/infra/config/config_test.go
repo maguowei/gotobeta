@@ -63,6 +63,12 @@ func TestLoadAppliesIMAndObjStoreDefaults(t *testing.T) {
 	if cfg.IM.WSHandshakeRatePerMinute != 60 {
 		t.Fatalf("IM.WSHandshakeRatePerMinute = %d, want 60", cfg.IM.WSHandshakeRatePerMinute)
 	}
+	if cfg.Server.MaxRequestBodyBytes != 1048576 {
+		t.Fatalf("Server.MaxRequestBodyBytes = %d, want 1048576", cfg.Server.MaxRequestBodyBytes)
+	}
+	if cfg.Server.MaxHeaderBytes != 1048576 {
+		t.Fatalf("Server.MaxHeaderBytes = %d, want 1048576", cfg.Server.MaxHeaderBytes)
+	}
 	if cfg.IM.WSTicketTTL != "30s" {
 		t.Fatalf("IM.WSTicketTTL = %q, want 30s", cfg.IM.WSTicketTTL)
 	}

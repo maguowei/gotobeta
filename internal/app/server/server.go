@@ -55,6 +55,7 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 	gin.SetMode(cfg.Server.Mode)
 	router := gin.New()
 	router.Use(httpmiddleware.Recovery(appLogger))
+	router.Use(httpmiddleware.BodyLimit(cfg.Server.MaxRequestBodyBytes))
 	router.Use(httpmiddleware.TraceContext(cfg.Tracing.ServiceName))
 	router.Use(httpmiddleware.RequestID())
 	router.Use(httpmiddleware.Logger(appLogger))
@@ -163,6 +164,9 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,
 		IdleTimeout:       30 * time.Second,
+	}
+	if cfg.Server.MaxHeaderBytes > 0 {
+		server.MaxHeaderBytes = cfg.Server.MaxHeaderBytes
 	}
 
 	errCh := make(chan error, 1)

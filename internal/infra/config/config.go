@@ -71,6 +71,9 @@ type ServerConfig struct {
 	Host string `mapstructure:"host"`
 	Port int    `mapstructure:"port"`
 	Mode string `mapstructure:"mode"`
+
+	MaxRequestBodyBytes int64 `mapstructure:"max_request_body_bytes"` // 请求体大小上限（字节，<=0 不限）；大文件走 media 预签名直传，不经此
+	MaxHeaderBytes      int   `mapstructure:"max_header_bytes"`       // 请求头大小上限（字节，<=0 用 net/http 默认 1MB）
 }
 
 // LoggerConfig 是日志配置。
@@ -539,6 +542,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.host", "0.0.0.0")
 	v.SetDefault("server.port", 8080)
 	v.SetDefault("server.mode", "release")
+	v.SetDefault("server.max_request_body_bytes", 1048576) // 1MB
+	v.SetDefault("server.max_header_bytes", 1048576)       // 1MB
 	v.SetDefault("logger.level", "info")
 	v.SetDefault("logger.path", "./logs")
 	v.SetDefault("logger.app_name", "gotobeta")
@@ -633,6 +638,8 @@ func envKeys() []string {
 		"server.host",
 		"server.port",
 		"server.mode",
+		"server.max_request_body_bytes",
+		"server.max_header_bytes",
 		"logger.level",
 		"logger.path",
 		"logger.app_name",
