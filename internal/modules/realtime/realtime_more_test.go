@@ -31,7 +31,7 @@ type errReader struct{ err error }
 func (r errReader) ReportRead(context.Context, int64, int64, int64) error { return r.err }
 
 func TestDispatcherIgnoresUnrelatedEvent(t *testing.T) {
-	d := NewDispatcher(hub.New(0, 0), stubMembers{}, slog.Default())
+	d := NewDispatcher(hub.New(0, 0), stubMembers{}, slog.Default(), nil)
 	// 非 MessageCreatedEvent 应被忽略（返回 nil，不触发查询）。
 	if err := d.OnMessageCreated(context.Background(), imevent.ReadUpdatedEvent{}); err != nil {
 		t.Fatalf("无关事件应被忽略, got %v", err)
@@ -43,7 +43,7 @@ func TestDispatcherIgnoresUnrelatedEvent(t *testing.T) {
 
 func TestDispatcherOnMessageCreatedLookupError(t *testing.T) {
 	boom := errors.New("lookup boom")
-	d := NewDispatcher(hub.New(0, 0), errMembers{err: boom}, slog.Default())
+	d := NewDispatcher(hub.New(0, 0), errMembers{err: boom}, slog.Default(), nil)
 	evt := imevent.NewMessageCreatedEvent(7, 100, 8001, 5, 1, 9, 1, time.Now())
 	if err := d.OnMessageCreated(context.Background(), evt); !errors.Is(err, boom) {
 		t.Fatalf("查询失败应透传, got %v", err)
@@ -55,7 +55,7 @@ func TestDispatcherOnReadUpdatedPushesReadFrame(t *testing.T) {
 	member := &recvConn{}
 	h.Register(1, member)
 
-	d := NewDispatcher(h, stubMembers{ids: []int64{1}}, slog.Default())
+	d := NewDispatcher(h, stubMembers{ids: []int64{1}}, slog.Default(), nil)
 	evt := imevent.NewReadUpdatedEvent(7, 100, 1, 12, time.Now())
 	if err := d.OnReadUpdated(context.Background(), evt); err != nil {
 		t.Fatalf("分发失败: %v", err)
@@ -75,7 +75,7 @@ func TestDispatcherOnReadUpdatedPushesReadFrame(t *testing.T) {
 
 func TestDispatcherOnReadUpdatedLookupError(t *testing.T) {
 	boom := errors.New("lookup boom")
-	d := NewDispatcher(hub.New(0, 0), errMembers{err: boom}, slog.Default())
+	d := NewDispatcher(hub.New(0, 0), errMembers{err: boom}, slog.Default(), nil)
 	evt := imevent.NewReadUpdatedEvent(7, 100, 1, 12, time.Now())
 	if err := d.OnReadUpdated(context.Background(), evt); !errors.Is(err, boom) {
 		t.Fatalf("查询失败应透传, got %v", err)

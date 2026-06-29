@@ -12,6 +12,11 @@ import (
 // drainPollInterval 是优雅关闭时轮询连接是否排空的间隔。
 const drainPollInterval = 20 * time.Millisecond
 
+// ConnGauge 是活跃连接数观测端口（由 infra/metrics.Collectors 实现），可为 nil（不埋点）。
+type ConnGauge interface {
+	SetWSConnections(n float64)
+}
+
 // Hub 维护 userID → 多连接 的注册表，线程安全，实现 imrt.Registry。
 // maxTotal / maxPerUser 为连接数上限（<=0 表示不限），用于过载保护。
 type Hub struct {
@@ -20,6 +25,14 @@ type Hub struct {
 	total      int
 	maxTotal   int
 	maxPerUser int
+	gauge      ConnGauge
+}
+
+// SetConnGauge 注入活跃连接数观测端口（组合根装配时调用）。
+func (h *Hub) SetConnGauge(g ConnGauge) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.gauge = g
 }
 
 // New 创建 Hub。maxTotal 为全局连接上限，maxPerUser 为单用户连接上限；<=0 表示不限。
@@ -50,6 +63,9 @@ func (h *Hub) Register(userID int64, c imrt.Connection) bool {
 	}
 	set[c] = struct{}{}
 	h.total++
+	if h.gauge != nil {
+		h.gauge.SetWSConnections(float64(h.total))
+	}
 	return true
 }
 
@@ -68,6 +84,9 @@ func (h *Hub) Unregister(userID int64, c imrt.Connection) {
 	h.total--
 	if len(set) == 0 {
 		delete(h.conns, userID)
+	}
+	if h.gauge != nil {
+		h.gauge.SetWSConnections(float64(h.total))
 	}
 }
 

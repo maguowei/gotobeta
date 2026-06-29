@@ -29,16 +29,30 @@ type recvConn struct{ frames [][]byte }
 func (c *recvConn) Send(frame []byte) { c.frames = append(c.frames, frame) }
 func (c *recvConn) Close()            {}
 
+// fakePushMetrics 记录推送结果计数。
+type fakePushMetrics struct{ byResult map[string]int }
+
+func (m *fakePushMetrics) IncPush(result string) {
+	if m.byResult == nil {
+		m.byResult = map[string]int{}
+	}
+	m.byResult[result]++
+}
+
 func TestDispatcherPushesSignalToOnlineMembers(t *testing.T) {
 	h := hub.New(0, 0)
 	online := &recvConn{}
 	h.Register(1, online) // 用户 1 在线
 	// 用户 2 离线（不注册）
 
-	d := NewDispatcher(h, stubMembers{ids: []int64{1, 2}}, slog.Default())
+	mc := &fakePushMetrics{}
+	d := NewDispatcher(h, stubMembers{ids: []int64{1, 2}}, slog.Default(), mc)
 	evt := imevent.NewMessageCreatedEvent(7, 100, 8001, 5, 1, 9, 1, time.Now())
 	if err := d.OnMessageCreated(context.Background(), evt); err != nil {
 		t.Fatalf("分发失败: %v", err)
+	}
+	if mc.byResult["success"] != 1 {
+		t.Fatalf("推送成功计数应为 1，得 %d", mc.byResult["success"])
 	}
 
 	if len(online.frames) != 1 {

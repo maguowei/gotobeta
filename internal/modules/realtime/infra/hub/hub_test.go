@@ -157,6 +157,26 @@ func TestGracefulShutdownTimesOutWhenStuck(t *testing.T) {
 	}
 }
 
+type countGauge struct{ last float64 }
+
+func (g *countGauge) SetWSConnections(n float64) { g.last = n }
+
+func TestConnGaugeUpdatedOnRegisterUnregister(t *testing.T) {
+	t.Parallel()
+	h := New(0, 0)
+	g := &countGauge{}
+	h.SetConnGauge(g)
+	c := &fakeConn{}
+	h.Register(1, c)
+	if g.last != 1 {
+		t.Fatalf("注册后 gauge 应为 1，得 %v", g.last)
+	}
+	h.Unregister(1, c)
+	if g.last != 0 {
+		t.Fatalf("注销后 gauge 应为 0，得 %v", g.last)
+	}
+}
+
 func TestConnectionCountTracksUnregister(t *testing.T) {
 	t.Parallel()
 	h := New(0, 0) // 无上限

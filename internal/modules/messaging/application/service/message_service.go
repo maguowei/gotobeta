@@ -33,9 +33,10 @@ type MessageService struct {
 	pageSize      int
 	maxPageSize   int
 	logger        *slog.Logger
+	metrics       messagingport.MessageMetrics
 }
 
-// NewMessageService 创建服务。
+// NewMessageService 创建服务。metrics 可为 nil（不埋点）。
 func NewMessageService(
 	messages message.Repository,
 	conversations conversation.Repository,
@@ -47,6 +48,7 @@ func NewMessageService(
 	recallWindow time.Duration,
 	pageSize int,
 	logger *slog.Logger,
+	metrics messagingport.MessageMetrics,
 ) *MessageService {
 	if pageSize <= 0 {
 		pageSize = 50
@@ -63,6 +65,7 @@ func NewMessageService(
 		pageSize:      pageSize,
 		maxPageSize:   200,
 		logger:        logger,
+		metrics:       metrics,
 	}
 }
 

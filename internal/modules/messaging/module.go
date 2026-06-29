@@ -15,6 +15,7 @@ import (
 	messaginghandler "github.com/maguowei/gotobeta/internal/modules/messaging/adapter/http/handler"
 	messagingrouter "github.com/maguowei/gotobeta/internal/modules/messaging/adapter/http/router"
 	messagingcmd "github.com/maguowei/gotobeta/internal/modules/messaging/application/command"
+	messagingport "github.com/maguowei/gotobeta/internal/modules/messaging/application/port"
 	messagingsvc "github.com/maguowei/gotobeta/internal/modules/messaging/application/service"
 	messagingpersist "github.com/maguowei/gotobeta/internal/modules/messaging/infra/persistence"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/infra/seqalloc"
@@ -39,7 +40,8 @@ type Module struct {
 // New 完成 messaging 模块装配（repo -> service -> handler）。
 //
 // checker 由组合根从 workspace 模块注入；publisher 为进程内事件总线，用于消息创建事件分发。
-func New(client *ent.Client, logger *slog.Logger, cfg *config.Config, checker authz.Checker, publisher event.Publisher) (*Module, error) {
+// metrics 可为 nil（不埋点），由组合根注入 *metrics.Collectors。
+func New(client *ent.Client, logger *slog.Logger, cfg *config.Config, checker authz.Checker, publisher event.Publisher, metrics messagingport.MessageMetrics) (*Module, error) {
 	convRepo := messagingpersist.NewConversationRepository(client, logger)
 	msgRepo := messagingpersist.NewMessageRepository(client, logger)
 	seqAllocator := seqalloc.NewDBAllocator(client)
@@ -49,7 +51,7 @@ func New(client *ent.Client, logger *slog.Logger, cfg *config.Config, checker au
 	convSvc := messagingsvc.NewConversationService(convRepo, checker, idGen, txRunner, logger)
 	msgSvc := messagingsvc.NewMessageService(
 		msgRepo, convRepo, seqAllocator, checker, publisher, idGen, txRunner,
-		recallWindow(cfg), cfg.IM.MessagePageSize, logger,
+		recallWindow(cfg), cfg.IM.MessagePageSize, logger, metrics,
 	)
 
 	sendLimiter := httpmiddleware.NewLimiter(cfg.IM.MessageRatePerMinute, cfg.IM.MessageRateBurst)

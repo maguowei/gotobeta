@@ -92,7 +92,34 @@ func seedActiveMember(repo *memConvRepo, convID, userID int64) {
 }
 
 func newMsgService(convRepo *memConvRepo, msgRepo *memMsgRepo, pub *capturePublisher) *MessageService {
-	return NewMessageService(msgRepo, convRepo, &memSeqAlloc{}, allowChecker{}, pub, &fakeIDGen{}, directTxRunner{}, 2*time.Minute, 50, slog.Default())
+	return NewMessageService(msgRepo, convRepo, &memSeqAlloc{}, allowChecker{}, pub, &fakeIDGen{}, directTxRunner{}, 2*time.Minute, 50, slog.Default(), nil)
+}
+
+// fakeMetrics 记录埋点调用次数，断言 SendMessage 触发观测。
+type fakeMetrics struct {
+	seqAllocCalls int
+	latencyCalls  int
+}
+
+func (m *fakeMetrics) ObserveSeqAlloc(context.Context, time.Duration)       { m.seqAllocCalls++ }
+func (m *fakeMetrics) ObserveMessageLatency(context.Context, time.Duration) { m.latencyCalls++ }
+
+func TestSendMessageRecordsMetrics(t *testing.T) {
+	convRepo := newMemConvRepo()
+	msgRepo := newMemMsgRepo()
+	seedActiveMember(convRepo, 100, 9)
+	mc := &fakeMetrics{}
+	svc := NewMessageService(msgRepo, convRepo, &memSeqAlloc{}, allowChecker{}, &capturePublisher{}, &fakeIDGen{}, directTxRunner{}, 2*time.Minute, 50, slog.Default(), mc)
+
+	if _, err := svc.SendMessage(context.Background(), textCmd(100, 9, "c1", "hi")); err != nil {
+		t.Fatalf("发送失败: %v", err)
+	}
+	if mc.seqAllocCalls != 1 {
+		t.Fatalf("ObserveSeqAlloc 应调用一次，得 %d", mc.seqAllocCalls)
+	}
+	if mc.latencyCalls != 1 {
+		t.Fatalf("ObserveMessageLatency 应调用一次，得 %d", mc.latencyCalls)
+	}
 }
 
 func textCmd(convID, sender int64, cid, text string) messagingcmd.SendMessageCommand {
@@ -232,7 +259,7 @@ func TestRecallExpiredWindow(t *testing.T) {
 	msgRepo := newMemMsgRepo()
 	seedActiveMember(convRepo, 100, 9)
 	// 撤回窗口 0，必定超窗。
-	svc := NewMessageService(msgRepo, convRepo, &memSeqAlloc{}, allowChecker{}, &capturePublisher{}, &fakeIDGen{}, directTxRunner{}, 0, 50, slog.Default())
+	svc := NewMessageService(msgRepo, convRepo, &memSeqAlloc{}, allowChecker{}, &capturePublisher{}, &fakeIDGen{}, directTxRunner{}, 0, 50, slog.Default(), nil)
 
 	sent, _ := svc.SendMessage(context.Background(), textCmd(100, 9, "c1", "hi"))
 	err := svc.RecallMessage(context.Background(), messagingcmd.RecallMessageCommand{

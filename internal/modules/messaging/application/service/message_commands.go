@@ -18,6 +18,7 @@ import (
 
 // SendMessage 发送消息：成员校验 → 幂等 → 事务内分配 seq 落库并更新会话游标 → 发布事件。
 func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendMessageCommand) (*messagingresult.MessageResult, error) {
+	start := time.Now()
 	if cmd.ClientMsgID == "" {
 		return nil, apperr.InvalidParam("client_msg_id 不能为空")
 	}
@@ -53,7 +54,11 @@ func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendM
 
 	var msg *message.Message
 	err = s.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
+		seqStart := time.Now()
 		seq, err := s.seqAllocator.Next(txCtx, cmd.ConversationID)
+		if s.metrics != nil {
+			s.metrics.ObserveSeqAlloc(txCtx, time.Since(seqStart))
+		}
 		if err != nil {
 			return wrapInfrastructureError("分配 seq 失败", err)
 		}
@@ -78,6 +83,9 @@ func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendM
 	}
 
 	s.publishCreated(ctx, conv.WorkspaceID(), msg)
+	if s.metrics != nil {
+		s.metrics.ObserveMessageLatency(ctx, time.Since(start))
+	}
 	s.logger.InfoContext(ctx, "message sent", slog.Int64("conversationId", cmd.ConversationID), slog.Int64("messageId", msgID), slog.Int64("seq", msg.Seq()))
 	return toMessageResult(msg), nil
 }

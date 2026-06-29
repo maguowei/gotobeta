@@ -33,6 +33,12 @@ type Subscriber interface {
 	Subscribe(name string, h event.Handler)
 }
 
+// Metrics 是 realtime 可观测性端口（由 infra/metrics.Collectors 实现），可为 nil（不埋点）。
+type Metrics interface {
+	PushMetrics
+	hub.ConnGauge
+}
+
 // defaultWSHandshakeRate 是 WS 握手限流稳态速率兜底值（次/分钟）。
 const defaultWSHandshakeRate = 60
 
@@ -47,7 +53,7 @@ type Module struct {
 // New 完成 realtime 模块装配，并把分发器订阅到事件总线。
 //
 // kv 可为 nil（ticket/presence 退化为单机内存）；members/reader 由 messaging 模块注入。
-func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, reader imrt.ReadReporter, bus Subscriber, logger *slog.Logger) (*Module, error) {
+func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, reader imrt.ReadReporter, bus Subscriber, logger *slog.Logger, metrics Metrics) (*Module, error) {
 	var ticketKV ticket.KV
 	var presenceKV presence.KV
 	if kv != nil {
@@ -57,6 +63,9 @@ func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, reade
 	ticketStore := ticket.NewStore(ticketKV, ticketTTL(cfg))
 	presenceStore := presence.NewStore(presenceKV, presenceTTL(cfg))
 	connHub := hub.New(cfg.IM.MaxWSConnections, cfg.IM.MaxConnPerUser)
+	if metrics != nil {
+		connHub.SetConnGauge(metrics)
+	}
 
 	ticketSvc := realtimesvc.NewTicketService(ticketStore)
 	ephemeral := NewEphemeral(connHub, members, reader, logger)
@@ -69,7 +78,7 @@ func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, reade
 		ReadLimit:               cfg.IM.WSReadLimit,
 	})
 
-	dispatcher := NewDispatcher(connHub, members, logger)
+	dispatcher := NewDispatcher(connHub, members, logger, metrics)
 	bus.Subscribe(imevent.MessageCreated, dispatcher.OnMessageCreated)
 	bus.Subscribe(imevent.ReadUpdated, dispatcher.OnReadUpdated)
 

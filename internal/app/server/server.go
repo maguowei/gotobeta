@@ -136,13 +136,13 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 	workspaceMod.Mount(apiV1, userMod.AuthMiddleware())
 
 	eventBus := eventbus.NewInProc(appLogger)
-	messagingMod, err := messaging.New(client, appLogger, cfg, workspaceMod.Checker(), eventBus)
+	messagingMod, err := messaging.New(client, appLogger, cfg, workspaceMod.Checker(), eventBus, mc)
 	if err != nil {
 		return err
 	}
 	messagingMod.Mount(apiV1, userMod.AuthMiddleware())
 
-	realtimeMod, err := realtime.New(cfg, redisKV, messagingMod.MemberLookup(), messagingMod.ReadReporter(), eventBus, appLogger)
+	realtimeMod, err := realtime.New(cfg, redisKV, messagingMod.MemberLookup(), messagingMod.ReadReporter(), eventBus, appLogger, mc)
 	if err != nil {
 		return err
 	}
