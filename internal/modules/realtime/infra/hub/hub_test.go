@@ -24,7 +24,7 @@ func (c *fakeConn) count() int {
 
 func TestPushToAllConnectionsOfUser(t *testing.T) {
 	t.Parallel()
-	h := New()
+	h := New(0, 0)
 	c1, c2 := &fakeConn{}, &fakeConn{}
 	h.Register(1, c1)
 	h.Register(1, c2)
@@ -36,7 +36,7 @@ func TestPushToAllConnectionsOfUser(t *testing.T) {
 
 func TestUnregisterCleansUp(t *testing.T) {
 	t.Parallel()
-	h := New()
+	h := New(0, 0)
 	c := &fakeConn{}
 	h.Register(1, c)
 	if !h.IsOnline(1) {
@@ -55,7 +55,7 @@ func TestUnregisterCleansUp(t *testing.T) {
 
 func TestBroadcast(t *testing.T) {
 	t.Parallel()
-	h := New()
+	h := New(0, 0)
 	c1, c2, c3 := &fakeConn{}, &fakeConn{}, &fakeConn{}
 	h.Register(1, c1)
 	h.Register(2, c2)
@@ -66,5 +66,52 @@ func TestBroadcast(t *testing.T) {
 	}
 	if c3.count() != 0 {
 		t.Fatal("非目标用户不应收到")
+	}
+}
+
+func TestRegisterRejectsOverPerUserLimit(t *testing.T) {
+	t.Parallel()
+	h := New(0, 1) // 每用户最多 1 条连接
+	c1, c2 := &fakeConn{}, &fakeConn{}
+	if !h.Register(1, c1) {
+		t.Fatal("首条连接应接纳")
+	}
+	if h.Register(1, c2) {
+		t.Fatal("超过单用户上限应拒绝")
+	}
+	if got := h.UserConnectionCount(1); got != 1 {
+		t.Fatalf("单用户连接数 = %d, want 1", got)
+	}
+}
+
+func TestRegisterRejectsOverTotalLimit(t *testing.T) {
+	t.Parallel()
+	h := New(1, 0) // 全局最多 1 条连接
+	if !h.Register(1, &fakeConn{}) {
+		t.Fatal("首条连接应接纳")
+	}
+	if h.Register(2, &fakeConn{}) {
+		t.Fatal("超过全局上限应拒绝")
+	}
+	if got := h.ConnectionCount(); got != 1 {
+		t.Fatalf("全局连接数 = %d, want 1", got)
+	}
+}
+
+func TestConnectionCountTracksUnregister(t *testing.T) {
+	t.Parallel()
+	h := New(0, 0) // 无上限
+	c1, c2 := &fakeConn{}, &fakeConn{}
+	h.Register(1, c1)
+	h.Register(1, c2)
+	if got := h.ConnectionCount(); got != 2 {
+		t.Fatalf("注册后全局连接数 = %d, want 2", got)
+	}
+	h.Unregister(1, c1)
+	if got := h.ConnectionCount(); got != 1 {
+		t.Fatalf("注销一条后 = %d, want 1", got)
+	}
+	if got := h.UserConnectionCount(1); got != 1 {
+		t.Fatalf("注销一条后单用户 = %d, want 1", got)
 	}
 }

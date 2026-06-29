@@ -11,6 +11,7 @@ type Connection interface {
 
 // Registry 是连接注册表（由 infra/hub 实现），供 WS 网关注册/注销连接。
 type Registry interface {
-	Register(userID int64, c Connection)
+	// Register 注册一条连接；超过连接上限时拒绝并返回 false。
+	Register(userID int64, c Connection) bool
 	Unregister(userID int64, c Connection)
 }

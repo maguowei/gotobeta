@@ -17,6 +17,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/modules/realtime/infra/presence"
 	"github.com/maguowei/gotobeta/internal/modules/realtime/infra/ticket"
 	"github.com/maguowei/gotobeta/internal/pkg/event"
+	httpmiddleware "github.com/maguowei/gotobeta/internal/pkg/httpx/middleware"
 	"github.com/maguowei/gotobeta/internal/pkg/imevent"
 	"github.com/maguowei/gotobeta/internal/pkg/imrt"
 )
@@ -31,10 +32,14 @@ type Subscriber interface {
 	Subscribe(name string, h event.Handler)
 }
 
+// defaultWSHandshakeRate 是 WS 握手限流稳态速率兜底值（次/分钟）。
+const defaultWSHandshakeRate = 60
+
 // Module 持有装配好的 realtime HTTP 入口。
 type Module struct {
-	ticketHandler *realtimehandler.TicketHandler
-	gateway       *ws.Gateway
+	ticketHandler  *realtimehandler.TicketHandler
+	gateway        *ws.Gateway
+	handshakeLimit gin.HandlerFunc
 }
 
 // New 完成 realtime 模块装配，并把分发器订阅到事件总线。
@@ -49,7 +54,7 @@ func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, reade
 	}
 	ticketStore := ticket.NewStore(ticketKV, ticketTTL(cfg))
 	presenceStore := presence.NewStore(presenceKV, presenceTTL(cfg))
-	connHub := hub.New()
+	connHub := hub.New(cfg.IM.MaxWSConnections, cfg.IM.MaxConnPerUser)
 
 	ticketSvc := realtimesvc.NewTicketService(ticketStore)
 	ephemeral := NewEphemeral(connHub, members, reader, logger)
@@ -60,15 +65,22 @@ func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, reade
 	bus.Subscribe(imevent.MessageCreated, dispatcher.OnMessageCreated)
 	bus.Subscribe(imevent.ReadUpdated, dispatcher.OnReadUpdated)
 
+	handshakeRate := cfg.IM.WSHandshakeRatePerMinute
+	if handshakeRate <= 0 {
+		handshakeRate = defaultWSHandshakeRate
+	}
+	handshakeLimiter := httpmiddleware.NewLimiter(handshakeRate, handshakeRate)
+
 	return &Module{
-		ticketHandler: realtimehandler.NewTicketHandler(ticketSvc),
-		gateway:       gateway,
+		ticketHandler:  realtimehandler.NewTicketHandler(ticketSvc),
+		gateway:        gateway,
+		handshakeLimit: handshakeLimiter.Middleware(nil),
 	}, nil
 }
 
 // Mount 把 ticket 与 WS 路由挂到给定路由组。authMiddlewares 仅作用于 POST /ws/ticket。
 func (m *Module) Mount(rg *gin.RouterGroup, authMiddlewares ...gin.HandlerFunc) {
-	realtimerouter.RegisterRoutes(rg, m.ticketHandler, m.gateway, authMiddlewares...)
+	realtimerouter.RegisterRoutes(rg, m.ticketHandler, m.gateway, m.handshakeLimit, authMiddlewares...)
 }
 
 func ticketTTL(cfg *config.Config) time.Duration {

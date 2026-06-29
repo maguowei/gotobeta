@@ -29,7 +29,7 @@ type recvConn struct{ frames [][]byte }
 func (c *recvConn) Send(frame []byte) { c.frames = append(c.frames, frame) }
 
 func TestDispatcherPushesSignalToOnlineMembers(t *testing.T) {
-	h := hub.New()
+	h := hub.New(0, 0)
 	online := &recvConn{}
 	h.Register(1, online) // 用户 1 在线
 	// 用户 2 离线（不注册）

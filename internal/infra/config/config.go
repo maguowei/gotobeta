@@ -48,6 +48,10 @@ type IMConfig struct {
 
 	MessageRatePerMinute int `mapstructure:"message_rate_per_minute"` // 单用户发消息稳态速率（条/分钟）
 	MessageRateBurst     int `mapstructure:"message_rate_burst"`      // 单用户发消息突发容量
+
+	MaxWSConnections         int `mapstructure:"max_ws_connections"`           // 单实例 WS 全局连接上限
+	MaxConnPerUser           int `mapstructure:"max_conn_per_user"`            // 单用户 WS 连接上限（多端）
+	WSHandshakeRatePerMinute int `mapstructure:"ws_handshake_rate_per_minute"` // 单 IP WS 握手稳态速率（次/分钟）
 }
 
 // ObjStoreConfig 是 S3 兼容对象存储配置。dev 指向 MinIO，prod 指向任意 S3 兼容存储。
@@ -611,6 +615,9 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("im.message_page_size", 100)
 	v.SetDefault("im.message_rate_per_minute", 120)
 	v.SetDefault("im.message_rate_burst", 20)
+	v.SetDefault("im.max_ws_connections", 10000)
+	v.SetDefault("im.max_conn_per_user", 10)
+	v.SetDefault("im.ws_handshake_rate_per_minute", 60)
 	v.SetDefault("objstore.endpoint", "")
 	v.SetDefault("objstore.region", "")
 	v.SetDefault("objstore.bucket", "")
@@ -704,6 +711,9 @@ func envKeys() []string {
 		"im.message_page_size",
 		"im.message_rate_per_minute",
 		"im.message_rate_burst",
+		"im.max_ws_connections",
+		"im.max_conn_per_user",
+		"im.ws_handshake_rate_per_minute",
 		"objstore.endpoint",
 		"objstore.region",
 		"objstore.bucket",

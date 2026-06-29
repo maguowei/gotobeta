@@ -71,7 +71,17 @@ func (g *Gateway) Handle(c *gin.Context) {
 	}
 
 	conn := newConn(userID, wsConn)
-	g.hub.Register(userID, conn)
+	if !g.hub.Register(userID, conn) {
+		// 达到连接上限：已完成 WS 握手，按协议用 1013(Try Again Later) 关闭而非 HTTP 503。
+		_ = wsConn.WriteControl(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseTryAgainLater, "connection limit reached"),
+			time.Now().Add(writeWait),
+		)
+		_ = wsConn.Close()
+		g.logger.WarnContext(c.Request.Context(), "ws 连接达上限，拒绝接入", slog.Int64("user_id", userID))
+		return
+	}
 	conn.Send(mustEncode(Frame{T: TypeAuthOK, UID: userID}))
 	if g.presence != nil {
 		g.presence.OnConnect(c.Request.Context(), userID)

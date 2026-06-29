@@ -54,6 +54,15 @@ func TestLoadAppliesIMAndObjStoreDefaults(t *testing.T) {
 	if cfg.IM.MessageRateBurst != 20 {
 		t.Fatalf("IM.MessageRateBurst = %d, want 20", cfg.IM.MessageRateBurst)
 	}
+	if cfg.IM.MaxWSConnections != 10000 {
+		t.Fatalf("IM.MaxWSConnections = %d, want 10000", cfg.IM.MaxWSConnections)
+	}
+	if cfg.IM.MaxConnPerUser != 10 {
+		t.Fatalf("IM.MaxConnPerUser = %d, want 10", cfg.IM.MaxConnPerUser)
+	}
+	if cfg.IM.WSHandshakeRatePerMinute != 60 {
+		t.Fatalf("IM.WSHandshakeRatePerMinute = %d, want 60", cfg.IM.WSHandshakeRatePerMinute)
+	}
 	if cfg.IM.WSTicketTTL != "30s" {
 		t.Fatalf("IM.WSTicketTTL = %q, want 30s", cfg.IM.WSTicketTTL)
 	}

@@ -25,7 +25,7 @@ func (r *captureReader) ReportRead(_ context.Context, conversationID, userID, re
 }
 
 func TestTypingBroadcastExcludesSelf(t *testing.T) {
-	h := hub.New()
+	h := hub.New(0, 0)
 	self, peer := &recvConn{}, &recvConn{}
 	h.Register(1, self)
 	h.Register(2, peer)
@@ -48,7 +48,7 @@ func TestTypingBroadcastExcludesSelf(t *testing.T) {
 
 func TestReadEphemeralForwards(t *testing.T) {
 	reader := &captureReader{}
-	e := NewEphemeral(hub.New(), stubMembers{}, reader, slog.Default())
+	e := NewEphemeral(hub.New(0, 0), stubMembers{}, reader, slog.Default())
 	e.Read(context.Background(), 9, 100, 12)
 	if !reader.called || reader.convID != 100 || reader.userID != 9 || reader.seq != 12 {
 		t.Fatalf("read 应回流到 reader: %+v", reader)
@@ -56,7 +56,7 @@ func TestReadEphemeralForwards(t *testing.T) {
 }
 
 func TestPresenceBroadcastsToPeers(t *testing.T) {
-	h := hub.New()
+	h := hub.New(0, 0)
 	peer := &recvConn{}
 	h.Register(2, peer)
 	p := NewPresence(h, presence.NewStore(nil, 0), stubMembers{peers: []int64{2}}, slog.Default())

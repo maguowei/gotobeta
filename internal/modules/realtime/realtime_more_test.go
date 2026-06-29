@@ -31,7 +31,7 @@ type errReader struct{ err error }
 func (r errReader) ReportRead(context.Context, int64, int64, int64) error { return r.err }
 
 func TestDispatcherIgnoresUnrelatedEvent(t *testing.T) {
-	d := NewDispatcher(hub.New(), stubMembers{}, slog.Default())
+	d := NewDispatcher(hub.New(0, 0), stubMembers{}, slog.Default())
 	// 非 MessageCreatedEvent 应被忽略（返回 nil，不触发查询）。
 	if err := d.OnMessageCreated(context.Background(), imevent.ReadUpdatedEvent{}); err != nil {
 		t.Fatalf("无关事件应被忽略, got %v", err)
@@ -43,7 +43,7 @@ func TestDispatcherIgnoresUnrelatedEvent(t *testing.T) {
 
 func TestDispatcherOnMessageCreatedLookupError(t *testing.T) {
 	boom := errors.New("lookup boom")
-	d := NewDispatcher(hub.New(), errMembers{err: boom}, slog.Default())
+	d := NewDispatcher(hub.New(0, 0), errMembers{err: boom}, slog.Default())
 	evt := imevent.NewMessageCreatedEvent(7, 100, 8001, 5, 1, 9, 1, time.Now())
 	if err := d.OnMessageCreated(context.Background(), evt); !errors.Is(err, boom) {
 		t.Fatalf("查询失败应透传, got %v", err)
@@ -51,7 +51,7 @@ func TestDispatcherOnMessageCreatedLookupError(t *testing.T) {
 }
 
 func TestDispatcherOnReadUpdatedPushesReadFrame(t *testing.T) {
-	h := hub.New()
+	h := hub.New(0, 0)
 	member := &recvConn{}
 	h.Register(1, member)
 
@@ -75,7 +75,7 @@ func TestDispatcherOnReadUpdatedPushesReadFrame(t *testing.T) {
 
 func TestDispatcherOnReadUpdatedLookupError(t *testing.T) {
 	boom := errors.New("lookup boom")
-	d := NewDispatcher(hub.New(), errMembers{err: boom}, slog.Default())
+	d := NewDispatcher(hub.New(0, 0), errMembers{err: boom}, slog.Default())
 	evt := imevent.NewReadUpdatedEvent(7, 100, 1, 12, time.Now())
 	if err := d.OnReadUpdated(context.Background(), evt); !errors.Is(err, boom) {
 		t.Fatalf("查询失败应透传, got %v", err)
@@ -83,7 +83,7 @@ func TestDispatcherOnReadUpdatedLookupError(t *testing.T) {
 }
 
 func TestTypingLookupErrorIsSwallowed(t *testing.T) {
-	h := hub.New()
+	h := hub.New(0, 0)
 	peer := &recvConn{}
 	h.Register(2, peer)
 	e := NewEphemeral(h, errMembers{err: errors.New("boom")}, &captureReader{}, slog.Default())
@@ -96,13 +96,13 @@ func TestTypingLookupErrorIsSwallowed(t *testing.T) {
 }
 
 func TestReadErrorIsSwallowed(t *testing.T) {
-	e := NewEphemeral(hub.New(), stubMembers{}, errReader{err: errors.New("boom")}, slog.Default())
+	e := NewEphemeral(hub.New(0, 0), stubMembers{}, errReader{err: errors.New("boom")}, slog.Default())
 	// ReportRead 失败仅记日志，不 panic。
 	e.Read(context.Background(), 9, 100, 12)
 }
 
 func TestPresenceOnDisconnectMarksOfflineWhenNoConn(t *testing.T) {
-	h := hub.New()
+	h := hub.New(0, 0)
 	peer := &recvConn{}
 	h.Register(2, peer)
 	store := presence.NewStore(nil, 0)
@@ -122,7 +122,7 @@ func TestPresenceOnDisconnectMarksOfflineWhenNoConn(t *testing.T) {
 }
 
 func TestPresenceOnDisconnectKeepsOnlineWhenOtherConn(t *testing.T) {
-	h := hub.New()
+	h := hub.New(0, 0)
 	peer := &recvConn{}
 	h.Register(2, peer)
 	h.Register(1, &recvConn{}) // 用户 1 仍有其他端在线
@@ -143,7 +143,7 @@ func (k errKV) Set(context.Context, string, string, time.Duration) error { retur
 func (k errKV) Del(context.Context, string) error                        { return k.err }
 
 func TestPresenceOnConnectMarkOnlineError(t *testing.T) {
-	h := hub.New()
+	h := hub.New(0, 0)
 	peer := &recvConn{}
 	h.Register(2, peer)
 	store := presence.NewStore(errKV{err: errors.New("boom")}, time.Minute)
@@ -157,7 +157,7 @@ func TestPresenceOnConnectMarkOnlineError(t *testing.T) {
 }
 
 func TestPresenceOnDisconnectMarkOfflineError(t *testing.T) {
-	h := hub.New()
+	h := hub.New(0, 0)
 	peer := &recvConn{}
 	h.Register(2, peer)
 	store := presence.NewStore(errKV{err: errors.New("boom")}, time.Minute)
@@ -171,7 +171,7 @@ func TestPresenceOnDisconnectMarkOfflineError(t *testing.T) {
 }
 
 func TestPresenceBroadcastLookupErrorIsSwallowed(t *testing.T) {
-	h := hub.New()
+	h := hub.New(0, 0)
 	peer := &recvConn{}
 	h.Register(2, peer)
 	p := NewPresence(h, presence.NewStore(nil, 0), errMembers{err: errors.New("boom")}, slog.Default())
