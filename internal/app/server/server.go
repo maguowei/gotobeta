@@ -19,9 +19,11 @@ import (
 	"github.com/maguowei/gotobeta/internal/infra/cache"
 	"github.com/maguowei/gotobeta/internal/infra/entdb"
 	"github.com/maguowei/gotobeta/internal/infra/eventbus"
+	"github.com/maguowei/gotobeta/internal/infra/objstore"
 
 	"github.com/maguowei/gotobeta/internal/modules/user"
 
+	"github.com/maguowei/gotobeta/internal/modules/media"
 	"github.com/maguowei/gotobeta/internal/modules/messaging"
 	"github.com/maguowei/gotobeta/internal/modules/realtime"
 	"github.com/maguowei/gotobeta/internal/modules/todo"
@@ -141,6 +143,16 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 		return err
 	}
 	realtimeMod.Mount(apiV1, userMod.AuthMiddleware())
+
+	presigner, err := objstore.NewMinioPresigner(cfg.ObjStore)
+	if err != nil {
+		return err
+	}
+	mediaMod, err := media.New(client, appLogger, cfg, presigner, workspaceMod.Checker())
+	if err != nil {
+		return err
+	}
+	mediaMod.Mount(apiV1, userMod.AuthMiddleware())
 
 	server := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),

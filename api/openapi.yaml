@@ -21,6 +21,8 @@ tags:
     description: 会话、频道与成员接口
   - name: realtime
     description: 实时网关（WS ticket 与 WebSocket 升级）
+  - name: media
+    description: 附件预签名上传与提交
 paths:
   /health:
     get:
@@ -1286,6 +1288,92 @@ paths:
                 data: null
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/attachments/presign:
+    post:
+      operationId: presignAttachment
+      summary: 申请附件预签名上传
+      description: 创建待提交附件并返回预签名 PUT URL，客户端据此直传对象存储，需要发言权限。
+      tags:
+        - media
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        description: 预签名上传请求体
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignAttachmentRequest'
+      responses:
+        '200':
+          description: 预签名结果
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  attachmentId: "5001"
+                  objectKey: workspace/1/5001/a.png
+                  uploadUrl: https://obj.example.com/put?sig=x
+              schema:
+                $ref: '#/components/schemas/PresignResponse'
+        '403':
+          description: 无发言权限
+          content:
+            application/json:
+              example:
+                code: 40301
+                message: 没有执行该操作的权限
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/attachments/{id}/commit:
+    post:
+      operationId: commitAttachment
+      summary: 确认附件上传完成
+      description: 直传完成后确认附件，置为已提交并返回公共访问 URL，仅上传者本人可操作。
+      tags:
+        - media
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AttachmentID'
+      requestBody:
+        required: true
+        description: 确认上传请求体
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommitAttachmentRequest'
+      responses:
+        '200':
+          description: 已提交附件
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  attachmentId: "5001"
+                  objectKey: workspace/1/5001/a.png
+                  fileName: a.png
+                  contentType: image/png
+                  sizeBytes: 100
+                  status: 2
+                  publicUrl: https://cdn.example.com/workspace/1/5001/a.png
+              schema:
+                $ref: '#/components/schemas/AttachmentResponse'
+        '403':
+          description: 非上传者本人
+          content:
+            application/json:
+              example:
+                code: 40301
+                message: 只能提交自己上传的附件
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   parameters:
     OAuthProvider:
@@ -1340,6 +1428,14 @@ components:
       name: mid
       in: path
       description: 消息 ID
+      required: true
+      schema:
+        type: integer
+        format: int64
+    AttachmentID:
+      name: id
+      in: path
+      description: 附件 ID
       required: true
       schema:
         type: integer
@@ -2101,6 +2197,101 @@ components:
               role: 1
           items:
             $ref: '#/components/schemas/ConversationMemberItem'
+    PresignAttachmentRequest:
+      description: 预签名上传请求
+      type: object
+      required:
+        - workspaceId
+        - fileName
+        - contentType
+      properties:
+        workspaceId:
+          type: string
+          example: "1"
+        fileName:
+          type: string
+          example: a.png
+        contentType:
+          type: string
+          example: image/png
+        sizeBytes:
+          type: integer
+          format: int64
+          example: 100
+    CommitAttachmentRequest:
+      description: 确认上传请求
+      type: object
+      required:
+        - workspaceId
+      properties:
+        workspaceId:
+          type: string
+          example: "1"
+    PresignResponse:
+      description: 预签名结果响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            attachmentId:
+              type: string
+              example: "5001"
+            objectKey:
+              type: string
+              example: workspace/1/5001/a.png
+            uploadUrl:
+              type: string
+              example: https://obj.example.com/put?sig=x
+    AttachmentResponse:
+      description: 附件响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            attachmentId:
+              type: string
+              example: "5001"
+            objectKey:
+              type: string
+              example: workspace/1/5001/a.png
+            fileName:
+              type: string
+              example: a.png
+            contentType:
+              type: string
+              example: image/png
+            sizeBytes:
+              type: integer
+              format: int64
+              example: 100
+            status:
+              type: integer
+              example: 2
+            publicUrl:
+              type: string
+              example: https://cdn.example.com/workspace/1/5001/a.png
     TicketResponse:
       description: WS ticket 响应
       type: object
