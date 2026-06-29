@@ -48,6 +48,14 @@ func (p *MinioPresigner) PresignPut(ctx context.Context, objectKey string, ttl t
 	return u.String(), nil
 }
 
+// CheckHealth 探活对象存储：确认目标 bucket 可访问，供 readyz 注册。
+func (p *MinioPresigner) CheckHealth(ctx context.Context) error {
+	if _, err := p.client.BucketExists(ctx, p.bucket); err != nil {
+		return fmt.Errorf("objstore: bucket 探活失败: %w", err)
+	}
+	return nil
+}
+
 // PublicURL 返回对象的对外访问 URL。
 func (p *MinioPresigner) PublicURL(objectKey string) string {
 	if p.publicBaseURL != "" {

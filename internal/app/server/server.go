@@ -115,6 +115,10 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 		}
 	}()
 	redisKV := cache.NewRedisKV(redisClient)
+	// readyz 探活 Redis（启用时）：依赖不可用时返回错误，避免流量打到坏实例。
+	if redisClient != nil {
+		healthRegistry.Register("redis", cache.RedisHealthChecker(redisClient))
+	}
 
 	apiV1 := router.Group("/api/v1")
 	userMod, err := user.New(client, appLogger, cfg)
@@ -151,6 +155,12 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 	presigner, err := objstore.NewMinioPresigner(cfg.ObjStore)
 	if err != nil {
 		return err
+	}
+	// readyz 探活对象存储（配置了 endpoint 时）：bucket 不可达时返回错误。
+	if presigner != nil {
+		healthRegistry.Register("objstore", health.CheckerFunc(func(ctx context.Context) error {
+			return presigner.CheckHealth(ctx)
+		}))
 	}
 	mediaMod, err := media.New(client, appLogger, cfg, presigner, workspaceMod.Checker())
 	if err != nil {

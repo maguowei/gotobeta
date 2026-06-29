@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -14,6 +15,31 @@ func TestNewRedisClientReturnsNilWhenDisabled(t *testing.T) {
 	}
 	if client != nil {
 		t.Fatalf("client = %v, want nil when disabled", client)
+	}
+}
+
+func TestRedisHealthCheckerReportsError(t *testing.T) {
+	// 指向不可达地址 + 短 dial 超时：探活应快速返回错误（不挂起）。
+	client, err := NewRedisClient(config.RedisConfig{
+		Enabled:      true,
+		Addr:         "127.0.0.1:1",
+		DialTimeout:  "100ms",
+		ReadTimeout:  "100ms",
+		WriteTimeout: "100ms",
+	})
+	if err != nil {
+		t.Fatalf("NewRedisClient() error = %v", err)
+	}
+	t.Cleanup(func() { _ = CloseRedis(client) })
+
+	checker := RedisHealthChecker(client)
+	if checker == nil {
+		t.Fatal("checker 不应为 nil")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := checker.Check(ctx); err == nil {
+		t.Fatal("不可达 Redis 探活应返回错误")
 	}
 }
 
