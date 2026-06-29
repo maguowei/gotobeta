@@ -64,10 +64,41 @@ func TestNewCollectorsRegistersMetrics(t *testing.T) {
 	mc.ObserveEventBus(context.Background(), "outbox", "todo.created", "success", time.Millisecond)
 }
 
+func TestNewCollectorsRegistersIMMetrics(t *testing.T) {
+	t.Parallel()
+
+	reg := prometheus.NewRegistry()
+	mc := NewCollectors(reg, "test_im")
+
+	if mc.WSConnectionsActive == nil {
+		t.Fatal("WSConnectionsActive is nil")
+	}
+	if mc.MessageE2ELatency == nil {
+		t.Fatal("MessageE2ELatency is nil")
+	}
+	if mc.SeqAllocDuration == nil {
+		t.Fatal("SeqAllocDuration is nil")
+	}
+	if mc.PushTotal == nil {
+		t.Fatal("PushTotal is nil")
+	}
+
+	mc.ObserveSeqAlloc(context.Background(), time.Millisecond)
+	mc.ObserveMessageLatency(context.Background(), 5*time.Millisecond)
+	mc.IncPush("success")
+	mc.IncPush("dropped")
+	mc.SetWSConnections(3)
+}
+
 func TestCollectorsNilSafe(t *testing.T) {
 	var mc *Collectors
 	mc.ObserveExternalCall(context.Background(), "example", "ping", time.Millisecond, 200, nil)
 	mc.ObserveEventBus(context.Background(), "inbox", "todo.created", "success", time.Millisecond)
+	// IM 指标方法同样 nil-safe。
+	mc.ObserveSeqAlloc(context.Background(), time.Millisecond)
+	mc.ObserveMessageLatency(context.Background(), time.Millisecond)
+	mc.IncPush("success")
+	mc.SetWSConnections(1)
 }
 
 func TestNewCollectorsIncludesRuntimeMetrics(t *testing.T) {

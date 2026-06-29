@@ -19,6 +19,12 @@ type Collectors struct {
 	ExternalCallDuration *prometheus.HistogramVec
 	EventBusEventsTotal  *prometheus.CounterVec
 	EventBusDuration     *prometheus.HistogramVec
+
+	// IM 关键指标
+	WSConnectionsActive prometheus.Gauge     // 当前活跃 WS 连接数
+	MessageE2ELatency   prometheus.Histogram // 消息端到端延迟（发送到投递）
+	SeqAllocDuration    prometheus.Histogram // 每会话 seq 分配耗时
+	PushTotal           *prometheus.CounterVec
 }
 
 // NewCollectors 创建并注册指标收集器。
@@ -84,6 +90,41 @@ func NewCollectors(registry prometheus.Registerer, namespace string) *Collectors
 		[]string{"component", "event_type"},
 	)
 
+	wsConnectionsActive := prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "ws_connections_active",
+			Help:      "Current number of active WebSocket connections",
+		},
+	)
+
+	messageE2ELatency := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace: namespace,
+			Name:      "message_e2e_latency_seconds",
+			Help:      "End-to-end IM message latency from send to delivery in seconds",
+			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5},
+		},
+	)
+
+	seqAllocDuration := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace: namespace,
+			Name:      "seq_alloc_duration_seconds",
+			Help:      "Per-conversation sequence allocation duration in seconds",
+			Buckets:   []float64{0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5},
+		},
+	)
+
+	pushTotal := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "push_total",
+			Help:      "Total number of realtime push attempts by result",
+		},
+		[]string{"result"},
+	)
+
 	registry.MustRegister(
 		httpRequestsTotal,
 		httpRequestDuration,
@@ -91,6 +132,10 @@ func NewCollectors(registry prometheus.Registerer, namespace string) *Collectors
 		externalCallDuration,
 		eventBusEventsTotal,
 		eventBusDuration,
+		wsConnectionsActive,
+		messageE2ELatency,
+		seqAllocDuration,
+		pushTotal,
 	)
 
 	return &Collectors{
@@ -100,6 +145,10 @@ func NewCollectors(registry prometheus.Registerer, namespace string) *Collectors
 		ExternalCallDuration: externalCallDuration,
 		EventBusEventsTotal:  eventBusEventsTotal,
 		EventBusDuration:     eventBusDuration,
+		WSConnectionsActive:  wsConnectionsActive,
+		MessageE2ELatency:    messageE2ELatency,
+		SeqAllocDuration:     seqAllocDuration,
+		PushTotal:            pushTotal,
 	}
 }
 
@@ -139,4 +188,36 @@ func (c *Collectors) ObserveEventBus(ctx context.Context, component string, even
 
 	observer := c.EventBusDuration.WithLabelValues(component, eventType)
 	observe.ObserveWithTraceID(ctx, observer, duration.Seconds())
+}
+
+// ObserveSeqAlloc 记录一次每会话 seq 分配耗时。nil receiver 安全。
+func (c *Collectors) ObserveSeqAlloc(ctx context.Context, duration time.Duration) {
+	if c == nil {
+		return
+	}
+	observe.ObserveWithTraceID(ctx, c.SeqAllocDuration, duration.Seconds())
+}
+
+// ObserveMessageLatency 记录一次消息端到端延迟。nil receiver 安全。
+func (c *Collectors) ObserveMessageLatency(ctx context.Context, duration time.Duration) {
+	if c == nil {
+		return
+	}
+	observe.ObserveWithTraceID(ctx, c.MessageE2ELatency, duration.Seconds())
+}
+
+// IncPush 记录一次实时推送结果（result 为 success/dropped/error 等有限标签）。nil receiver 安全。
+func (c *Collectors) IncPush(result string) {
+	if c == nil {
+		return
+	}
+	c.PushTotal.WithLabelValues(result).Inc()
+}
+
+// SetWSConnections 设置当前活跃 WS 连接数。nil receiver 安全。
+func (c *Collectors) SetWSConnections(n float64) {
+	if c == nil {
+		return
+	}
+	c.WSConnectionsActive.Set(n)
 }
