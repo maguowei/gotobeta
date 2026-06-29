@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/maguowei/gotobeta/internal/ent"
+	"github.com/maguowei/gotobeta/internal/infra/cache"
 	"github.com/maguowei/gotobeta/internal/infra/config"
 	"github.com/maguowei/gotobeta/internal/infra/entdb"
 	"github.com/maguowei/gotobeta/internal/infra/localid"
@@ -25,15 +26,23 @@ type Module struct {
 }
 
 // New 完成 workspace 模块装配（repo -> checker -> service -> handler）。
-func New(client *ent.Client, logger *slog.Logger, _ *config.Config) (*Module, error) {
+// kv 为权限缓存后端（可为 nil，Redis 关闭时透明退化为直查 DB）。
+func New(client *ent.Client, logger *slog.Logger, _ *config.Config, kv *cache.RedisKV) (*Module, error) {
 	wsRepo := workspacepersist.NewWorkspaceRepository(client, logger)
 	memRepo := workspacepersist.NewMembershipRepository(client, logger)
 	rbacRepo := workspacepersist.NewRBACRepository(client, logger)
 	aclRepo := workspacepersist.NewACLRepository(client, logger)
 
-	checker := workspaceauthz.NewChecker(rbacRepo, aclRepo)
+	// 避免 typed-nil 接口陷阱：kv 为 nil 时保持 PermCache 接口为 nil。
+	var permCache workspaceauthz.PermCache
+	if kv != nil {
+		permCache = kv
+	}
+	cachedRBAC := workspaceauthz.NewCachedRBAC(rbacRepo, permCache, logger)
+
+	checker := workspaceauthz.NewChecker(cachedRBAC, aclRepo)
 	svc := workspacesvc.NewWorkspaceService(
-		wsRepo, memRepo, rbacRepo, checker,
+		wsRepo, memRepo, cachedRBAC, checker,
 		localid.New(), entdb.NewEntTxRunner(client), logger,
 	)
 

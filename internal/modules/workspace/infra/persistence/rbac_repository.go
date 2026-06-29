@@ -7,12 +7,16 @@ import (
 
 	"github.com/maguowei/gotobeta/internal/ent"
 	entperm "github.com/maguowei/gotobeta/internal/ent/rbacpermission"
+	entver "github.com/maguowei/gotobeta/internal/ent/rbacpermissionversion"
 	entrole "github.com/maguowei/gotobeta/internal/ent/rbacrole"
 	entrp "github.com/maguowei/gotobeta/internal/ent/rbacrolepermission"
 	entur "github.com/maguowei/gotobeta/internal/ent/rbacuserrole"
 	"github.com/maguowei/gotobeta/internal/infra/entdb"
 	"github.com/maguowei/gotobeta/internal/modules/workspace/domain/rbac"
 )
+
+// subjectTypeUser 是权限版本表 subject_type 的用户取值（第一期仅按用户维护缓存版本）。
+const subjectTypeUser int8 = 1
 
 // RBACRepository 是动态 RBAC 仓储的 Ent 实现。
 type RBACRepository struct {
@@ -247,4 +251,48 @@ func (r *RBACRepository) HasRoleCode(ctx context.Context, workspaceID, userID in
 	return client.RbacUserRole.Query().
 		Where(entur.WorkspaceID(workspaceID), entur.UserID(userID), entur.RoleID(role.BizID)).
 		Exist(ctx)
+}
+
+// PermissionVersion 返回用户权限缓存版本；版本行不存在时视为初始版本 1。
+func (r *RBACRepository) PermissionVersion(ctx context.Context, workspaceID, userID int64) (int64, error) {
+	client := entdb.ClientFromCtx(ctx, r.client)
+	row, err := client.RbacPermissionVersion.Query().
+		Where(
+			entver.WorkspaceID(workspaceID),
+			entver.SubjectType(subjectTypeUser),
+			entver.SubjectID(userID),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return 1, nil
+		}
+		return 0, err
+	}
+	return row.Version, nil
+}
+
+// BumpPermissionVersion 递增用户权限缓存版本；版本行不存在时创建为 2（初始 1 之后的首次失效）。
+func (r *RBACRepository) BumpPermissionVersion(ctx context.Context, workspaceID, userID int64) error {
+	client := entdb.ClientFromCtx(ctx, r.client)
+	affected, err := client.RbacPermissionVersion.Update().
+		Where(
+			entver.WorkspaceID(workspaceID),
+			entver.SubjectType(subjectTypeUser),
+			entver.SubjectID(userID),
+		).
+		AddVersion(1).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected > 0 {
+		return nil
+	}
+	return client.RbacPermissionVersion.Create().
+		SetWorkspaceID(workspaceID).
+		SetSubjectType(subjectTypeUser).
+		SetSubjectID(userID).
+		SetVersion(2).
+		Exec(ctx)
 }

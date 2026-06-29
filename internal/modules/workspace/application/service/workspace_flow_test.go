@@ -151,6 +151,12 @@ func (r *memRBACRepo) ListUserRoleIDs(context.Context, int64, int64) ([]int64, e
 func (r *memRBACRepo) HasRoleCode(context.Context, int64, int64, string) (bool, error) {
 	return false, nil
 }
+func (r *memRBACRepo) PermissionVersion(context.Context, int64, int64) (int64, error) {
+	return 1, nil
+}
+func (r *memRBACRepo) BumpPermissionVersion(context.Context, int64, int64) error {
+	return nil
+}
 
 func newSvc(ws *memWorkspaceRepo, ms *memMembershipRepo, rb *memRBACRepo) *WorkspaceService {
 	return NewWorkspaceService(ws, ms, rb, allowChecker{}, &seqIDGen{}, directTx{}, slog.Default())

@@ -132,6 +132,12 @@ type Repository interface {
 	ListUserRoleIDs(ctx context.Context, workspaceID, userID int64) ([]int64, error)
 	// HasRoleCode 判断用户是否拥有某角色编码（如 owner 短路）。
 	HasRoleCode(ctx context.Context, workspaceID, userID int64, code string) (bool, error)
+
+	// PermissionVersion 返回用户权限缓存版本（不存在视为初始版本 1）。
+	// 缓存键形如 perm:user:{ws}:{uid}:v{version}，版本变更即令旧缓存失效。
+	PermissionVersion(ctx context.Context, workspaceID, userID int64) (int64, error)
+	// BumpPermissionVersion 递增用户权限缓存版本，实现精准失效。
+	BumpPermissionVersion(ctx context.Context, workspaceID, userID int64) error
 }
 
 // DefaultRoleTemplates 返回平台模板角色（workspace_id=0 seed 用）。

@@ -99,6 +99,15 @@ func (s *WorkspaceService) seedWorkspaceRoles(ctx context.Context, wsID int64) (
 	return rolesByCode, nil
 }
 
+// bumpPermissionVersion 在授权变更后递增用户权限缓存版本以精准失效；
+// 失败仅记日志不阻断主流程（缓存最终一致由 TTL 兜底）。
+func (s *WorkspaceService) bumpPermissionVersion(ctx context.Context, workspaceID, userID int64) {
+	if err := s.rbac.BumpPermissionVersion(ctx, workspaceID, userID); err != nil {
+		loggerx.WithError(ctx, s.logger, "bump permission version failed", err,
+			slog.Int64("workspaceId", workspaceID), slog.Int64("userId", userID))
+	}
+}
+
 // InviteMember 邀请用户加入工作区并赋予角色。
 func (s *WorkspaceService) InviteMember(ctx context.Context, cmd workspacecmd.InviteMemberCommand) (*workspaceresult.MemberResult, error) {
 	if err := s.checker.Check(ctx, authz.Request{
@@ -143,6 +152,7 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, cmd workspacecmd.In
 		loggerx.WithError(ctx, s.logger, "invite member failed", err, slog.Int64("workspaceId", cmd.WorkspaceID), slog.Int64("targetUserId", cmd.TargetUserID))
 		return nil, err
 	}
+	s.bumpPermissionVersion(ctx, cmd.WorkspaceID, cmd.TargetUserID)
 	s.logger.InfoContext(ctx, "member invited", slog.Int64("workspaceId", cmd.WorkspaceID), slog.Int64("targetUserId", cmd.TargetUserID))
 	return toMemberResult(mem), nil
 }
@@ -166,6 +176,7 @@ func (s *WorkspaceService) AssignRole(ctx context.Context, cmd workspacecmd.Assi
 	if err := s.rbac.AssignRole(ctx, rbac.NewUserRole(cmd.WorkspaceID, cmd.TargetUserID, role.ID())); err != nil {
 		return wrapInfrastructureError("分配角色失败", err)
 	}
+	s.bumpPermissionVersion(ctx, cmd.WorkspaceID, cmd.TargetUserID)
 	s.logger.InfoContext(ctx, "role assigned", slog.Int64("workspaceId", cmd.WorkspaceID), slog.Int64("targetUserId", cmd.TargetUserID), slog.String("role", cmd.RoleCode))
 	return nil
 }

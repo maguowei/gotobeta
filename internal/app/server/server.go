@@ -114,7 +114,20 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 	// 启用 user-auth 时，demo 业务路由必须要求登录，避免在鉴权服务里出现公开可写端点。
 	todoMod.Mount(apiV1, userMod.AuthMiddleware())
 
-	workspaceMod, err := workspace.New(client, appLogger, cfg)
+	redisClient, err := cache.NewRedisClient(cfg.Redis)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if redisClient != nil {
+			if closeErr := cache.CloseRedis(redisClient); closeErr != nil {
+				err = errors.Join(err, fmt.Errorf("close redis client: %w", closeErr))
+			}
+		}
+	}()
+	redisKV := cache.NewRedisKV(redisClient)
+
+	workspaceMod, err := workspace.New(client, appLogger, cfg, redisKV)
 	if err != nil {
 		return err
 	}
@@ -127,18 +140,7 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 	}
 	messagingMod.Mount(apiV1, userMod.AuthMiddleware())
 
-	redisClient, err := cache.NewRedisClient(cfg.Redis)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if redisClient != nil {
-			if closeErr := cache.CloseRedis(redisClient); closeErr != nil {
-				err = errors.Join(err, fmt.Errorf("close redis client: %w", closeErr))
-			}
-		}
-	}()
-	realtimeMod, err := realtime.New(cfg, cache.NewRedisKV(redisClient), messagingMod.MemberLookup(), messagingMod.ReadReporter(), eventBus, appLogger)
+	realtimeMod, err := realtime.New(cfg, redisKV, messagingMod.MemberLookup(), messagingMod.ReadReporter(), eventBus, appLogger)
 	if err != nil {
 		return err
 	}
