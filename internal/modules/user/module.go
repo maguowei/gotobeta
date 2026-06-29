@@ -11,7 +11,6 @@ import (
 	"github.com/maguowei/gotobeta/internal/infra/entdb"
 	"github.com/maguowei/gotobeta/internal/infra/localid"
 	userhandler "github.com/maguowei/gotobeta/internal/modules/user/adapter/http/handler"
-	usermiddleware "github.com/maguowei/gotobeta/internal/modules/user/adapter/http/middleware"
 	userrouter "github.com/maguowei/gotobeta/internal/modules/user/adapter/http/router"
 	usersvc "github.com/maguowei/gotobeta/internal/modules/user/application/service"
 	useremail "github.com/maguowei/gotobeta/internal/modules/user/infra/email"
@@ -103,10 +102,10 @@ func buildRateLimit(cfg *config.Config) gin.HandlerFunc {
 		return nil
 	}
 
-	return usermiddleware.NewRateLimiter(
+	return httpmiddleware.NewLimiter(
 		cfg.Auth.RateLimit.RequestsPerMinute,
 		cfg.Auth.RateLimit.Burst,
-	).Middleware()
+	).Middleware(nil)
 }
 
 // Mount 把 User 路由挂到给定的路由组。
