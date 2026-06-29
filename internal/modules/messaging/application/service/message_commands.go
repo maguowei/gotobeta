@@ -40,6 +40,20 @@ func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendM
 		return nil, apperr.Forbidden("已被禁言")
 	}
 
+	// 引用回复校验：被引用消息必须存在且属于同一会话。
+	if cmd.ReplyToMsgID > 0 {
+		replied, err := s.messages.FindByID(ctx, cmd.ReplyToMsgID)
+		if err != nil {
+			if stderrors.Is(err, message.ErrNotFound) {
+				return nil, apperr.InvalidParam("被引用的消息不存在")
+			}
+			return nil, wrapInfrastructureError("查询被引用消息失败", err)
+		}
+		if replied.ConversationID() != cmd.ConversationID {
+			return nil, apperr.InvalidParam("被引用的消息不属于该会话")
+		}
+	}
+
 	// 幂等：命中相同 client_msg_id 直接返回原结果。
 	if existing, err := s.messages.FindByClientMsgID(ctx, cmd.ConversationID, cmd.ClientMsgID); err == nil {
 		return toMessageResult(existing), nil

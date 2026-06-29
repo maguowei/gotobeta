@@ -2334,18 +2334,22 @@ components:
         clientMsgId:
           type: string
           description: 幂等键
+          maxLength: 64
           example: c-uuid-1
         contentType:
           type: integer
           description: 1-text 2-image 3-file 4-voice 20-card
+          enum: [1, 2, 3, 4, 20]
           example: 1
         content:
           type: object
-          description: content blocks 结构化消息体
+          description: content blocks 结构化消息体（非空）
+          minProperties: 1
           example:
             text: 你好
         replyToMsgId:
           type: string
+          description: 被引用消息 ID（同会话内存在），0 表示不引用
           example: "0"
     MessageItem:
       description: 消息

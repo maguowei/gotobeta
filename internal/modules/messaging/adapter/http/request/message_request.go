@@ -4,12 +4,12 @@ import messagingcmd "github.com/maguowei/gotobeta/internal/modules/messaging/app
 
 // SendMessageRequest 发送消息请求。
 type SendMessageRequest struct {
-	ClientMsgID string `json:"clientMsgId" binding:"required"`
+	ClientMsgID string `json:"clientMsgId" binding:"required,max=64"`
 	// ContentType: 1-text 2-image 3-file 4-voice 20-card。
-	ContentType int8 `json:"contentType" binding:"required"`
-	// Content 为 content blocks 结构化消息体。
-	Content      map[string]any `json:"content" binding:"required"`
-	ReplyToMsgID int64          `json:"replyToMsgId,string"`
+	ContentType int8 `json:"contentType" binding:"required,oneof=1 2 3 4 20"`
+	// Content 为 content blocks 结构化消息体（非空）。
+	Content      map[string]any `json:"content" binding:"required,min=1"`
+	ReplyToMsgID int64          `json:"replyToMsgId,string" binding:"min=0"`
 }
 
 // ReportReadRequest 已读上报请求。

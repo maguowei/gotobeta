@@ -129,6 +129,20 @@ func textCmd(convID, sender int64, cid, text string) messagingcmd.SendMessageCom
 	}
 }
 
+func TestSendMessageRejectsInvalidReplyTo(t *testing.T) {
+	convRepo := newMemConvRepo()
+	msgRepo := newMemMsgRepo()
+	seedActiveMember(convRepo, 100, 9)
+	svc := newMsgService(convRepo, msgRepo, &capturePublisher{})
+
+	// 引用不存在的消息：应拒绝。
+	cmd := textCmd(100, 9, "c1", "hi")
+	cmd.ReplyToMsgID = 999999
+	if _, err := svc.SendMessage(context.Background(), cmd); err == nil {
+		t.Fatal("引用不存在消息应被拒绝")
+	}
+}
+
 func TestSendMessageAssignsSeqAndPublishes(t *testing.T) {
 	convRepo := newMemConvRepo()
 	msgRepo := newMemMsgRepo()
