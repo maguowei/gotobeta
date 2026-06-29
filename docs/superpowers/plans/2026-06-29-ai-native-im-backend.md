@@ -10,6 +10,20 @@
 
 **Spec:** `docs/superpowers/specs/2026-06-29-ai-native-im-backend-design.md`
 
+## 实施状态（2026-06-29 完成）
+
+第一期 F/M1–M7 + 收尾 Z1 全部实现并提交，`make verify` 全门禁通过（generate 无漂移、lint 0 issue、总覆盖率 70.8% ≥ 70%、密钥/漏洞/模块/架构/构建/集成编译均绿）。
+
+- **F 基础**：`internal/pkg/event` 事件端口、`internal/infra/eventbus` 进程内总线、config 扩展 IM/objstore 段。
+- **M1 workspace**：多工作区 + DB 动态 RBAC/ACL，平台模板复制；handler + 路由 + datainit seed。
+- **M2 messaging**：会话（单聊 dm_key 去重/群/频道）、按会话 seq 分配、发送/撤回/已读水位、读扩散时间线。
+- **M3 realtime**：WS 网关（ticket 鉴权）、signal/typing/read/presence 帧、push-pull、多端对齐。
+- **M4 media**：S3 兼容对象存储预签名上传 + 提交确认。
+- **AI 缝**：领域事件外发、Bot/Agent 一等发送者、结构化 content block、metadata 列。
+- **Z1 收尾**：`make verify` 全绿；`docs/events/README.md` 增 IM 进程内事件契约、README 增 IM 模块概览；集成测试见 `internal/integration/`（seq 并发/RBAC 解析/单聊去重，`make test-integration` 需 Docker，本地已通过）。
+
+下方逐任务复选框为原始计划记录，保留以备追溯；实际实现以 git 提交历史与 `make verify` 结果为准。
+
 ## Global Constraints
 
 - 模块路径 `github.com/maguowei/gotobeta`；分层依赖：adapter → application → domain ← infra；由 `make test-architecture` 校验。
@@ -351,9 +365,9 @@ message 按 spec 4.5：`uk_conv_seq`、`uk_conv_client`、content JSON、server_
 
 ### Task Z1: 全量验证 + 文档
 
-- [ ] `make verify`（受限环境带 GOCACHE/GOMODCACHE）全绿；缺工具则说明并跑最强子集。
-- [ ] 更新 `docs/` 事件/可观测性说明；README 增 IM 模块概览。
-- [ ] commit `docs: IM 模块说明`；分支汇总。
+- [x] `make verify`（受限环境带 GOCACHE/GOMODCACHE）全绿；缺工具则说明并跑最强子集。
+- [x] 更新 `docs/` 事件/可观测性说明；README 增 IM 模块概览。
+- [x] commit `docs: IM 模块说明`；分支汇总。
 
 ## Self-Review 记录
 

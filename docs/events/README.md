@@ -16,7 +16,18 @@
 - 暂不消费的事件类型需要通过 registrar 显式忽略，并通过 eventbus metrics 留痕。
 - Prometheus label 只使用有限集合：component、event_type、status，禁止放入动态 ID 或错误文本。
 
-## 发布事件
+## IM 进程内事件（已启用）
+
+IM 模块当前通过 `internal/infra/eventbus` 的进程内总线（best-effort，无 outbox）发布以下领域事件，契约定义在 `internal/pkg/imevent`（跨模块共享）。realtime 模块订阅这些事件并向在线连接推送 WS 帧。这是为后续接入异步事件总线（Kafka/outbox）预留的演进缝：迁移时只需把发布端从进程内总线换成 outbox writer，事件契约不变。
+
+| 事件类型 | 触发场景 | 发布方 | 订阅方 | Payload 关键字段 |
+|---|---|---|---|---|
+| `messaging.message.created` | 消息发送 / 系统撤回条目写入后 | `messaging` 应用层（事务提交后 best-effort） | `realtime`（`OnMessageCreated` → signal 帧） | workspaceId、conversationId、messageId、seq、senderType、senderId、contentType、serverTime |
+| `messaging.read.updated` | 已读水位单调推进后 | `messaging` 应用层 | `realtime`（`OnReadUpdated` → read 帧，多端对齐） | workspaceId、conversationId、userId、readSeq、occurredAt |
+
+> 注意：进程内总线为尽力投递，发布失败只记日志不回滚业务事务；可靠下行由 WS signal + HTTP 增量拉取（push-pull）兜底，不依赖事件必达。
+
+## 发布事件（异步总线，未启用）
 
 | 事件类型 | 触发场景 | Partition Key | Payload 说明 | Schema/版本 |
 |---|---|---|---|---|
