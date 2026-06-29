@@ -53,6 +53,8 @@ func NewEntClient(cfg *config.DatabaseConfig) (*ent.Client, *sql.DB, error) {
 
 	driver := entsql.OpenDB(cfg.Driver, db)
 	client := ent.NewClient(ent.Driver(driver))
+	// DataScope 兜底：查询层统一注入 workspace_id 过滤（详见 WorkspaceScopeInterceptor）。
+	client.Intercept(WorkspaceScopeInterceptor())
 
 	return client, db, nil
 }
