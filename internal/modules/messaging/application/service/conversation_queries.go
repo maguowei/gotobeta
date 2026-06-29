@@ -33,6 +33,21 @@ func (s *ConversationService) ListConversations(ctx context.Context, q messaging
 	return items, nil
 }
 
+// ConversationUserIDs 返回会话内全部活跃用户成员的 userID，实现 imrt.MemberLookup。
+func (s *ConversationService) ConversationUserIDs(ctx context.Context, conversationID int64) ([]int64, error) {
+	members, err := s.conversations.ListMembers(ctx, conversationID)
+	if err != nil {
+		return nil, wrapInfrastructureError("查询会话成员失败", err)
+	}
+	ids := make([]int64, 0, len(members))
+	for _, m := range members {
+		if m.MemberType() == conversation.MemberUser && m.Status() == conversation.MemberActive {
+			ids = append(ids, m.MemberID())
+		}
+	}
+	return ids, nil
+}
+
 // ListMembers 返回会话成员列表；操作者需为该会话活跃成员。
 func (s *ConversationService) ListMembers(ctx context.Context, q messagingquery.ListMembersQuery) ([]*messagingresult.ConversationMemberResult, error) {
 	if _, err := s.requireActiveMembership(ctx, q.ConversationID, q.OperatorUserID); err != nil {

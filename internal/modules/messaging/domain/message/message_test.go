@@ -68,14 +68,3 @@ func TestDigest(t *testing.T) {
 		t.Fatalf("图片摘要错误: %q", img.Digest())
 	}
 }
-
-func TestCreatedEvent(t *testing.T) {
-	t.Parallel()
-	e := NewCreatedEvent(1, 100, 8001, 5, SenderUser, 9, ContentText, time.Now())
-	if e.Name() != EventMessageCreated {
-		t.Fatalf("事件名错误: %q", e.Name())
-	}
-	if e.ConversationID != 100 || e.Seq != 5 {
-		t.Fatalf("事件载荷错误: %+v", e)
-	}
-}

@@ -18,6 +18,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/modules/messaging/infra/seqalloc"
 	"github.com/maguowei/gotobeta/internal/pkg/authz"
 	"github.com/maguowei/gotobeta/internal/pkg/event"
+	"github.com/maguowei/gotobeta/internal/pkg/imrt"
 )
 
 // 撤回窗口默认值（解析失败时回退）。
@@ -27,6 +28,7 @@ const defaultRecallWindow = 2 * time.Minute
 type Module struct {
 	convHandler *messaginghandler.ConversationHandler
 	msgHandler  *messaginghandler.MessageHandler
+	convSvc     *messagingsvc.ConversationService
 }
 
 // New 完成 messaging 模块装配（repo -> service -> handler）。
@@ -48,7 +50,13 @@ func New(client *ent.Client, logger *slog.Logger, cfg *config.Config, checker au
 	return &Module{
 		convHandler: messaginghandler.NewConversationHandler(convSvc),
 		msgHandler:  messaginghandler.NewMessageHandler(msgSvc),
+		convSvc:     convSvc,
 	}, nil
+}
+
+// MemberLookup 暴露会话成员查询端口，供 realtime 模块经组合根注入。
+func (m *Module) MemberLookup() imrt.MemberLookup {
+	return m.convSvc
 }
 
 // Mount 把会话与消息路由挂到给定路由组。

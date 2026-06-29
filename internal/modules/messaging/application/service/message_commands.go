@@ -12,6 +12,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/message"
 	"github.com/maguowei/gotobeta/internal/pkg/apperr"
 	"github.com/maguowei/gotobeta/internal/pkg/authz"
+	"github.com/maguowei/gotobeta/internal/pkg/imevent"
 	loggerx "github.com/maguowei/gotobeta/internal/pkg/logger"
 )
 
@@ -161,9 +162,9 @@ func (s *MessageService) RecallMessage(ctx context.Context, cmd messagingcmd.Rec
 	return nil
 }
 
-// publishCreated 在事务提交后尽力发布消息创建事件。
+// publishCreated 在事务提交后尽力发布消息创建事件（跨模块共享契约）。
 func (s *MessageService) publishCreated(ctx context.Context, workspaceID int64, m *message.Message) {
-	evt := message.NewCreatedEvent(workspaceID, m.ConversationID(), m.ID(), m.Seq(), m.SenderType(), m.SenderID(), m.ContentType(), m.ServerTime())
+	evt := imevent.NewMessageCreatedEvent(workspaceID, m.ConversationID(), m.ID(), m.Seq(), int8(m.SenderType()), m.SenderID(), int8(m.ContentType()), m.ServerTime())
 	if err := s.publisher.Publish(ctx, evt); err != nil {
 		loggerx.WithError(ctx, s.logger, "publish message created event failed", err, slog.Int64("messageId", m.ID()))
 	}
