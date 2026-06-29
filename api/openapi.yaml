@@ -1019,6 +1019,138 @@ paths:
                 data: null
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/workspaces/{ws}/conversations/{cid}/messages:
+    get:
+      operationId: pullMessages
+      summary: 增量拉取消息
+      description: 拉取会话内 afterSeq 之后的消息，按 seq 升序，需要是该会话成员。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+        - $ref: '#/components/parameters/ConversationID'
+        - name: afterSeq
+          in: query
+          description: 拉取此 seq 之后的消息，缺省从 0 开始
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: limit
+          in: query
+          description: 单页条数，缺省 50，上限 200
+          required: false
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: 消息列表
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  - messageId: "8001"
+                    conversationId: "100"
+                    seq: 1
+                    senderType: 1
+                    senderId: "9"
+                    contentType: 1
+                    content:
+                      text: 你好
+                    replyToMsgId: "0"
+                    status: 1
+                    serverTime: "2026-06-29 10:00:00"
+              schema:
+                $ref: '#/components/schemas/MessageListResponse'
+    post:
+      operationId: sendMessage
+      summary: 发送消息
+      description: 向会话发送消息；client_msg_id 为幂等键，重复发送返回原消息。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+        - $ref: '#/components/parameters/ConversationID'
+      requestBody:
+        required: true
+        description: 发送消息请求体
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '200':
+          description: 发送后的消息
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  messageId: "8001"
+                  conversationId: "100"
+                  seq: 1
+                  senderType: 1
+                  senderId: "9"
+                  contentType: 1
+                  content:
+                    text: 你好
+                  replyToMsgId: "0"
+                  status: 1
+                  serverTime: "2026-06-29 10:00:00"
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '403':
+          description: 非会话成员或被禁言
+          content:
+            application/json:
+              example:
+                code: 40301
+                message: 不是该会话成员
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/workspaces/{ws}/conversations/{cid}/messages/{mid}/recall:
+    post:
+      operationId: recallMessage
+      summary: 撤回消息
+      description: 撤回消息；本人在撤回窗口内或具 message.recall 权限可操作，写入系统撤回条目。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+        - $ref: '#/components/parameters/ConversationID'
+        - $ref: '#/components/parameters/MessageID'
+      responses:
+        '200':
+          description: 撤回成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+        '400':
+          description: 超过撤回窗口或不可撤回
+          content:
+            application/json:
+              example:
+                code: 40001
+                message: 已超过撤回时间窗口
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/workspaces/{ws}/conversations/{cid}/members/{mid}:
     delete:
       operationId: removeConversationMember
@@ -1106,6 +1238,14 @@ components:
       name: mid
       in: path
       description: 会话成员主体 ID
+      required: true
+      schema:
+        type: integer
+        format: int64
+    MessageID:
+      name: mid
+      in: path
+      description: 消息 ID
       required: true
       schema:
         type: integer
@@ -1867,3 +2007,101 @@ components:
               role: 1
           items:
             $ref: '#/components/schemas/ConversationMemberItem'
+    SendMessageRequest:
+      description: 发送消息请求
+      type: object
+      required:
+        - clientMsgId
+        - contentType
+        - content
+      properties:
+        clientMsgId:
+          type: string
+          description: 幂等键
+          example: c-uuid-1
+        contentType:
+          type: integer
+          description: 1-text 2-image 3-file 4-voice 20-card
+          example: 1
+        content:
+          type: object
+          description: content blocks 结构化消息体
+          example:
+            text: 你好
+        replyToMsgId:
+          type: string
+          example: "0"
+    MessageItem:
+      description: 消息
+      type: object
+      properties:
+        messageId:
+          type: string
+          example: "8001"
+        conversationId:
+          type: string
+          example: "100"
+        seq:
+          type: integer
+          example: 1
+        senderType:
+          type: integer
+          example: 1
+        senderId:
+          type: string
+          example: "9"
+        contentType:
+          type: integer
+          example: 1
+        content:
+          type: object
+          example:
+            text: 你好
+        replyToMsgId:
+          type: string
+          example: "0"
+        status:
+          type: integer
+          example: 1
+        serverTime:
+          type: string
+          example: "2026-06-29 10:00:00"
+    MessageResponse:
+      description: 单条消息响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          $ref: '#/components/schemas/MessageItem'
+    MessageListResponse:
+      description: 消息列表响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: array
+          example:
+            - messageId: "8001"
+              seq: 1
+              content:
+                text: 你好
+          items:
+            $ref: '#/components/schemas/MessageItem'

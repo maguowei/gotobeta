@@ -7,8 +7,8 @@ import (
 	"github.com/maguowei/gotobeta/internal/modules/messaging/adapter/http/handler"
 )
 
-// RegisterRoutes 注册会话路由。middlewares 通常为登录鉴权中间件。
-func RegisterRoutes(group *gin.RouterGroup, h *handler.ConversationHandler, middlewares ...gin.HandlerFunc) {
+// RegisterRoutes 注册会话与消息路由。middlewares 通常为登录鉴权中间件。
+func RegisterRoutes(group *gin.RouterGroup, h *handler.ConversationHandler, mh *handler.MessageHandler, middlewares ...gin.HandlerFunc) {
 	if len(middlewares) > 0 {
 		group = group.Group("")
 		group.Use(middlewares...)
@@ -18,4 +18,8 @@ func RegisterRoutes(group *gin.RouterGroup, h *handler.ConversationHandler, midd
 	group.POST("/workspaces/:ws/conversations/:cid/members", h.AddMember)
 	group.DELETE("/workspaces/:ws/conversations/:cid/members/:mid", h.RemoveMember)
 	group.GET("/workspaces/:ws/conversations/:cid/members", h.ListMembers)
+
+	group.POST("/workspaces/:ws/conversations/:cid/messages", mh.SendMessage)
+	group.GET("/workspaces/:ws/conversations/:cid/messages", mh.PullMessages)
+	group.POST("/workspaces/:ws/conversations/:cid/messages/:mid/recall", mh.RecallMessage)
 }

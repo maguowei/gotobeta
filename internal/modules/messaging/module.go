@@ -3,6 +3,7 @@ package messaging
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -14,28 +15,54 @@ import (
 	messagingrouter "github.com/maguowei/gotobeta/internal/modules/messaging/adapter/http/router"
 	messagingsvc "github.com/maguowei/gotobeta/internal/modules/messaging/application/service"
 	messagingpersist "github.com/maguowei/gotobeta/internal/modules/messaging/infra/persistence"
+	"github.com/maguowei/gotobeta/internal/modules/messaging/infra/seqalloc"
 	"github.com/maguowei/gotobeta/internal/pkg/authz"
+	"github.com/maguowei/gotobeta/internal/pkg/event"
 )
+
+// 撤回窗口默认值（解析失败时回退）。
+const defaultRecallWindow = 2 * time.Minute
 
 // Module 持有装配好的 messaging HTTP 入口。
 type Module struct {
-	handler *messaginghandler.ConversationHandler
+	convHandler *messaginghandler.ConversationHandler
+	msgHandler  *messaginghandler.MessageHandler
 }
 
 // New 完成 messaging 模块装配（repo -> service -> handler）。
 //
-// checker 由组合根从 workspace 模块注入，实现跨模块鉴权而不直接 import workspace。
-func New(client *ent.Client, logger *slog.Logger, _ *config.Config, checker authz.Checker) (*Module, error) {
+// checker 由组合根从 workspace 模块注入；publisher 为进程内事件总线，用于消息创建事件分发。
+func New(client *ent.Client, logger *slog.Logger, cfg *config.Config, checker authz.Checker, publisher event.Publisher) (*Module, error) {
 	convRepo := messagingpersist.NewConversationRepository(client, logger)
-	svc := messagingsvc.NewConversationService(
-		convRepo, checker, localid.New(), entdb.NewEntTxRunner(client), logger,
+	msgRepo := messagingpersist.NewMessageRepository(client, logger)
+	seqAllocator := seqalloc.NewDBAllocator(client)
+	txRunner := entdb.NewEntTxRunner(client)
+	idGen := localid.New()
+
+	convSvc := messagingsvc.NewConversationService(convRepo, checker, idGen, txRunner, logger)
+	msgSvc := messagingsvc.NewMessageService(
+		msgRepo, convRepo, seqAllocator, checker, publisher, idGen, txRunner,
+		recallWindow(cfg), cfg.IM.MessagePageSize, logger,
 	)
+
 	return &Module{
-		handler: messaginghandler.NewConversationHandler(svc),
+		convHandler: messaginghandler.NewConversationHandler(convSvc),
+		msgHandler:  messaginghandler.NewMessageHandler(msgSvc),
 	}, nil
 }
 
-// Mount 把会话路由挂到给定路由组。
+// Mount 把会话与消息路由挂到给定路由组。
 func (m *Module) Mount(rg *gin.RouterGroup, middlewares ...gin.HandlerFunc) {
-	messagingrouter.RegisterRoutes(rg, m.handler, middlewares...)
+	messagingrouter.RegisterRoutes(rg, m.convHandler, m.msgHandler, middlewares...)
+}
+
+func recallWindow(cfg *config.Config) time.Duration {
+	if cfg.IM.RecallWindow == "" {
+		return defaultRecallWindow
+	}
+	d, err := time.ParseDuration(cfg.IM.RecallWindow)
+	if err != nil || d <= 0 {
+		return defaultRecallWindow
+	}
+	return d
 }

@@ -117,6 +117,20 @@ func New(id, conversationID, seq int64, senderType SenderType, senderID int64, c
 	}, nil
 }
 
+// NewSystem 创建系统控制条目（撤回/成员变更提示），同样占用一个 seq 进 timeline。
+func NewSystem(id, conversationID, seq int64, contentType ContentType, content map[string]any) *Message {
+	now := time.Now()
+	if content == nil {
+		content = map[string]any{}
+	}
+	return &Message{
+		id: id, conversationID: conversationID, seq: seq,
+		senderType: SenderSystem, senderID: 0, contentType: contentType, content: content,
+		status: StatusNormal, serverTime: now, metadata: map[string]any{},
+		createdAt: now, updatedAt: now,
+	}
+}
+
 func isSendableContentType(ct ContentType) bool {
 	switch ct {
 	case ContentText, ContentImage, ContentFile, ContentVoice, ContentCard:

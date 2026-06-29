@@ -86,7 +86,7 @@ func (h *ConversationHandler) AddMember(c *gin.Context) {
 	if !ok {
 		return
 	}
-	wsID, cid, ok := h.parseWsConv(c)
+	wsID, cid, ok := parseWsConv(c)
 	if !ok {
 		return
 	}
@@ -109,7 +109,7 @@ func (h *ConversationHandler) RemoveMember(c *gin.Context) {
 	if !ok {
 		return
 	}
-	wsID, cid, ok := h.parseWsConv(c)
+	wsID, cid, ok := parseWsConv(c)
 	if !ok {
 		return
 	}
@@ -142,7 +142,7 @@ func (h *ConversationHandler) ListMembers(c *gin.Context) {
 	if !ok {
 		return
 	}
-	wsID, cid, ok := h.parseWsConv(c)
+	wsID, cid, ok := parseWsConv(c)
 	if !ok {
 		return
 	}
@@ -154,20 +154,6 @@ func (h *ConversationHandler) ListMembers(c *gin.Context) {
 		return
 	}
 	httpresponse.Success(c, messagingresp.ToConversationMemberListResponse(items))
-}
-
-func (h *ConversationHandler) parseWsConv(c *gin.Context) (wsID, cid int64, ok bool) {
-	wsID, err := parsePositiveID(c.Param("ws"))
-	if err != nil {
-		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的工作区 ID")
-		return 0, 0, false
-	}
-	cid, err = parsePositiveID(c.Param("cid"))
-	if err != nil {
-		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的会话 ID")
-		return 0, 0, false
-	}
-	return wsID, cid, true
 }
 
 func parsePositiveID(raw string) (int64, error) {

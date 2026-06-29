@@ -17,6 +17,7 @@ import (
 	httpmiddleware "github.com/maguowei/gotobeta/internal/pkg/httpx/middleware"
 
 	"github.com/maguowei/gotobeta/internal/infra/entdb"
+	"github.com/maguowei/gotobeta/internal/infra/eventbus"
 
 	"github.com/maguowei/gotobeta/internal/modules/user"
 
@@ -115,7 +116,8 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 	}
 	workspaceMod.Mount(apiV1, userMod.AuthMiddleware())
 
-	messagingMod, err := messaging.New(client, appLogger, cfg, workspaceMod.Checker())
+	eventBus := eventbus.NewInProc(appLogger)
+	messagingMod, err := messaging.New(client, appLogger, cfg, workspaceMod.Checker(), eventBus)
 	if err != nil {
 		return err
 	}
