@@ -44,6 +44,7 @@ var sdkGateways = []struct {
 	{"go.opentelemetry.io/otel/exporters", []string{modulePath + "/internal/pkg/trace"}, "OTel exporter 只能在 pkg/trace 配置"},
 	{"github.com/getsentry/sentry-go", []string{modulePath + "/internal/infra/sentry", modulePath + "/internal/pkg/logger", modulePath + "/internal/pkg/httpx/middleware"}, "Sentry SDK 只能通过 infra/sentry、pkg/logger 与 Recovery/Sentry 中间件使用"},
 	{"github.com/golang-jwt/jwt", []string{modulePath + "/internal/pkg/auth"}, "JWT SDK 只能通过 pkg/auth 封装使用"},
+	{"github.com/minio/minio-go", []string{modulePath + "/internal/infra/objstore"}, "对象存储 SDK 只能通过 infra/objstore 封装使用"},
 }
 
 // cmdAllowedInternalPrefixes 是 cmd/** 允许 import 的本模块包白名单：
