@@ -1,0 +1,58 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - importas
+    - ineffassign
+    - sloglint
+    - staticcheck
+    - unused
+  settings:
+    # 模块分层包的统一 import 别名（DDD 命名规范）；
+    # domain 层按聚合分包，包名即聚合名（todo/user/identity），无需强制别名；
+    # application/adapter 层缩写别名保留，避免长路径噪音。
+    # 未列出的包不限制，未加别名的导入不强制（no-unaliased 默认关闭）。
+    importas:
+      alias:
+        - pkg: .*/internal/modules/(\w+)/application/command$
+          alias: ${1}cmd
+        - pkg: .*/internal/modules/(\w+)/application/query$
+          alias: ${1}query
+        - pkg: .*/internal/modules/(\w+)/application/result$
+          alias: ${1}result
+        - pkg: .*/internal/modules/(\w+)/application/service$
+          alias: ${1}svc
+        - pkg: .*/internal/modules/(\w+)/application/port$
+          alias: ${1}port
+        - pkg: .*/internal/modules/(\w+)/adapter/http/request$
+          alias: ${1}req
+        - pkg: .*/internal/modules/(\w+)/adapter/http/response$
+          alias: ${1}resp
+        - pkg: .*/internal/modules/(\w+)/adapter/http/handler$
+          alias: ${1}handler
+        - pkg: .*/internal/modules/(\w+)/adapter/http/router$
+          alias: ${1}router
+        - pkg: .*/internal/modules/(\w+)/infra/persistence$
+          alias: ${1}persist
+    sloglint:
+      no-mixed-args: true
+      kv-only: false
+      attr-only: true
+      context: "all"
+      static-msg: true
+      no-raw-keys: false
+      key-naming-case: camel
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

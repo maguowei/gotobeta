@@ -1,0 +1,11 @@
+### Smoke — 健康检查
+
+# @name smoke
+GET {{baseUrl}}/health
+Accept: application/json
+
+> {%
+  client.test("smoke: HTTP 200", () => {
+    client.assert(response.status === 200, `期望 200，实际 ${response.status}`);
+  });
+%}

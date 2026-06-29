@@ -1,0 +1,14 @@
+title = "generated project gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Ignore local build outputs and tool caches"
+paths = [
+  '''^\.cache/''',
+  '''^bin/''',
+  '''^dist/''',
+  '''^coverage\.out$''',
+  '''^coverage\.html$''',
+]

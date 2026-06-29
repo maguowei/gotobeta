@@ -1,0 +1,40 @@
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build/test artifacts
+bin/
+dist/
+tmp/
+temp/
+*.test
+
+# Coverage/profiles
+coverage.out
+coverage.filtered.out
+coverage.html
+*.prof
+*.pprof
+
+# Tool caches
+.cache/
+
+# Runtime logs
+logs/
+*.log
+
+# Local environment/secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Local configuration
+configs/config.local.yaml
+tests/http/http-client.private.env.json
+!tests/http/http-client.private.env.json.example

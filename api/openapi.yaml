@@ -1,0 +1,1084 @@
+openapi: 3.0.3
+info:
+  title: gotobeta API
+  description: gotobeta HTTP API contract.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: 本地开发环境
+tags:
+  - name: system
+    description: 系统健康检查接口
+  - name: auth
+    description: 认证、登录和 OAuth 接口
+  - name: users
+    description: 当前用户资料接口
+  - name: todos
+    description: Todo 示例资源接口
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: 存活探针（/healthz 别名）
+      tags:
+        - system
+      responses:
+        '200':
+          description: 进程存活
+          content:
+            application/json:
+              example:
+                status: ok
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /healthz:
+    get:
+      operationId: getHealthz
+      summary: 存活探针
+      tags:
+        - system
+      responses:
+        '200':
+          description: 进程存活
+          content:
+            application/json:
+              example:
+                status: ok
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /readyz:
+    get:
+      operationId: getReadyz
+      summary: 就绪探针（检查所有依赖健康状态）
+      tags:
+        - system
+      responses:
+        '200':
+          description: 所有依赖就绪
+          content:
+            application/json:
+              example:
+                status: ok
+              schema:
+                $ref: '#/components/schemas/ReadyzResponse'
+        '503':
+          description: 部分依赖不可用
+          content:
+            application/json:
+              example:
+                status: degraded
+                checks:
+                  database: "connection refused"
+              schema:
+                $ref: '#/components/schemas/ReadyzResponse'
+  /api/v1/auth/register:
+    post:
+      operationId: registerUser
+      summary: 注册用户
+      tags: [auth]
+      requestBody:
+        description: 邮箱密码注册请求体
+        required: true
+        content:
+          application/json:
+            example:
+              email: user@example.com
+              password: ChangeMe123!
+              displayName: Starter User
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: 注册成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  user:
+                    id: 10001
+                    email: user@example.com
+                    emailVerified: false
+                    displayName: Starter User
+                    avatarUrl: ""
+                    status: active
+                    createdAt: "2026-04-21T15:04:05Z"
+                    updatedAt: "2026-04-21T15:04:05Z"
+                  accessToken: access-token
+                  accessTokenExpiresAt: "2026-04-21T15:19:05Z"
+                  refreshToken: refresh-token
+                  refreshTokenExpiresAt: "2026-05-21T15:04:05Z"
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              example:
+                code: 40001
+                message: 请求参数格式错误
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/login:
+    post:
+      operationId: loginUser
+      summary: 邮箱密码登录
+      tags: [auth]
+      requestBody:
+        description: 邮箱密码登录请求体
+        required: true
+        content:
+          application/json:
+            example:
+              email: user@example.com
+              password: ChangeMe123!
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  user:
+                    id: 10001
+                    email: user@example.com
+                    emailVerified: true
+                    displayName: Starter User
+                    avatarUrl: ""
+                    status: active
+                    createdAt: "2026-04-21T15:04:05Z"
+                    updatedAt: "2026-04-21T15:04:05Z"
+                  accessToken: access-token
+                  accessTokenExpiresAt: "2026-04-21T15:19:05Z"
+                  refreshToken: refresh-token
+                  refreshTokenExpiresAt: "2026-05-21T15:04:05Z"
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: 邮箱或密码错误
+          content:
+            application/json:
+              example:
+                code: 40101
+                message: 邮箱或密码错误
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/refresh:
+    post:
+      operationId: refreshToken
+      summary: 刷新访问令牌
+      tags: [auth]
+      requestBody:
+        description: 刷新令牌请求体
+        required: true
+        content:
+          application/json:
+            example:
+              refreshToken: refresh-token
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: 刷新成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  user:
+                    id: 10001
+                    email: user@example.com
+                    emailVerified: true
+                    displayName: Starter User
+                    avatarUrl: ""
+                    status: active
+                    createdAt: "2026-04-21T15:04:05Z"
+                    updatedAt: "2026-04-21T15:04:05Z"
+                  accessToken: access-token
+                  accessTokenExpiresAt: "2026-04-21T15:19:05Z"
+                  refreshToken: next-refresh-token
+                  refreshTokenExpiresAt: "2026-05-21T15:04:05Z"
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /api/v1/auth/logout:
+    post:
+      operationId: logoutUser
+      summary: 退出登录
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: 要撤销的刷新令牌
+        required: true
+        content:
+          application/json:
+            example:
+              refreshToken: refresh-token
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: 退出成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+  /api/v1/auth/password/forgot:
+    post:
+      operationId: forgotPassword
+      summary: 发送密码重置邮件
+      tags: [auth]
+      requestBody:
+        description: 密码重置邮件目标邮箱
+        required: true
+        content:
+          application/json:
+            example:
+              email: user@example.com
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: 已处理
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+  /api/v1/auth/password/reset:
+    post:
+      operationId: resetPassword
+      summary: 重置密码
+      tags: [auth]
+      requestBody:
+        description: 密码重置 token 与新密码
+        required: true
+        content:
+          application/json:
+            example:
+              token: password-reset-token
+              newPassword: ChangeMe123!
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: 重置成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+  /api/v1/auth/email/verify:
+    post:
+      operationId: verifyEmail
+      summary: 验证邮箱
+      tags: [auth]
+      requestBody:
+        description: 邮箱验证 token
+        required: true
+        content:
+          application/json:
+            example:
+              token: email-verification-token
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: 验证成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+  /api/v1/auth/oauth/{provider}/start:
+    get:
+      operationId: startOAuth
+      summary: 开始 OAuth 登录
+      tags: [auth]
+      parameters:
+        - $ref: '#/components/parameters/OAuthProvider'
+      responses:
+        '302':
+          description: 跳转到三方授权页
+  /api/v1/auth/oauth/{provider}/callback:
+    get:
+      operationId: oauthCallback
+      summary: OAuth 回调
+      tags: [auth]
+      parameters:
+        - $ref: '#/components/parameters/OAuthProvider'
+        - name: state
+          in: query
+          description: OAuth start 阶段生成的 state
+          required: true
+          schema:
+            type: string
+        - name: code
+          in: query
+          description: OAuth provider 返回的授权码
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: 跳回前端并携带一次性登录码
+  /api/v1/auth/oauth/token:
+    post:
+      operationId: exchangeOAuthLoginCode
+      summary: OAuth 登录码换 token
+      tags: [auth]
+      requestBody:
+        description: OAuth callback 重定向前端时携带的一次性登录码
+        required: true
+        content:
+          application/json:
+            example:
+              code: oauth-login-code
+            schema:
+              $ref: '#/components/schemas/OAuthTokenRequest'
+      responses:
+        '200':
+          description: 换取成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  user:
+                    id: 10001
+                    email: user@example.com
+                    emailVerified: true
+                    displayName: Starter User
+                    avatarUrl: https://example.com/avatar.png
+                    status: active
+                    createdAt: "2026-04-21T15:04:05Z"
+                    updatedAt: "2026-04-21T15:04:05Z"
+                  accessToken: access-token
+                  accessTokenExpiresAt: "2026-04-21T15:19:05Z"
+                  refreshToken: refresh-token
+                  refreshTokenExpiresAt: "2026-05-21T15:04:05Z"
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /api/v1/users/me:
+    get:
+      operationId: getCurrentUser
+      summary: 当前用户资料
+      tags: [users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 当前用户
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  id: 10001
+                  email: user@example.com
+                  emailVerified: true
+                  displayName: Starter User
+                  avatarUrl: ""
+                  status: active
+                  createdAt: "2026-04-21T15:04:05Z"
+                  updatedAt: "2026-04-21T15:04:05Z"
+              schema:
+                $ref: '#/components/schemas/UserResponseEnvelope'
+    patch:
+      operationId: updateCurrentUser
+      summary: 更新当前用户资料
+      tags: [users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: 当前用户资料更新字段
+        required: true
+        content:
+          application/json:
+            example:
+              displayName: Starter User
+              avatarUrl: https://example.com/avatar.png
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: 更新后的用户
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  id: 10001
+                  email: user@example.com
+                  emailVerified: true
+                  displayName: Starter User
+                  avatarUrl: https://example.com/avatar.png
+                  status: active
+                  createdAt: "2026-04-21T15:04:05Z"
+                  updatedAt: "2026-04-21T15:04:05Z"
+              schema:
+                $ref: '#/components/schemas/UserResponseEnvelope'
+  /api/v1/users/me/password:
+    put:
+      operationId: changeCurrentUserPassword
+      summary: 设置或修改当前用户密码
+      tags: [users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: 当前用户设置或修改密码请求体
+        required: true
+        content:
+          application/json:
+            example:
+              oldPassword: ChangeMe123!
+              newPassword: NextChangeMe123!
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: 修改成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+  /api/v1/users/me/email/verification:
+    post:
+      operationId: sendCurrentUserEmailVerification
+      summary: 发送当前用户邮箱验证邮件
+      tags: [users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 已发送
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+  /api/v1/users/me/identities:
+    get:
+      operationId: listCurrentUserIdentities
+      summary: 当前用户三方身份
+      tags: [users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 三方身份列表
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  - provider: github
+                    providerEmail: user@example.com
+                    displayName: Starter User
+                    profileUrl: https://github.com/codego-user
+                    linkedAt: "2026-04-21T15:04:05Z"
+                    lastLoginAt: "2026-04-21T16:04:05Z"
+              schema:
+                $ref: '#/components/schemas/IdentityListResponse'
+  /api/v1/users/me/identities/{provider}:
+    delete:
+      operationId: unlinkCurrentUserIdentity
+      summary: 解绑三方身份
+      tags: [users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OAuthProvider'
+      responses:
+        '200':
+          description: 解绑成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+  /api/v1/todos:
+    get:
+      operationId: listTodos
+      summary: 列出待办
+      tags:
+        - todos
+      responses:
+        '200':
+          description: 待办列表
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  - todoId: "1"
+                    title: write tests
+                    status: pending
+                    createdAt: "2026-04-21T15:04:05Z"
+                    updatedAt: "2026-04-21T15:04:05Z"
+              schema:
+                $ref: '#/components/schemas/TodoListResponse'
+    post:
+      operationId: createTodo
+      summary: 创建待办
+      tags:
+        - todos
+      requestBody:
+        required: true
+        description: 创建待办请求体
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTodoRequest'
+      responses:
+        '200':
+          description: 创建后的待办
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  todoId: "1"
+                  title: write tests
+                  status: pending
+                  createdAt: "2026-04-21T15:04:05Z"
+                  updatedAt: "2026-04-21T15:04:05Z"
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              example:
+                code: 40001
+                message: 请求参数格式错误
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/todos/{id}:
+    get:
+      operationId: getTodo
+      summary: 查询待办
+      tags:
+        - todos
+      parameters:
+        - $ref: '#/components/parameters/TodoID'
+      responses:
+        '200':
+          description: 单个待办详情
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  todoId: "1"
+                  title: write tests
+                  status: pending
+                  createdAt: "2026-04-21T15:04:05Z"
+                  updatedAt: "2026-04-21T15:04:05Z"
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+        '404':
+          description: 待办不存在
+          content:
+            application/json:
+              example:
+                code: 40401
+                message: 待办不存在
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: deleteTodo
+      summary: 删除待办
+      tags:
+        - todos
+      parameters:
+        - $ref: '#/components/parameters/TodoID'
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+  /api/v1/todos/{id}/complete:
+    post:
+      operationId: completeTodo
+      summary: 完成待办
+      tags:
+        - todos
+      parameters:
+        - $ref: '#/components/parameters/TodoID'
+      responses:
+        '200':
+          description: 完成后的待办
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  todoId: "1"
+                  title: write tests
+                  status: done
+                  createdAt: "2026-04-21T15:04:05Z"
+                  updatedAt: "2026-04-21T15:04:05Z"
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+components:
+  parameters:
+    OAuthProvider:
+      name: provider
+      in: path
+      description: OAuth provider
+      required: true
+      schema:
+        type: string
+        enum: [github, google]
+    TodoID:
+      name: id
+      in: path
+      description: Todo ID
+      required: true
+      schema:
+        type: integer
+        format: int64
+  securitySchemes:
+    bearerAuth:
+      description: JWT Bearer access token
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    HealthResponse:
+      description: 存活探针响应
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: ok
+    ReadyzResponse:
+      description: 就绪探针响应
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+          example: ok
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            database: "connection refused"
+    ErrorResponse:
+      description: 统一错误响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 40001
+        message:
+          type: string
+          example: 请求参数格式错误
+        data:
+          type: object
+          nullable: true
+          example: {}
+    EmptyResponse:
+      description: 空数据成功响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: object
+          nullable: true
+          example: null
+    RegisterRequest:
+      description: 用户注册请求
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+          example: user@example.com
+        password:
+          type: string
+          minLength: 8
+          example: ChangeMe123!
+        displayName:
+          type: string
+          maxLength: 100
+          example: Starter User
+    LoginRequest:
+      description: 邮箱密码登录请求
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          example: ChangeMe123!
+    RefreshRequest:
+      description: 刷新令牌请求
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          example: refresh-token
+    ForgotPasswordRequest:
+      description: 密码重置邮件请求
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+    ResetPasswordRequest:
+      description: 密码重置请求
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+          example: password-reset-token
+        newPassword:
+          type: string
+          minLength: 8
+          example: ChangeMe123!
+    VerifyEmailRequest:
+      description: 邮箱验证请求
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          example: email-verification-token
+    OAuthTokenRequest:
+      description: OAuth 一次性登录码换 token 请求
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          example: oauth-login-code
+    UpdateProfileRequest:
+      description: 当前用户资料更新请求
+      type: object
+      properties:
+        displayName:
+          type: string
+          maxLength: 100
+          example: Starter User
+        avatarUrl:
+          type: string
+          maxLength: 1024
+          example: https://example.com/avatar.png
+    ChangePasswordRequest:
+      description: 当前用户设置或修改密码请求
+      type: object
+      required: [newPassword]
+      properties:
+        oldPassword:
+          type: string
+          example: ChangeMe123!
+        newPassword:
+          type: string
+          minLength: 8
+          example: NextChangeMe123!
+    User:
+      description: 当前用户基础资料
+      type: object
+      required: [id, email, emailVerified, displayName, avatarUrl, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 10001
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        emailVerified:
+          type: boolean
+          example: true
+        displayName:
+          type: string
+          example: Starter User
+        avatarUrl:
+          type: string
+          example: https://example.com/avatar.png
+        status:
+          type: string
+          enum: [active, disabled]
+          example: active
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-04-21T15:04:05Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-04-21T15:04:05Z"
+    AuthResponse:
+      description: 登录或刷新 token 响应
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: object
+          example:
+            user:
+              id: 10001
+              email: user@example.com
+              emailVerified: true
+              displayName: Starter User
+              avatarUrl: ""
+              status: active
+              createdAt: "2026-04-21T15:04:05Z"
+              updatedAt: "2026-04-21T15:04:05Z"
+            accessToken: access-token
+            accessTokenExpiresAt: "2026-04-21T15:19:05Z"
+            refreshToken: refresh-token
+            refreshTokenExpiresAt: "2026-05-21T15:04:05Z"
+          required: [user, accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt]
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            accessToken:
+              type: string
+              example: access-token
+            accessTokenExpiresAt:
+              type: string
+              format: date-time
+              example: "2026-04-21T15:19:05Z"
+            refreshToken:
+              type: string
+              example: refresh-token
+            refreshTokenExpiresAt:
+              type: string
+              format: date-time
+              example: "2026-05-21T15:04:05Z"
+    UserResponseEnvelope:
+      description: 当前用户响应
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          allOf:
+            - $ref: '#/components/schemas/User'
+          example:
+            id: 10001
+            email: user@example.com
+            emailVerified: true
+            displayName: Starter User
+            avatarUrl: ""
+            status: active
+            createdAt: "2026-04-21T15:04:05Z"
+            updatedAt: "2026-04-21T15:04:05Z"
+    Identity:
+      description: 三方登录身份
+      type: object
+      required: [provider, providerEmail, displayName, profileUrl, linkedAt]
+      properties:
+        provider:
+          type: string
+          enum: [github, google]
+          example: github
+        providerEmail:
+          type: string
+          example: user@example.com
+        displayName:
+          type: string
+          example: Starter User
+        profileUrl:
+          type: string
+          example: https://github.com/codego-user
+        linkedAt:
+          type: string
+          format: date-time
+          example: "2026-04-21T15:04:05Z"
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-04-21T16:04:05Z"
+    IdentityListResponse:
+      description: 当前用户三方身份列表响应
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: array
+          example:
+            - provider: github
+              providerEmail: user@example.com
+              displayName: Starter User
+              profileUrl: https://github.com/codego-user
+              linkedAt: "2026-04-21T15:04:05Z"
+              lastLoginAt: "2026-04-21T16:04:05Z"
+          items:
+            $ref: '#/components/schemas/Identity'
+    CreateTodoRequest:
+      description: 创建待办请求
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: write tests
+    TodoItem:
+      description: 待办资源
+      type: object
+      required:
+        - todoId
+        - title
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        todoId:
+          type: string
+          example: "1"
+        title:
+          type: string
+          example: write tests
+        status:
+          type: string
+          example: pending
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-04-21T15:04:05Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-04-21T15:04:05Z"
+    TodoResponse:
+      description: 单个待办响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          $ref: '#/components/schemas/TodoItem'
+    TodoListResponse:
+      description: 待办列表响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: array
+          example:
+            - todoId: "1"
+              title: write tests
+              status: pending
+              createdAt: "2026-04-21T15:04:05Z"
+              updatedAt: "2026-04-21T15:04:05Z"
+          items:
+            $ref: '#/components/schemas/TodoItem'

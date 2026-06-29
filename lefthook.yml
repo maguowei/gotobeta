@@ -1,0 +1,30 @@
+pre-commit:
+  parallel: false
+  commands:
+    gofmt:
+      glob: "*.go"
+      run: gofmt -w {staged_files}
+      stage_fixed: true
+    lefthook-validate:
+      run: make lefthook-validate
+    secrets:
+      run: go tool gitleaks git --pre-commit --staged --redact --no-banner
+    lint-go:
+      run: make lint-go
+    lint-openapi:
+      glob: "api/openapi.yaml"
+      run: make lint-openapi
+    test:
+      run: make test
+    architecture:
+      run: make test-architecture
+commit-msg:
+  commands:
+    conventional-commit:
+      run: bash .lefthook/commit-msg/validate-message.sh {1}
+pre-push:
+  parallel: false
+  follow: true
+  commands:
+    verify:
+      run: bash .lefthook/pre-push/verify-cache.sh

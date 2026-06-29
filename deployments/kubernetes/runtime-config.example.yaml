@@ -1,0 +1,20 @@
+# 这是模板示例：不要直接 apply。
+# 真实部署应由发布流水线把占位符替换为对应环境的值，或者用 SealedSecret / ExternalSecret 注入。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gotobeta-runtime
+data:
+  # 由发布流水线注入，例如 "redis-master.redis:6379"。
+  redis-addr: "REPLACE_WITH_REDIS_ADDR"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gotobeta-runtime
+type: Opaque
+stringData:
+  # 由发布流水线注入完整 DSN，禁止把 root/password 提交到仓库。
+  database-dsn: "REPLACE_WITH_DATABASE_DSN"
+  # 由发布流水线注入至少 32 字节随机 HMAC secret，禁止复用本地开发默认值。
+  auth-jwt-hmac-secret: "REPLACE_WITH_AUTH_JWT_HMAC_SECRET"

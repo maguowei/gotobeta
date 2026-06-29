@@ -1,0 +1,11 @@
+.git
+.github
+.idea
+.vscode
+.claude
+bin/
+logs/
+coverage.out
+coverage.html
+tmp/
+*.log

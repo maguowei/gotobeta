@@ -1,0 +1,64 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-use-quality.sh\""
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(go test*)",
+      "Bash(go build*)",
+      "Bash(go generate*)",
+      "Bash(go mod download)",
+      "Bash(go mod tidy)",
+      "Bash(env GOCACHE=* GOMODCACHE=* make verify)",
+      "Bash(env GOCACHE=* GOMODCACHE=* make smoke)",
+      "Bash(env GOCACHE=* GOMODCACHE=* make test)",
+      "Bash(env GOCACHE=* GOMODCACHE=* make coverage-check)",
+      "Bash(env GOCACHE=* GOMODCACHE=* make lint)",
+      "Bash(make verify)",
+      "Bash(make smoke)",
+      "Bash(make lint)",
+      "Bash(make lint-actions)",
+      "Bash(make lint-go)",
+      "Bash(make lint-openapi)",
+      "Bash(make lint-secrets)",
+      "Bash(make mod-verify)",
+      "Bash(make vuln-check)",
+      "Bash(make lefthook-validate)",
+      "Bash(make lefthook-run)",
+      "Bash(make test)",
+      "Bash(make coverage-check)",
+      "Bash(make test-architecture)",
+      "Bash(make test-integration-compile)",
+      "Bash(make test-integration)",
+      "Bash(make build)",
+      "Bash(make generate)",
+      "Bash(make tidy)",
+      "Bash(go tool golangci-lint*)",
+      "Bash(go tool lefthook*)",
+      "Bash(go tool gitleaks*)",
+      "Bash(go tool vacuum*)",
+      "Bash(go tool actionlint*)",
+      "Bash(go tool govulncheck*)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)"
+    ],
+    "deny": [
+      "Bash(make docker-push*)",
+      "Bash(make docker-clean*)",
+      "Bash(make clean)",
+      "Bash(git push*)",
+      "Bash(rm -rf*)"
+    ]
+  }
+}
