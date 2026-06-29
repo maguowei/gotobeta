@@ -117,7 +117,7 @@ func (h *MessageHandler) ReportRead(c *gin.Context) {
 	if !ok {
 		return
 	}
-	wsID, cid, ok := parseWsConv(c)
+	_, cid, ok := parseWsConv(c)
 	if !ok {
 		return
 	}
@@ -126,7 +126,7 @@ func (h *MessageHandler) ReportRead(c *gin.Context) {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "请求参数格式错误")
 		return
 	}
-	if err := h.usecase.ReportRead(c.Request.Context(), req.ToCommand(wsID, cid, claims.UserID)); err != nil {
+	if err := h.usecase.ReportRead(c.Request.Context(), req.ToCommand(cid, claims.UserID)); err != nil {
 		httpresponse.Error(c, err)
 		return
 	}

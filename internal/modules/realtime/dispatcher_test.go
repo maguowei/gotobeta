@@ -11,10 +11,17 @@ import (
 	"github.com/maguowei/gotobeta/internal/pkg/imevent"
 )
 
-type stubMembers struct{ ids []int64 }
+type stubMembers struct {
+	ids   []int64
+	peers []int64
+}
 
 func (s stubMembers) ConversationUserIDs(context.Context, int64) ([]int64, error) {
 	return s.ids, nil
+}
+
+func (s stubMembers) UserConversationPeers(context.Context, int64) ([]int64, error) {
+	return s.peers, nil
 }
 
 type recvConn struct{ frames [][]byte }

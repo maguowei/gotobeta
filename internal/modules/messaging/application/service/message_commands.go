@@ -175,7 +175,11 @@ func (s *MessageService) ReportRead(ctx context.Context, cmd messagingcmd.Report
 	if err := s.conversations.SaveMember(ctx, mem); err != nil {
 		return wrapInfrastructureError("更新已读水位失败", err)
 	}
-	evt := imevent.NewReadUpdatedEvent(cmd.WorkspaceID, cmd.ConversationID, cmd.UserID, mem.ReadSeq(), time.Now())
+	workspaceID := int64(0)
+	if conv, err := s.conversations.FindByID(ctx, cmd.ConversationID); err == nil {
+		workspaceID = conv.WorkspaceID()
+	}
+	evt := imevent.NewReadUpdatedEvent(workspaceID, cmd.ConversationID, cmd.UserID, mem.ReadSeq(), time.Now())
 	if err := s.publisher.Publish(ctx, evt); err != nil {
 		loggerx.WithError(ctx, s.logger, "publish read updated event failed", err, slog.Int64("conversationId", cmd.ConversationID))
 	}

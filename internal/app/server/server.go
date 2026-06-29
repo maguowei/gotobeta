@@ -136,7 +136,7 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 			}
 		}
 	}()
-	realtimeMod, err := realtime.New(cfg, cache.NewRedisKV(redisClient), messagingMod.MemberLookup(), eventBus, appLogger)
+	realtimeMod, err := realtime.New(cfg, cache.NewRedisKV(redisClient), messagingMod.MemberLookup(), messagingMod.ReadReporter(), eventBus, appLogger)
 	if err != nil {
 		return err
 	}

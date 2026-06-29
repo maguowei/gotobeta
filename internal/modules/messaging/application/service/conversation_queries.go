@@ -48,6 +48,31 @@ func (s *ConversationService) ConversationUserIDs(ctx context.Context, conversat
 	return ids, nil
 }
 
+// UserConversationPeers 返回与该用户共享任一会话的其他活跃用户集合，实现 imrt.MemberLookup。
+func (s *ConversationService) UserConversationPeers(ctx context.Context, userID int64) ([]int64, error) {
+	convs, err := s.conversations.ListByMember(ctx, conversation.MemberUser, userID)
+	if err != nil {
+		return nil, wrapInfrastructureError("查询会话列表失败", err)
+	}
+	peers := make(map[int64]struct{})
+	for _, conv := range convs {
+		members, err := s.conversations.ListMembers(ctx, conv.ID())
+		if err != nil {
+			return nil, wrapInfrastructureError("查询会话成员失败", err)
+		}
+		for _, m := range members {
+			if m.MemberType() == conversation.MemberUser && m.Status() == conversation.MemberActive && m.MemberID() != userID {
+				peers[m.MemberID()] = struct{}{}
+			}
+		}
+	}
+	ids := make([]int64, 0, len(peers))
+	for id := range peers {
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
 // ListMembers 返回会话成员列表；操作者需为该会话活跃成员。
 func (s *ConversationService) ListMembers(ctx context.Context, q messagingquery.ListMembersQuery) ([]*messagingresult.ConversationMemberResult, error) {
 	if _, err := s.requireActiveMembership(ctx, q.ConversationID, q.OperatorUserID); err != nil {

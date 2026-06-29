@@ -2,6 +2,7 @@
 package messaging
 
 import (
+	"context"
 	"log/slog"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/infra/localid"
 	messaginghandler "github.com/maguowei/gotobeta/internal/modules/messaging/adapter/http/handler"
 	messagingrouter "github.com/maguowei/gotobeta/internal/modules/messaging/adapter/http/router"
+	messagingcmd "github.com/maguowei/gotobeta/internal/modules/messaging/application/command"
 	messagingsvc "github.com/maguowei/gotobeta/internal/modules/messaging/application/service"
 	messagingpersist "github.com/maguowei/gotobeta/internal/modules/messaging/infra/persistence"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/infra/seqalloc"
@@ -29,6 +31,7 @@ type Module struct {
 	convHandler *messaginghandler.ConversationHandler
 	msgHandler  *messaginghandler.MessageHandler
 	convSvc     *messagingsvc.ConversationService
+	msgSvc      *messagingsvc.MessageService
 }
 
 // New 完成 messaging 模块装配（repo -> service -> handler）。
@@ -51,12 +54,31 @@ func New(client *ent.Client, logger *slog.Logger, cfg *config.Config, checker au
 		convHandler: messaginghandler.NewConversationHandler(convSvc),
 		msgHandler:  messaginghandler.NewMessageHandler(msgSvc),
 		convSvc:     convSvc,
+		msgSvc:      msgSvc,
 	}, nil
 }
 
 // MemberLookup 暴露会话成员查询端口，供 realtime 模块经组合根注入。
 func (m *Module) MemberLookup() imrt.MemberLookup {
 	return m.convSvc
+}
+
+// ReadReporter 暴露已读上报端口，供 realtime 处理 WS 上行 read 帧时回流。
+func (m *Module) ReadReporter() imrt.ReadReporter {
+	return readReporter{svc: m.msgSvc}
+}
+
+// readReporter 适配 MessageService 到 imrt.ReadReporter。
+type readReporter struct {
+	svc *messagingsvc.MessageService
+}
+
+func (r readReporter) ReportRead(ctx context.Context, conversationID, userID, readSeq int64) error {
+	return r.svc.ReportRead(ctx, messagingcmd.ReportReadCommand{
+		ConversationID: conversationID,
+		UserID:         userID,
+		ReadSeq:        readSeq,
+	})
 }
 
 // Mount 把会话与消息路由挂到给定路由组。

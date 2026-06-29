@@ -14,13 +14,17 @@ import (
 	"github.com/maguowei/gotobeta/internal/modules/realtime/adapter/ws"
 	realtimesvc "github.com/maguowei/gotobeta/internal/modules/realtime/application/service"
 	"github.com/maguowei/gotobeta/internal/modules/realtime/infra/hub"
+	"github.com/maguowei/gotobeta/internal/modules/realtime/infra/presence"
 	"github.com/maguowei/gotobeta/internal/modules/realtime/infra/ticket"
 	"github.com/maguowei/gotobeta/internal/pkg/event"
 	"github.com/maguowei/gotobeta/internal/pkg/imevent"
 	"github.com/maguowei/gotobeta/internal/pkg/imrt"
 )
 
-const defaultTicketTTL = 30 * time.Second
+const (
+	defaultTicketTTL   = 30 * time.Second
+	defaultPresenceTTL = 30 * time.Second
+)
 
 // Subscriber 是事件总线的订阅端口（由 eventbus.InProc 实现）。
 type Subscriber interface {
@@ -35,17 +39,22 @@ type Module struct {
 
 // New 完成 realtime 模块装配，并把分发器订阅到事件总线。
 //
-// kv 可为 nil（ticket 退化为单机内存）；members 由 messaging 模块注入。
-func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, bus Subscriber, logger *slog.Logger) (*Module, error) {
+// kv 可为 nil（ticket/presence 退化为单机内存）；members/reader 由 messaging 模块注入。
+func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, reader imrt.ReadReporter, bus Subscriber, logger *slog.Logger) (*Module, error) {
 	var ticketKV ticket.KV
+	var presenceKV presence.KV
 	if kv != nil {
 		ticketKV = kv
+		presenceKV = kv
 	}
 	ticketStore := ticket.NewStore(ticketKV, ticketTTL(cfg))
+	presenceStore := presence.NewStore(presenceKV, presenceTTL(cfg))
 	connHub := hub.New()
 
 	ticketSvc := realtimesvc.NewTicketService(ticketStore)
-	gateway := ws.NewGateway(ticketStore, connHub, nil, logger)
+	ephemeral := NewEphemeral(connHub, members, reader, logger)
+	presenceReporter := NewPresence(connHub, presenceStore, members, logger)
+	gateway := ws.NewGateway(ticketStore, connHub, ephemeral, presenceReporter, logger)
 
 	dispatcher := NewDispatcher(connHub, members, logger)
 	bus.Subscribe(imevent.MessageCreated, dispatcher.OnMessageCreated)
@@ -63,12 +72,20 @@ func (m *Module) Mount(rg *gin.RouterGroup, authMiddlewares ...gin.HandlerFunc) 
 }
 
 func ticketTTL(cfg *config.Config) time.Duration {
-	if cfg.IM.WSTicketTTL == "" {
-		return defaultTicketTTL
+	return parseDuration(cfg.IM.WSTicketTTL, defaultTicketTTL)
+}
+
+func presenceTTL(cfg *config.Config) time.Duration {
+	return parseDuration(cfg.IM.PresenceTTL, defaultPresenceTTL)
+}
+
+func parseDuration(raw string, fallback time.Duration) time.Duration {
+	if raw == "" {
+		return fallback
 	}
-	d, err := time.ParseDuration(cfg.IM.WSTicketTTL)
+	d, err := time.ParseDuration(raw)
 	if err != nil || d <= 0 {
-		return defaultTicketTTL
+		return fallback
 	}
 	return d
 }

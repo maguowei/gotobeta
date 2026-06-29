@@ -19,9 +19,8 @@ type RecallMessageCommand struct {
 	MessageID      int64
 }
 
-// ReportReadCommand 已读水位上报入参。
+// ReportReadCommand 已读水位上报入参。workspaceID 由用例从会话推导。
 type ReportReadCommand struct {
-	WorkspaceID    int64
 	ConversationID int64
 	UserID         int64
 	ReadSeq        int64

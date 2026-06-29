@@ -10,4 +10,11 @@ import "context"
 type MemberLookup interface {
 	// ConversationUserIDs 返回会话内全部活跃用户成员的 userID（不含 bot）。
 	ConversationUserIDs(ctx context.Context, conversationID int64) ([]int64, error)
+	// UserConversationPeers 返回与该用户共享任一会话的其他用户 userID 集合（presence 受众，不含自己）。
+	UserConversationPeers(ctx context.Context, userID int64) ([]int64, error)
+}
+
+// ReadReporter 上报已读水位，供 realtime 处理 WS 上行 read 帧时回流到 messaging。
+type ReadReporter interface {
+	ReportRead(ctx context.Context, conversationID, userID, readSeq int64) error
 }

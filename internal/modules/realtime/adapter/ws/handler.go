@@ -22,17 +22,24 @@ type EphemeralHandler interface {
 	Read(ctx context.Context, userID, conversationID, readSeq int64)
 }
 
+// PresenceReporter 处理连接上线/下线，用于在线状态广播。可为 nil。
+type PresenceReporter interface {
+	OnConnect(ctx context.Context, userID int64)
+	OnDisconnect(ctx context.Context, userID int64)
+}
+
 // Gateway 处理 WS 升级与连接生命周期。
 type Gateway struct {
 	tickets   port.TicketStore
 	hub       imrt.Registry
 	upgrader  websocket.Upgrader
 	ephemeral EphemeralHandler
+	presence  PresenceReporter
 	logger    *slog.Logger
 }
 
-// NewGateway 创建网关。ephemeral 可为 nil。
-func NewGateway(tickets port.TicketStore, h imrt.Registry, ephemeral EphemeralHandler, logger *slog.Logger) *Gateway {
+// NewGateway 创建网关。ephemeral 与 presence 可为 nil。
+func NewGateway(tickets port.TicketStore, h imrt.Registry, ephemeral EphemeralHandler, presence PresenceReporter, logger *slog.Logger) *Gateway {
 	return &Gateway{
 		tickets: tickets,
 		hub:     h,
@@ -43,6 +50,7 @@ func NewGateway(tickets port.TicketStore, h imrt.Registry, ephemeral EphemeralHa
 			CheckOrigin: func(*http.Request) bool { return true },
 		},
 		ephemeral: ephemeral,
+		presence:  presence,
 		logger:    logger,
 	}
 }
@@ -65,12 +73,18 @@ func (g *Gateway) Handle(c *gin.Context) {
 	conn := newConn(userID, wsConn)
 	g.hub.Register(userID, conn)
 	conn.Send(mustEncode(Frame{T: TypeAuthOK, UID: userID}))
+	if g.presence != nil {
+		g.presence.OnConnect(c.Request.Context(), userID)
+	}
 
 	go conn.writePump()
 	g.readPump(c.Request.Context(), conn)
 
 	g.hub.Unregister(userID, conn)
 	conn.close()
+	if g.presence != nil {
+		g.presence.OnDisconnect(c.Request.Context(), userID)
+	}
 }
 
 // readPump 阻塞读取上行帧，处理 ping/typing/read，直到连接关闭。

@@ -18,9 +18,8 @@ type ReportReadRequest struct {
 }
 
 // ToCommand 转换为命令。
-func (r ReportReadRequest) ToCommand(workspaceID, conversationID, userID int64) messagingcmd.ReportReadCommand {
+func (r ReportReadRequest) ToCommand(conversationID, userID int64) messagingcmd.ReportReadCommand {
 	return messagingcmd.ReportReadCommand{
-		WorkspaceID:    workspaceID,
 		ConversationID: conversationID,
 		UserID:         userID,
 		ReadSeq:        r.ReadSeq,
