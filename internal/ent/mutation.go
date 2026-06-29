@@ -16,9 +16,18 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/authrefreshtoken"
 	"github.com/maguowei/gotobeta/internal/ent/oauthloginstate"
 	"github.com/maguowei/gotobeta/internal/ent/predicate"
+	"github.com/maguowei/gotobeta/internal/ent/rbacaclentry"
+	"github.com/maguowei/gotobeta/internal/ent/rbacpermission"
+	"github.com/maguowei/gotobeta/internal/ent/rbacpermissionchangelog"
+	"github.com/maguowei/gotobeta/internal/ent/rbacpermissionversion"
+	"github.com/maguowei/gotobeta/internal/ent/rbacrole"
+	"github.com/maguowei/gotobeta/internal/ent/rbacrolepermission"
+	"github.com/maguowei/gotobeta/internal/ent/rbacuserrole"
 	"github.com/maguowei/gotobeta/internal/ent/todo"
 	"github.com/maguowei/gotobeta/internal/ent/user"
 	"github.com/maguowei/gotobeta/internal/ent/useridentity"
+	"github.com/maguowei/gotobeta/internal/ent/workspace"
+	"github.com/maguowei/gotobeta/internal/ent/workspacemember"
 )
 
 const (
@@ -30,13 +39,22 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAppSetting       = "AppSetting"
-	TypeAuthActionToken  = "AuthActionToken"
-	TypeAuthRefreshToken = "AuthRefreshToken"
-	TypeOAuthLoginState  = "OAuthLoginState"
-	TypeTodo             = "Todo"
-	TypeUser             = "User"
-	TypeUserIdentity     = "UserIdentity"
+	TypeAppSetting              = "AppSetting"
+	TypeAuthActionToken         = "AuthActionToken"
+	TypeAuthRefreshToken        = "AuthRefreshToken"
+	TypeOAuthLoginState         = "OAuthLoginState"
+	TypeRbacAclEntry            = "RbacAclEntry"
+	TypeRbacPermission          = "RbacPermission"
+	TypeRbacPermissionChangeLog = "RbacPermissionChangeLog"
+	TypeRbacPermissionVersion   = "RbacPermissionVersion"
+	TypeRbacRole                = "RbacRole"
+	TypeRbacRolePermission      = "RbacRolePermission"
+	TypeRbacUserRole            = "RbacUserRole"
+	TypeTodo                    = "Todo"
+	TypeUser                    = "User"
+	TypeUserIdentity            = "UserIdentity"
+	TypeWorkspace               = "Workspace"
+	TypeWorkspaceMember         = "WorkspaceMember"
 )
 
 // AppSettingMutation represents an operation that mutates the AppSetting nodes in the graph.
@@ -2848,6 +2866,6333 @@ func (m *OAuthLoginStateMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *OAuthLoginStateMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown OAuthLoginState edge %s", name)
+}
+
+// RbacAclEntryMutation represents an operation that mutates the RbacAclEntry nodes in the graph.
+type RbacAclEntryMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	created_at      *time.Time
+	updated_at      *time.Time
+	biz_id          *int64
+	addbiz_id       *int64
+	workspace_id    *int64
+	addworkspace_id *int64
+	subject_type    *int8
+	addsubject_type *int8
+	subject_id      *int64
+	addsubject_id   *int64
+	resource_type   *string
+	resource_id     *string
+	action_code     *string
+	effect          *int8
+	addeffect       *int8
+	reason          *string
+	source_type     *int8
+	addsource_type  *int8
+	expires_at      *time.Time
+	created_by      *int64
+	addcreated_by   *int64
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*RbacAclEntry, error)
+	predicates      []predicate.RbacAclEntry
+}
+
+var _ ent.Mutation = (*RbacAclEntryMutation)(nil)
+
+// rbacaclentryOption allows management of the mutation configuration using functional options.
+type rbacaclentryOption func(*RbacAclEntryMutation)
+
+// newRbacAclEntryMutation creates new mutation for the RbacAclEntry entity.
+func newRbacAclEntryMutation(c config, op Op, opts ...rbacaclentryOption) *RbacAclEntryMutation {
+	m := &RbacAclEntryMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRbacAclEntry,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRbacAclEntryID sets the ID field of the mutation.
+func withRbacAclEntryID(id int) rbacaclentryOption {
+	return func(m *RbacAclEntryMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RbacAclEntry
+		)
+		m.oldValue = func(ctx context.Context) (*RbacAclEntry, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RbacAclEntry.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRbacAclEntry sets the old RbacAclEntry of the mutation.
+func withRbacAclEntry(node *RbacAclEntry) rbacaclentryOption {
+	return func(m *RbacAclEntryMutation) {
+		m.oldValue = func(context.Context) (*RbacAclEntry, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RbacAclEntryMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RbacAclEntryMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RbacAclEntryMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RbacAclEntryMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RbacAclEntry.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RbacAclEntryMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RbacAclEntryMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RbacAclEntryMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RbacAclEntryMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RbacAclEntryMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RbacAclEntryMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetBizID sets the "biz_id" field.
+func (m *RbacAclEntryMutation) SetBizID(i int64) {
+	m.biz_id = &i
+	m.addbiz_id = nil
+}
+
+// BizID returns the value of the "biz_id" field in the mutation.
+func (m *RbacAclEntryMutation) BizID() (r int64, exists bool) {
+	v := m.biz_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBizID returns the old "biz_id" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldBizID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBizID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBizID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBizID: %w", err)
+	}
+	return oldValue.BizID, nil
+}
+
+// AddBizID adds i to the "biz_id" field.
+func (m *RbacAclEntryMutation) AddBizID(i int64) {
+	if m.addbiz_id != nil {
+		*m.addbiz_id += i
+	} else {
+		m.addbiz_id = &i
+	}
+}
+
+// AddedBizID returns the value that was added to the "biz_id" field in this mutation.
+func (m *RbacAclEntryMutation) AddedBizID() (r int64, exists bool) {
+	v := m.addbiz_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBizID resets all changes to the "biz_id" field.
+func (m *RbacAclEntryMutation) ResetBizID() {
+	m.biz_id = nil
+	m.addbiz_id = nil
+}
+
+// SetWorkspaceID sets the "workspace_id" field.
+func (m *RbacAclEntryMutation) SetWorkspaceID(i int64) {
+	m.workspace_id = &i
+	m.addworkspace_id = nil
+}
+
+// WorkspaceID returns the value of the "workspace_id" field in the mutation.
+func (m *RbacAclEntryMutation) WorkspaceID() (r int64, exists bool) {
+	v := m.workspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkspaceID returns the old "workspace_id" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldWorkspaceID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWorkspaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWorkspaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkspaceID: %w", err)
+	}
+	return oldValue.WorkspaceID, nil
+}
+
+// AddWorkspaceID adds i to the "workspace_id" field.
+func (m *RbacAclEntryMutation) AddWorkspaceID(i int64) {
+	if m.addworkspace_id != nil {
+		*m.addworkspace_id += i
+	} else {
+		m.addworkspace_id = &i
+	}
+}
+
+// AddedWorkspaceID returns the value that was added to the "workspace_id" field in this mutation.
+func (m *RbacAclEntryMutation) AddedWorkspaceID() (r int64, exists bool) {
+	v := m.addworkspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWorkspaceID resets all changes to the "workspace_id" field.
+func (m *RbacAclEntryMutation) ResetWorkspaceID() {
+	m.workspace_id = nil
+	m.addworkspace_id = nil
+}
+
+// SetSubjectType sets the "subject_type" field.
+func (m *RbacAclEntryMutation) SetSubjectType(i int8) {
+	m.subject_type = &i
+	m.addsubject_type = nil
+}
+
+// SubjectType returns the value of the "subject_type" field in the mutation.
+func (m *RbacAclEntryMutation) SubjectType() (r int8, exists bool) {
+	v := m.subject_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubjectType returns the old "subject_type" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldSubjectType(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubjectType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubjectType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubjectType: %w", err)
+	}
+	return oldValue.SubjectType, nil
+}
+
+// AddSubjectType adds i to the "subject_type" field.
+func (m *RbacAclEntryMutation) AddSubjectType(i int8) {
+	if m.addsubject_type != nil {
+		*m.addsubject_type += i
+	} else {
+		m.addsubject_type = &i
+	}
+}
+
+// AddedSubjectType returns the value that was added to the "subject_type" field in this mutation.
+func (m *RbacAclEntryMutation) AddedSubjectType() (r int8, exists bool) {
+	v := m.addsubject_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSubjectType resets all changes to the "subject_type" field.
+func (m *RbacAclEntryMutation) ResetSubjectType() {
+	m.subject_type = nil
+	m.addsubject_type = nil
+}
+
+// SetSubjectID sets the "subject_id" field.
+func (m *RbacAclEntryMutation) SetSubjectID(i int64) {
+	m.subject_id = &i
+	m.addsubject_id = nil
+}
+
+// SubjectID returns the value of the "subject_id" field in the mutation.
+func (m *RbacAclEntryMutation) SubjectID() (r int64, exists bool) {
+	v := m.subject_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubjectID returns the old "subject_id" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldSubjectID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubjectID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubjectID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubjectID: %w", err)
+	}
+	return oldValue.SubjectID, nil
+}
+
+// AddSubjectID adds i to the "subject_id" field.
+func (m *RbacAclEntryMutation) AddSubjectID(i int64) {
+	if m.addsubject_id != nil {
+		*m.addsubject_id += i
+	} else {
+		m.addsubject_id = &i
+	}
+}
+
+// AddedSubjectID returns the value that was added to the "subject_id" field in this mutation.
+func (m *RbacAclEntryMutation) AddedSubjectID() (r int64, exists bool) {
+	v := m.addsubject_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSubjectID resets all changes to the "subject_id" field.
+func (m *RbacAclEntryMutation) ResetSubjectID() {
+	m.subject_id = nil
+	m.addsubject_id = nil
+}
+
+// SetResourceType sets the "resource_type" field.
+func (m *RbacAclEntryMutation) SetResourceType(s string) {
+	m.resource_type = &s
+}
+
+// ResourceType returns the value of the "resource_type" field in the mutation.
+func (m *RbacAclEntryMutation) ResourceType() (r string, exists bool) {
+	v := m.resource_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResourceType returns the old "resource_type" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldResourceType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResourceType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResourceType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResourceType: %w", err)
+	}
+	return oldValue.ResourceType, nil
+}
+
+// ResetResourceType resets all changes to the "resource_type" field.
+func (m *RbacAclEntryMutation) ResetResourceType() {
+	m.resource_type = nil
+}
+
+// SetResourceID sets the "resource_id" field.
+func (m *RbacAclEntryMutation) SetResourceID(s string) {
+	m.resource_id = &s
+}
+
+// ResourceID returns the value of the "resource_id" field in the mutation.
+func (m *RbacAclEntryMutation) ResourceID() (r string, exists bool) {
+	v := m.resource_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResourceID returns the old "resource_id" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldResourceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResourceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResourceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResourceID: %w", err)
+	}
+	return oldValue.ResourceID, nil
+}
+
+// ResetResourceID resets all changes to the "resource_id" field.
+func (m *RbacAclEntryMutation) ResetResourceID() {
+	m.resource_id = nil
+}
+
+// SetActionCode sets the "action_code" field.
+func (m *RbacAclEntryMutation) SetActionCode(s string) {
+	m.action_code = &s
+}
+
+// ActionCode returns the value of the "action_code" field in the mutation.
+func (m *RbacAclEntryMutation) ActionCode() (r string, exists bool) {
+	v := m.action_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActionCode returns the old "action_code" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldActionCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActionCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActionCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActionCode: %w", err)
+	}
+	return oldValue.ActionCode, nil
+}
+
+// ResetActionCode resets all changes to the "action_code" field.
+func (m *RbacAclEntryMutation) ResetActionCode() {
+	m.action_code = nil
+}
+
+// SetEffect sets the "effect" field.
+func (m *RbacAclEntryMutation) SetEffect(i int8) {
+	m.effect = &i
+	m.addeffect = nil
+}
+
+// Effect returns the value of the "effect" field in the mutation.
+func (m *RbacAclEntryMutation) Effect() (r int8, exists bool) {
+	v := m.effect
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEffect returns the old "effect" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldEffect(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEffect is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEffect requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEffect: %w", err)
+	}
+	return oldValue.Effect, nil
+}
+
+// AddEffect adds i to the "effect" field.
+func (m *RbacAclEntryMutation) AddEffect(i int8) {
+	if m.addeffect != nil {
+		*m.addeffect += i
+	} else {
+		m.addeffect = &i
+	}
+}
+
+// AddedEffect returns the value that was added to the "effect" field in this mutation.
+func (m *RbacAclEntryMutation) AddedEffect() (r int8, exists bool) {
+	v := m.addeffect
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetEffect resets all changes to the "effect" field.
+func (m *RbacAclEntryMutation) ResetEffect() {
+	m.effect = nil
+	m.addeffect = nil
+}
+
+// SetReason sets the "reason" field.
+func (m *RbacAclEntryMutation) SetReason(s string) {
+	m.reason = &s
+}
+
+// Reason returns the value of the "reason" field in the mutation.
+func (m *RbacAclEntryMutation) Reason() (r string, exists bool) {
+	v := m.reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReason returns the old "reason" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldReason(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// ResetReason resets all changes to the "reason" field.
+func (m *RbacAclEntryMutation) ResetReason() {
+	m.reason = nil
+}
+
+// SetSourceType sets the "source_type" field.
+func (m *RbacAclEntryMutation) SetSourceType(i int8) {
+	m.source_type = &i
+	m.addsource_type = nil
+}
+
+// SourceType returns the value of the "source_type" field in the mutation.
+func (m *RbacAclEntryMutation) SourceType() (r int8, exists bool) {
+	v := m.source_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceType returns the old "source_type" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldSourceType(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceType: %w", err)
+	}
+	return oldValue.SourceType, nil
+}
+
+// AddSourceType adds i to the "source_type" field.
+func (m *RbacAclEntryMutation) AddSourceType(i int8) {
+	if m.addsource_type != nil {
+		*m.addsource_type += i
+	} else {
+		m.addsource_type = &i
+	}
+}
+
+// AddedSourceType returns the value that was added to the "source_type" field in this mutation.
+func (m *RbacAclEntryMutation) AddedSourceType() (r int8, exists bool) {
+	v := m.addsource_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSourceType resets all changes to the "source_type" field.
+func (m *RbacAclEntryMutation) ResetSourceType() {
+	m.source_type = nil
+	m.addsource_type = nil
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *RbacAclEntryMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *RbacAclEntryMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldExpiresAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ClearExpiresAt clears the value of the "expires_at" field.
+func (m *RbacAclEntryMutation) ClearExpiresAt() {
+	m.expires_at = nil
+	m.clearedFields[rbacaclentry.FieldExpiresAt] = struct{}{}
+}
+
+// ExpiresAtCleared returns if the "expires_at" field was cleared in this mutation.
+func (m *RbacAclEntryMutation) ExpiresAtCleared() bool {
+	_, ok := m.clearedFields[rbacaclentry.FieldExpiresAt]
+	return ok
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *RbacAclEntryMutation) ResetExpiresAt() {
+	m.expires_at = nil
+	delete(m.clearedFields, rbacaclentry.FieldExpiresAt)
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (m *RbacAclEntryMutation) SetCreatedBy(i int64) {
+	m.created_by = &i
+	m.addcreated_by = nil
+}
+
+// CreatedBy returns the value of the "created_by" field in the mutation.
+func (m *RbacAclEntryMutation) CreatedBy() (r int64, exists bool) {
+	v := m.created_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedBy returns the old "created_by" field's value of the RbacAclEntry entity.
+// If the RbacAclEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAclEntryMutation) OldCreatedBy(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedBy: %w", err)
+	}
+	return oldValue.CreatedBy, nil
+}
+
+// AddCreatedBy adds i to the "created_by" field.
+func (m *RbacAclEntryMutation) AddCreatedBy(i int64) {
+	if m.addcreated_by != nil {
+		*m.addcreated_by += i
+	} else {
+		m.addcreated_by = &i
+	}
+}
+
+// AddedCreatedBy returns the value that was added to the "created_by" field in this mutation.
+func (m *RbacAclEntryMutation) AddedCreatedBy() (r int64, exists bool) {
+	v := m.addcreated_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCreatedBy resets all changes to the "created_by" field.
+func (m *RbacAclEntryMutation) ResetCreatedBy() {
+	m.created_by = nil
+	m.addcreated_by = nil
+}
+
+// Where appends a list predicates to the RbacAclEntryMutation builder.
+func (m *RbacAclEntryMutation) Where(ps ...predicate.RbacAclEntry) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RbacAclEntryMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RbacAclEntryMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RbacAclEntry, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RbacAclEntryMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RbacAclEntryMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RbacAclEntry).
+func (m *RbacAclEntryMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RbacAclEntryMutation) Fields() []string {
+	fields := make([]string, 0, 14)
+	if m.created_at != nil {
+		fields = append(fields, rbacaclentry.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, rbacaclentry.FieldUpdatedAt)
+	}
+	if m.biz_id != nil {
+		fields = append(fields, rbacaclentry.FieldBizID)
+	}
+	if m.workspace_id != nil {
+		fields = append(fields, rbacaclentry.FieldWorkspaceID)
+	}
+	if m.subject_type != nil {
+		fields = append(fields, rbacaclentry.FieldSubjectType)
+	}
+	if m.subject_id != nil {
+		fields = append(fields, rbacaclentry.FieldSubjectID)
+	}
+	if m.resource_type != nil {
+		fields = append(fields, rbacaclentry.FieldResourceType)
+	}
+	if m.resource_id != nil {
+		fields = append(fields, rbacaclentry.FieldResourceID)
+	}
+	if m.action_code != nil {
+		fields = append(fields, rbacaclentry.FieldActionCode)
+	}
+	if m.effect != nil {
+		fields = append(fields, rbacaclentry.FieldEffect)
+	}
+	if m.reason != nil {
+		fields = append(fields, rbacaclentry.FieldReason)
+	}
+	if m.source_type != nil {
+		fields = append(fields, rbacaclentry.FieldSourceType)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, rbacaclentry.FieldExpiresAt)
+	}
+	if m.created_by != nil {
+		fields = append(fields, rbacaclentry.FieldCreatedBy)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RbacAclEntryMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case rbacaclentry.FieldCreatedAt:
+		return m.CreatedAt()
+	case rbacaclentry.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case rbacaclentry.FieldBizID:
+		return m.BizID()
+	case rbacaclentry.FieldWorkspaceID:
+		return m.WorkspaceID()
+	case rbacaclentry.FieldSubjectType:
+		return m.SubjectType()
+	case rbacaclentry.FieldSubjectID:
+		return m.SubjectID()
+	case rbacaclentry.FieldResourceType:
+		return m.ResourceType()
+	case rbacaclentry.FieldResourceID:
+		return m.ResourceID()
+	case rbacaclentry.FieldActionCode:
+		return m.ActionCode()
+	case rbacaclentry.FieldEffect:
+		return m.Effect()
+	case rbacaclentry.FieldReason:
+		return m.Reason()
+	case rbacaclentry.FieldSourceType:
+		return m.SourceType()
+	case rbacaclentry.FieldExpiresAt:
+		return m.ExpiresAt()
+	case rbacaclentry.FieldCreatedBy:
+		return m.CreatedBy()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RbacAclEntryMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case rbacaclentry.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case rbacaclentry.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case rbacaclentry.FieldBizID:
+		return m.OldBizID(ctx)
+	case rbacaclentry.FieldWorkspaceID:
+		return m.OldWorkspaceID(ctx)
+	case rbacaclentry.FieldSubjectType:
+		return m.OldSubjectType(ctx)
+	case rbacaclentry.FieldSubjectID:
+		return m.OldSubjectID(ctx)
+	case rbacaclentry.FieldResourceType:
+		return m.OldResourceType(ctx)
+	case rbacaclentry.FieldResourceID:
+		return m.OldResourceID(ctx)
+	case rbacaclentry.FieldActionCode:
+		return m.OldActionCode(ctx)
+	case rbacaclentry.FieldEffect:
+		return m.OldEffect(ctx)
+	case rbacaclentry.FieldReason:
+		return m.OldReason(ctx)
+	case rbacaclentry.FieldSourceType:
+		return m.OldSourceType(ctx)
+	case rbacaclentry.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	case rbacaclentry.FieldCreatedBy:
+		return m.OldCreatedBy(ctx)
+	}
+	return nil, fmt.Errorf("unknown RbacAclEntry field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacAclEntryMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case rbacaclentry.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case rbacaclentry.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case rbacaclentry.FieldBizID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBizID(v)
+		return nil
+	case rbacaclentry.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkspaceID(v)
+		return nil
+	case rbacaclentry.FieldSubjectType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubjectType(v)
+		return nil
+	case rbacaclentry.FieldSubjectID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubjectID(v)
+		return nil
+	case rbacaclentry.FieldResourceType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResourceType(v)
+		return nil
+	case rbacaclentry.FieldResourceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResourceID(v)
+		return nil
+	case rbacaclentry.FieldActionCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActionCode(v)
+		return nil
+	case rbacaclentry.FieldEffect:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEffect(v)
+		return nil
+	case rbacaclentry.FieldReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReason(v)
+		return nil
+	case rbacaclentry.FieldSourceType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceType(v)
+		return nil
+	case rbacaclentry.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	case rbacaclentry.FieldCreatedBy:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedBy(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacAclEntry field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RbacAclEntryMutation) AddedFields() []string {
+	var fields []string
+	if m.addbiz_id != nil {
+		fields = append(fields, rbacaclentry.FieldBizID)
+	}
+	if m.addworkspace_id != nil {
+		fields = append(fields, rbacaclentry.FieldWorkspaceID)
+	}
+	if m.addsubject_type != nil {
+		fields = append(fields, rbacaclentry.FieldSubjectType)
+	}
+	if m.addsubject_id != nil {
+		fields = append(fields, rbacaclentry.FieldSubjectID)
+	}
+	if m.addeffect != nil {
+		fields = append(fields, rbacaclentry.FieldEffect)
+	}
+	if m.addsource_type != nil {
+		fields = append(fields, rbacaclentry.FieldSourceType)
+	}
+	if m.addcreated_by != nil {
+		fields = append(fields, rbacaclentry.FieldCreatedBy)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RbacAclEntryMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case rbacaclentry.FieldBizID:
+		return m.AddedBizID()
+	case rbacaclentry.FieldWorkspaceID:
+		return m.AddedWorkspaceID()
+	case rbacaclentry.FieldSubjectType:
+		return m.AddedSubjectType()
+	case rbacaclentry.FieldSubjectID:
+		return m.AddedSubjectID()
+	case rbacaclentry.FieldEffect:
+		return m.AddedEffect()
+	case rbacaclentry.FieldSourceType:
+		return m.AddedSourceType()
+	case rbacaclentry.FieldCreatedBy:
+		return m.AddedCreatedBy()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacAclEntryMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case rbacaclentry.FieldBizID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBizID(v)
+		return nil
+	case rbacaclentry.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWorkspaceID(v)
+		return nil
+	case rbacaclentry.FieldSubjectType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSubjectType(v)
+		return nil
+	case rbacaclentry.FieldSubjectID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSubjectID(v)
+		return nil
+	case rbacaclentry.FieldEffect:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddEffect(v)
+		return nil
+	case rbacaclentry.FieldSourceType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSourceType(v)
+		return nil
+	case rbacaclentry.FieldCreatedBy:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCreatedBy(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacAclEntry numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RbacAclEntryMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(rbacaclentry.FieldExpiresAt) {
+		fields = append(fields, rbacaclentry.FieldExpiresAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RbacAclEntryMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RbacAclEntryMutation) ClearField(name string) error {
+	switch name {
+	case rbacaclentry.FieldExpiresAt:
+		m.ClearExpiresAt()
+		return nil
+	}
+	return fmt.Errorf("unknown RbacAclEntry nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RbacAclEntryMutation) ResetField(name string) error {
+	switch name {
+	case rbacaclentry.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case rbacaclentry.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case rbacaclentry.FieldBizID:
+		m.ResetBizID()
+		return nil
+	case rbacaclentry.FieldWorkspaceID:
+		m.ResetWorkspaceID()
+		return nil
+	case rbacaclentry.FieldSubjectType:
+		m.ResetSubjectType()
+		return nil
+	case rbacaclentry.FieldSubjectID:
+		m.ResetSubjectID()
+		return nil
+	case rbacaclentry.FieldResourceType:
+		m.ResetResourceType()
+		return nil
+	case rbacaclentry.FieldResourceID:
+		m.ResetResourceID()
+		return nil
+	case rbacaclentry.FieldActionCode:
+		m.ResetActionCode()
+		return nil
+	case rbacaclentry.FieldEffect:
+		m.ResetEffect()
+		return nil
+	case rbacaclentry.FieldReason:
+		m.ResetReason()
+		return nil
+	case rbacaclentry.FieldSourceType:
+		m.ResetSourceType()
+		return nil
+	case rbacaclentry.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	case rbacaclentry.FieldCreatedBy:
+		m.ResetCreatedBy()
+		return nil
+	}
+	return fmt.Errorf("unknown RbacAclEntry field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RbacAclEntryMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RbacAclEntryMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RbacAclEntryMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RbacAclEntryMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RbacAclEntryMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RbacAclEntryMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RbacAclEntryMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RbacAclEntry unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RbacAclEntryMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RbacAclEntry edge %s", name)
+}
+
+// RbacPermissionMutation represents an operation that mutates the RbacPermission nodes in the graph.
+type RbacPermissionMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	created_at      *time.Time
+	updated_at      *time.Time
+	biz_id          *int64
+	addbiz_id       *int64
+	workspace_id    *int64
+	addworkspace_id *int64
+	code            *string
+	name            *string
+	resource_type   *string
+	action_key      *string
+	status          *int8
+	addstatus       *int8
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*RbacPermission, error)
+	predicates      []predicate.RbacPermission
+}
+
+var _ ent.Mutation = (*RbacPermissionMutation)(nil)
+
+// rbacpermissionOption allows management of the mutation configuration using functional options.
+type rbacpermissionOption func(*RbacPermissionMutation)
+
+// newRbacPermissionMutation creates new mutation for the RbacPermission entity.
+func newRbacPermissionMutation(c config, op Op, opts ...rbacpermissionOption) *RbacPermissionMutation {
+	m := &RbacPermissionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRbacPermission,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRbacPermissionID sets the ID field of the mutation.
+func withRbacPermissionID(id int) rbacpermissionOption {
+	return func(m *RbacPermissionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RbacPermission
+		)
+		m.oldValue = func(ctx context.Context) (*RbacPermission, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RbacPermission.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRbacPermission sets the old RbacPermission of the mutation.
+func withRbacPermission(node *RbacPermission) rbacpermissionOption {
+	return func(m *RbacPermissionMutation) {
+		m.oldValue = func(context.Context) (*RbacPermission, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RbacPermissionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RbacPermissionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RbacPermissionMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RbacPermissionMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RbacPermission.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RbacPermissionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RbacPermissionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RbacPermission entity.
+// If the RbacPermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RbacPermissionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RbacPermissionMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RbacPermissionMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RbacPermission entity.
+// If the RbacPermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RbacPermissionMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetBizID sets the "biz_id" field.
+func (m *RbacPermissionMutation) SetBizID(i int64) {
+	m.biz_id = &i
+	m.addbiz_id = nil
+}
+
+// BizID returns the value of the "biz_id" field in the mutation.
+func (m *RbacPermissionMutation) BizID() (r int64, exists bool) {
+	v := m.biz_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBizID returns the old "biz_id" field's value of the RbacPermission entity.
+// If the RbacPermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionMutation) OldBizID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBizID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBizID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBizID: %w", err)
+	}
+	return oldValue.BizID, nil
+}
+
+// AddBizID adds i to the "biz_id" field.
+func (m *RbacPermissionMutation) AddBizID(i int64) {
+	if m.addbiz_id != nil {
+		*m.addbiz_id += i
+	} else {
+		m.addbiz_id = &i
+	}
+}
+
+// AddedBizID returns the value that was added to the "biz_id" field in this mutation.
+func (m *RbacPermissionMutation) AddedBizID() (r int64, exists bool) {
+	v := m.addbiz_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBizID resets all changes to the "biz_id" field.
+func (m *RbacPermissionMutation) ResetBizID() {
+	m.biz_id = nil
+	m.addbiz_id = nil
+}
+
+// SetWorkspaceID sets the "workspace_id" field.
+func (m *RbacPermissionMutation) SetWorkspaceID(i int64) {
+	m.workspace_id = &i
+	m.addworkspace_id = nil
+}
+
+// WorkspaceID returns the value of the "workspace_id" field in the mutation.
+func (m *RbacPermissionMutation) WorkspaceID() (r int64, exists bool) {
+	v := m.workspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkspaceID returns the old "workspace_id" field's value of the RbacPermission entity.
+// If the RbacPermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionMutation) OldWorkspaceID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWorkspaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWorkspaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkspaceID: %w", err)
+	}
+	return oldValue.WorkspaceID, nil
+}
+
+// AddWorkspaceID adds i to the "workspace_id" field.
+func (m *RbacPermissionMutation) AddWorkspaceID(i int64) {
+	if m.addworkspace_id != nil {
+		*m.addworkspace_id += i
+	} else {
+		m.addworkspace_id = &i
+	}
+}
+
+// AddedWorkspaceID returns the value that was added to the "workspace_id" field in this mutation.
+func (m *RbacPermissionMutation) AddedWorkspaceID() (r int64, exists bool) {
+	v := m.addworkspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWorkspaceID resets all changes to the "workspace_id" field.
+func (m *RbacPermissionMutation) ResetWorkspaceID() {
+	m.workspace_id = nil
+	m.addworkspace_id = nil
+}
+
+// SetCode sets the "code" field.
+func (m *RbacPermissionMutation) SetCode(s string) {
+	m.code = &s
+}
+
+// Code returns the value of the "code" field in the mutation.
+func (m *RbacPermissionMutation) Code() (r string, exists bool) {
+	v := m.code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCode returns the old "code" field's value of the RbacPermission entity.
+// If the RbacPermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionMutation) OldCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCode: %w", err)
+	}
+	return oldValue.Code, nil
+}
+
+// ResetCode resets all changes to the "code" field.
+func (m *RbacPermissionMutation) ResetCode() {
+	m.code = nil
+}
+
+// SetName sets the "name" field.
+func (m *RbacPermissionMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *RbacPermissionMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the RbacPermission entity.
+// If the RbacPermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *RbacPermissionMutation) ResetName() {
+	m.name = nil
+}
+
+// SetResourceType sets the "resource_type" field.
+func (m *RbacPermissionMutation) SetResourceType(s string) {
+	m.resource_type = &s
+}
+
+// ResourceType returns the value of the "resource_type" field in the mutation.
+func (m *RbacPermissionMutation) ResourceType() (r string, exists bool) {
+	v := m.resource_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResourceType returns the old "resource_type" field's value of the RbacPermission entity.
+// If the RbacPermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionMutation) OldResourceType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResourceType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResourceType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResourceType: %w", err)
+	}
+	return oldValue.ResourceType, nil
+}
+
+// ResetResourceType resets all changes to the "resource_type" field.
+func (m *RbacPermissionMutation) ResetResourceType() {
+	m.resource_type = nil
+}
+
+// SetActionKey sets the "action_key" field.
+func (m *RbacPermissionMutation) SetActionKey(s string) {
+	m.action_key = &s
+}
+
+// ActionKey returns the value of the "action_key" field in the mutation.
+func (m *RbacPermissionMutation) ActionKey() (r string, exists bool) {
+	v := m.action_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActionKey returns the old "action_key" field's value of the RbacPermission entity.
+// If the RbacPermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionMutation) OldActionKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActionKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActionKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActionKey: %w", err)
+	}
+	return oldValue.ActionKey, nil
+}
+
+// ResetActionKey resets all changes to the "action_key" field.
+func (m *RbacPermissionMutation) ResetActionKey() {
+	m.action_key = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *RbacPermissionMutation) SetStatus(i int8) {
+	m.status = &i
+	m.addstatus = nil
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *RbacPermissionMutation) Status() (r int8, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the RbacPermission entity.
+// If the RbacPermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionMutation) OldStatus(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// AddStatus adds i to the "status" field.
+func (m *RbacPermissionMutation) AddStatus(i int8) {
+	if m.addstatus != nil {
+		*m.addstatus += i
+	} else {
+		m.addstatus = &i
+	}
+}
+
+// AddedStatus returns the value that was added to the "status" field in this mutation.
+func (m *RbacPermissionMutation) AddedStatus() (r int8, exists bool) {
+	v := m.addstatus
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *RbacPermissionMutation) ResetStatus() {
+	m.status = nil
+	m.addstatus = nil
+}
+
+// Where appends a list predicates to the RbacPermissionMutation builder.
+func (m *RbacPermissionMutation) Where(ps ...predicate.RbacPermission) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RbacPermissionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RbacPermissionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RbacPermission, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RbacPermissionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RbacPermissionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RbacPermission).
+func (m *RbacPermissionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RbacPermissionMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.created_at != nil {
+		fields = append(fields, rbacpermission.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, rbacpermission.FieldUpdatedAt)
+	}
+	if m.biz_id != nil {
+		fields = append(fields, rbacpermission.FieldBizID)
+	}
+	if m.workspace_id != nil {
+		fields = append(fields, rbacpermission.FieldWorkspaceID)
+	}
+	if m.code != nil {
+		fields = append(fields, rbacpermission.FieldCode)
+	}
+	if m.name != nil {
+		fields = append(fields, rbacpermission.FieldName)
+	}
+	if m.resource_type != nil {
+		fields = append(fields, rbacpermission.FieldResourceType)
+	}
+	if m.action_key != nil {
+		fields = append(fields, rbacpermission.FieldActionKey)
+	}
+	if m.status != nil {
+		fields = append(fields, rbacpermission.FieldStatus)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RbacPermissionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case rbacpermission.FieldCreatedAt:
+		return m.CreatedAt()
+	case rbacpermission.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case rbacpermission.FieldBizID:
+		return m.BizID()
+	case rbacpermission.FieldWorkspaceID:
+		return m.WorkspaceID()
+	case rbacpermission.FieldCode:
+		return m.Code()
+	case rbacpermission.FieldName:
+		return m.Name()
+	case rbacpermission.FieldResourceType:
+		return m.ResourceType()
+	case rbacpermission.FieldActionKey:
+		return m.ActionKey()
+	case rbacpermission.FieldStatus:
+		return m.Status()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RbacPermissionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case rbacpermission.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case rbacpermission.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case rbacpermission.FieldBizID:
+		return m.OldBizID(ctx)
+	case rbacpermission.FieldWorkspaceID:
+		return m.OldWorkspaceID(ctx)
+	case rbacpermission.FieldCode:
+		return m.OldCode(ctx)
+	case rbacpermission.FieldName:
+		return m.OldName(ctx)
+	case rbacpermission.FieldResourceType:
+		return m.OldResourceType(ctx)
+	case rbacpermission.FieldActionKey:
+		return m.OldActionKey(ctx)
+	case rbacpermission.FieldStatus:
+		return m.OldStatus(ctx)
+	}
+	return nil, fmt.Errorf("unknown RbacPermission field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacPermissionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case rbacpermission.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case rbacpermission.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case rbacpermission.FieldBizID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBizID(v)
+		return nil
+	case rbacpermission.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkspaceID(v)
+		return nil
+	case rbacpermission.FieldCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCode(v)
+		return nil
+	case rbacpermission.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case rbacpermission.FieldResourceType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResourceType(v)
+		return nil
+	case rbacpermission.FieldActionKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActionKey(v)
+		return nil
+	case rbacpermission.FieldStatus:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacPermission field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RbacPermissionMutation) AddedFields() []string {
+	var fields []string
+	if m.addbiz_id != nil {
+		fields = append(fields, rbacpermission.FieldBizID)
+	}
+	if m.addworkspace_id != nil {
+		fields = append(fields, rbacpermission.FieldWorkspaceID)
+	}
+	if m.addstatus != nil {
+		fields = append(fields, rbacpermission.FieldStatus)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RbacPermissionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case rbacpermission.FieldBizID:
+		return m.AddedBizID()
+	case rbacpermission.FieldWorkspaceID:
+		return m.AddedWorkspaceID()
+	case rbacpermission.FieldStatus:
+		return m.AddedStatus()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacPermissionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case rbacpermission.FieldBizID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBizID(v)
+		return nil
+	case rbacpermission.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWorkspaceID(v)
+		return nil
+	case rbacpermission.FieldStatus:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddStatus(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacPermission numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RbacPermissionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RbacPermissionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RbacPermissionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown RbacPermission nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RbacPermissionMutation) ResetField(name string) error {
+	switch name {
+	case rbacpermission.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case rbacpermission.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case rbacpermission.FieldBizID:
+		m.ResetBizID()
+		return nil
+	case rbacpermission.FieldWorkspaceID:
+		m.ResetWorkspaceID()
+		return nil
+	case rbacpermission.FieldCode:
+		m.ResetCode()
+		return nil
+	case rbacpermission.FieldName:
+		m.ResetName()
+		return nil
+	case rbacpermission.FieldResourceType:
+		m.ResetResourceType()
+		return nil
+	case rbacpermission.FieldActionKey:
+		m.ResetActionKey()
+		return nil
+	case rbacpermission.FieldStatus:
+		m.ResetStatus()
+		return nil
+	}
+	return fmt.Errorf("unknown RbacPermission field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RbacPermissionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RbacPermissionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RbacPermissionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RbacPermissionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RbacPermissionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RbacPermissionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RbacPermissionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RbacPermission unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RbacPermissionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RbacPermission edge %s", name)
+}
+
+// RbacPermissionChangeLogMutation represents an operation that mutates the RbacPermissionChangeLog nodes in the graph.
+type RbacPermissionChangeLogMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	created_at      *time.Time
+	updated_at      *time.Time
+	biz_id          *int64
+	addbiz_id       *int64
+	workspace_id    *int64
+	addworkspace_id *int64
+	change_type     *int8
+	addchange_type  *int8
+	target_type     *int8
+	addtarget_type  *int8
+	target_id       *int64
+	addtarget_id    *int64
+	operator_id     *int64
+	addoperator_id  *int64
+	request_id      *string
+	before_json     *map[string]interface{}
+	after_json      *map[string]interface{}
+	reason          *string
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*RbacPermissionChangeLog, error)
+	predicates      []predicate.RbacPermissionChangeLog
+}
+
+var _ ent.Mutation = (*RbacPermissionChangeLogMutation)(nil)
+
+// rbacpermissionchangelogOption allows management of the mutation configuration using functional options.
+type rbacpermissionchangelogOption func(*RbacPermissionChangeLogMutation)
+
+// newRbacPermissionChangeLogMutation creates new mutation for the RbacPermissionChangeLog entity.
+func newRbacPermissionChangeLogMutation(c config, op Op, opts ...rbacpermissionchangelogOption) *RbacPermissionChangeLogMutation {
+	m := &RbacPermissionChangeLogMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRbacPermissionChangeLog,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRbacPermissionChangeLogID sets the ID field of the mutation.
+func withRbacPermissionChangeLogID(id int) rbacpermissionchangelogOption {
+	return func(m *RbacPermissionChangeLogMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RbacPermissionChangeLog
+		)
+		m.oldValue = func(ctx context.Context) (*RbacPermissionChangeLog, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RbacPermissionChangeLog.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRbacPermissionChangeLog sets the old RbacPermissionChangeLog of the mutation.
+func withRbacPermissionChangeLog(node *RbacPermissionChangeLog) rbacpermissionchangelogOption {
+	return func(m *RbacPermissionChangeLogMutation) {
+		m.oldValue = func(context.Context) (*RbacPermissionChangeLog, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RbacPermissionChangeLogMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RbacPermissionChangeLogMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RbacPermissionChangeLogMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RbacPermissionChangeLogMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RbacPermissionChangeLog.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RbacPermissionChangeLogMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RbacPermissionChangeLogMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RbacPermissionChangeLog entity.
+// If the RbacPermissionChangeLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionChangeLogMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RbacPermissionChangeLogMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RbacPermissionChangeLogMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RbacPermissionChangeLogMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RbacPermissionChangeLog entity.
+// If the RbacPermissionChangeLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionChangeLogMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RbacPermissionChangeLogMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetBizID sets the "biz_id" field.
+func (m *RbacPermissionChangeLogMutation) SetBizID(i int64) {
+	m.biz_id = &i
+	m.addbiz_id = nil
+}
+
+// BizID returns the value of the "biz_id" field in the mutation.
+func (m *RbacPermissionChangeLogMutation) BizID() (r int64, exists bool) {
+	v := m.biz_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBizID returns the old "biz_id" field's value of the RbacPermissionChangeLog entity.
+// If the RbacPermissionChangeLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionChangeLogMutation) OldBizID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBizID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBizID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBizID: %w", err)
+	}
+	return oldValue.BizID, nil
+}
+
+// AddBizID adds i to the "biz_id" field.
+func (m *RbacPermissionChangeLogMutation) AddBizID(i int64) {
+	if m.addbiz_id != nil {
+		*m.addbiz_id += i
+	} else {
+		m.addbiz_id = &i
+	}
+}
+
+// AddedBizID returns the value that was added to the "biz_id" field in this mutation.
+func (m *RbacPermissionChangeLogMutation) AddedBizID() (r int64, exists bool) {
+	v := m.addbiz_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBizID resets all changes to the "biz_id" field.
+func (m *RbacPermissionChangeLogMutation) ResetBizID() {
+	m.biz_id = nil
+	m.addbiz_id = nil
+}
+
+// SetWorkspaceID sets the "workspace_id" field.
+func (m *RbacPermissionChangeLogMutation) SetWorkspaceID(i int64) {
+	m.workspace_id = &i
+	m.addworkspace_id = nil
+}
+
+// WorkspaceID returns the value of the "workspace_id" field in the mutation.
+func (m *RbacPermissionChangeLogMutation) WorkspaceID() (r int64, exists bool) {
+	v := m.workspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkspaceID returns the old "workspace_id" field's value of the RbacPermissionChangeLog entity.
+// If the RbacPermissionChangeLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionChangeLogMutation) OldWorkspaceID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWorkspaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWorkspaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkspaceID: %w", err)
+	}
+	return oldValue.WorkspaceID, nil
+}
+
+// AddWorkspaceID adds i to the "workspace_id" field.
+func (m *RbacPermissionChangeLogMutation) AddWorkspaceID(i int64) {
+	if m.addworkspace_id != nil {
+		*m.addworkspace_id += i
+	} else {
+		m.addworkspace_id = &i
+	}
+}
+
+// AddedWorkspaceID returns the value that was added to the "workspace_id" field in this mutation.
+func (m *RbacPermissionChangeLogMutation) AddedWorkspaceID() (r int64, exists bool) {
+	v := m.addworkspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWorkspaceID resets all changes to the "workspace_id" field.
+func (m *RbacPermissionChangeLogMutation) ResetWorkspaceID() {
+	m.workspace_id = nil
+	m.addworkspace_id = nil
+}
+
+// SetChangeType sets the "change_type" field.
+func (m *RbacPermissionChangeLogMutation) SetChangeType(i int8) {
+	m.change_type = &i
+	m.addchange_type = nil
+}
+
+// ChangeType returns the value of the "change_type" field in the mutation.
+func (m *RbacPermissionChangeLogMutation) ChangeType() (r int8, exists bool) {
+	v := m.change_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChangeType returns the old "change_type" field's value of the RbacPermissionChangeLog entity.
+// If the RbacPermissionChangeLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionChangeLogMutation) OldChangeType(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChangeType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChangeType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChangeType: %w", err)
+	}
+	return oldValue.ChangeType, nil
+}
+
+// AddChangeType adds i to the "change_type" field.
+func (m *RbacPermissionChangeLogMutation) AddChangeType(i int8) {
+	if m.addchange_type != nil {
+		*m.addchange_type += i
+	} else {
+		m.addchange_type = &i
+	}
+}
+
+// AddedChangeType returns the value that was added to the "change_type" field in this mutation.
+func (m *RbacPermissionChangeLogMutation) AddedChangeType() (r int8, exists bool) {
+	v := m.addchange_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetChangeType resets all changes to the "change_type" field.
+func (m *RbacPermissionChangeLogMutation) ResetChangeType() {
+	m.change_type = nil
+	m.addchange_type = nil
+}
+
+// SetTargetType sets the "target_type" field.
+func (m *RbacPermissionChangeLogMutation) SetTargetType(i int8) {
+	m.target_type = &i
+	m.addtarget_type = nil
+}
+
+// TargetType returns the value of the "target_type" field in the mutation.
+func (m *RbacPermissionChangeLogMutation) TargetType() (r int8, exists bool) {
+	v := m.target_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTargetType returns the old "target_type" field's value of the RbacPermissionChangeLog entity.
+// If the RbacPermissionChangeLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionChangeLogMutation) OldTargetType(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTargetType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTargetType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTargetType: %w", err)
+	}
+	return oldValue.TargetType, nil
+}
+
+// AddTargetType adds i to the "target_type" field.
+func (m *RbacPermissionChangeLogMutation) AddTargetType(i int8) {
+	if m.addtarget_type != nil {
+		*m.addtarget_type += i
+	} else {
+		m.addtarget_type = &i
+	}
+}
+
+// AddedTargetType returns the value that was added to the "target_type" field in this mutation.
+func (m *RbacPermissionChangeLogMutation) AddedTargetType() (r int8, exists bool) {
+	v := m.addtarget_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetTargetType resets all changes to the "target_type" field.
+func (m *RbacPermissionChangeLogMutation) ResetTargetType() {
+	m.target_type = nil
+	m.addtarget_type = nil
+}
+
+// SetTargetID sets the "target_id" field.
+func (m *RbacPermissionChangeLogMutation) SetTargetID(i int64) {
+	m.target_id = &i
+	m.addtarget_id = nil
+}
+
+// TargetID returns the value of the "target_id" field in the mutation.
+func (m *RbacPermissionChangeLogMutation) TargetID() (r int64, exists bool) {
+	v := m.target_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTargetID returns the old "target_id" field's value of the RbacPermissionChangeLog entity.
+// If the RbacPermissionChangeLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionChangeLogMutation) OldTargetID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTargetID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTargetID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTargetID: %w", err)
+	}
+	return oldValue.TargetID, nil
+}
+
+// AddTargetID adds i to the "target_id" field.
+func (m *RbacPermissionChangeLogMutation) AddTargetID(i int64) {
+	if m.addtarget_id != nil {
+		*m.addtarget_id += i
+	} else {
+		m.addtarget_id = &i
+	}
+}
+
+// AddedTargetID returns the value that was added to the "target_id" field in this mutation.
+func (m *RbacPermissionChangeLogMutation) AddedTargetID() (r int64, exists bool) {
+	v := m.addtarget_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetTargetID resets all changes to the "target_id" field.
+func (m *RbacPermissionChangeLogMutation) ResetTargetID() {
+	m.target_id = nil
+	m.addtarget_id = nil
+}
+
+// SetOperatorID sets the "operator_id" field.
+func (m *RbacPermissionChangeLogMutation) SetOperatorID(i int64) {
+	m.operator_id = &i
+	m.addoperator_id = nil
+}
+
+// OperatorID returns the value of the "operator_id" field in the mutation.
+func (m *RbacPermissionChangeLogMutation) OperatorID() (r int64, exists bool) {
+	v := m.operator_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOperatorID returns the old "operator_id" field's value of the RbacPermissionChangeLog entity.
+// If the RbacPermissionChangeLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionChangeLogMutation) OldOperatorID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOperatorID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOperatorID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOperatorID: %w", err)
+	}
+	return oldValue.OperatorID, nil
+}
+
+// AddOperatorID adds i to the "operator_id" field.
+func (m *RbacPermissionChangeLogMutation) AddOperatorID(i int64) {
+	if m.addoperator_id != nil {
+		*m.addoperator_id += i
+	} else {
+		m.addoperator_id = &i
+	}
+}
+
+// AddedOperatorID returns the value that was added to the "operator_id" field in this mutation.
+func (m *RbacPermissionChangeLogMutation) AddedOperatorID() (r int64, exists bool) {
+	v := m.addoperator_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOperatorID resets all changes to the "operator_id" field.
+func (m *RbacPermissionChangeLogMutation) ResetOperatorID() {
+	m.operator_id = nil
+	m.addoperator_id = nil
+}
+
+// SetRequestID sets the "request_id" field.
+func (m *RbacPermissionChangeLogMutation) SetRequestID(s string) {
+	m.request_id = &s
+}
+
+// RequestID returns the value of the "request_id" field in the mutation.
+func (m *RbacPermissionChangeLogMutation) RequestID() (r string, exists bool) {
+	v := m.request_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRequestID returns the old "request_id" field's value of the RbacPermissionChangeLog entity.
+// If the RbacPermissionChangeLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionChangeLogMutation) OldRequestID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRequestID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRequestID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRequestID: %w", err)
+	}
+	return oldValue.RequestID, nil
+}
+
+// ResetRequestID resets all changes to the "request_id" field.
+func (m *RbacPermissionChangeLogMutation) ResetRequestID() {
+	m.request_id = nil
+}
+
+// SetBeforeJSON sets the "before_json" field.
+func (m *RbacPermissionChangeLogMutation) SetBeforeJSON(value map[string]interface{}) {
+	m.before_json = &value
+}
+
+// BeforeJSON returns the value of the "before_json" field in the mutation.
+func (m *RbacPermissionChangeLogMutation) BeforeJSON() (r map[string]interface{}, exists bool) {
+	v := m.before_json
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBeforeJSON returns the old "before_json" field's value of the RbacPermissionChangeLog entity.
+// If the RbacPermissionChangeLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionChangeLogMutation) OldBeforeJSON(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBeforeJSON is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBeforeJSON requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBeforeJSON: %w", err)
+	}
+	return oldValue.BeforeJSON, nil
+}
+
+// ClearBeforeJSON clears the value of the "before_json" field.
+func (m *RbacPermissionChangeLogMutation) ClearBeforeJSON() {
+	m.before_json = nil
+	m.clearedFields[rbacpermissionchangelog.FieldBeforeJSON] = struct{}{}
+}
+
+// BeforeJSONCleared returns if the "before_json" field was cleared in this mutation.
+func (m *RbacPermissionChangeLogMutation) BeforeJSONCleared() bool {
+	_, ok := m.clearedFields[rbacpermissionchangelog.FieldBeforeJSON]
+	return ok
+}
+
+// ResetBeforeJSON resets all changes to the "before_json" field.
+func (m *RbacPermissionChangeLogMutation) ResetBeforeJSON() {
+	m.before_json = nil
+	delete(m.clearedFields, rbacpermissionchangelog.FieldBeforeJSON)
+}
+
+// SetAfterJSON sets the "after_json" field.
+func (m *RbacPermissionChangeLogMutation) SetAfterJSON(value map[string]interface{}) {
+	m.after_json = &value
+}
+
+// AfterJSON returns the value of the "after_json" field in the mutation.
+func (m *RbacPermissionChangeLogMutation) AfterJSON() (r map[string]interface{}, exists bool) {
+	v := m.after_json
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAfterJSON returns the old "after_json" field's value of the RbacPermissionChangeLog entity.
+// If the RbacPermissionChangeLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionChangeLogMutation) OldAfterJSON(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAfterJSON is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAfterJSON requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAfterJSON: %w", err)
+	}
+	return oldValue.AfterJSON, nil
+}
+
+// ClearAfterJSON clears the value of the "after_json" field.
+func (m *RbacPermissionChangeLogMutation) ClearAfterJSON() {
+	m.after_json = nil
+	m.clearedFields[rbacpermissionchangelog.FieldAfterJSON] = struct{}{}
+}
+
+// AfterJSONCleared returns if the "after_json" field was cleared in this mutation.
+func (m *RbacPermissionChangeLogMutation) AfterJSONCleared() bool {
+	_, ok := m.clearedFields[rbacpermissionchangelog.FieldAfterJSON]
+	return ok
+}
+
+// ResetAfterJSON resets all changes to the "after_json" field.
+func (m *RbacPermissionChangeLogMutation) ResetAfterJSON() {
+	m.after_json = nil
+	delete(m.clearedFields, rbacpermissionchangelog.FieldAfterJSON)
+}
+
+// SetReason sets the "reason" field.
+func (m *RbacPermissionChangeLogMutation) SetReason(s string) {
+	m.reason = &s
+}
+
+// Reason returns the value of the "reason" field in the mutation.
+func (m *RbacPermissionChangeLogMutation) Reason() (r string, exists bool) {
+	v := m.reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReason returns the old "reason" field's value of the RbacPermissionChangeLog entity.
+// If the RbacPermissionChangeLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionChangeLogMutation) OldReason(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// ResetReason resets all changes to the "reason" field.
+func (m *RbacPermissionChangeLogMutation) ResetReason() {
+	m.reason = nil
+}
+
+// Where appends a list predicates to the RbacPermissionChangeLogMutation builder.
+func (m *RbacPermissionChangeLogMutation) Where(ps ...predicate.RbacPermissionChangeLog) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RbacPermissionChangeLogMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RbacPermissionChangeLogMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RbacPermissionChangeLog, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RbacPermissionChangeLogMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RbacPermissionChangeLogMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RbacPermissionChangeLog).
+func (m *RbacPermissionChangeLogMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RbacPermissionChangeLogMutation) Fields() []string {
+	fields := make([]string, 0, 12)
+	if m.created_at != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldUpdatedAt)
+	}
+	if m.biz_id != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldBizID)
+	}
+	if m.workspace_id != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldWorkspaceID)
+	}
+	if m.change_type != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldChangeType)
+	}
+	if m.target_type != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldTargetType)
+	}
+	if m.target_id != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldTargetID)
+	}
+	if m.operator_id != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldOperatorID)
+	}
+	if m.request_id != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldRequestID)
+	}
+	if m.before_json != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldBeforeJSON)
+	}
+	if m.after_json != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldAfterJSON)
+	}
+	if m.reason != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldReason)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RbacPermissionChangeLogMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case rbacpermissionchangelog.FieldCreatedAt:
+		return m.CreatedAt()
+	case rbacpermissionchangelog.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case rbacpermissionchangelog.FieldBizID:
+		return m.BizID()
+	case rbacpermissionchangelog.FieldWorkspaceID:
+		return m.WorkspaceID()
+	case rbacpermissionchangelog.FieldChangeType:
+		return m.ChangeType()
+	case rbacpermissionchangelog.FieldTargetType:
+		return m.TargetType()
+	case rbacpermissionchangelog.FieldTargetID:
+		return m.TargetID()
+	case rbacpermissionchangelog.FieldOperatorID:
+		return m.OperatorID()
+	case rbacpermissionchangelog.FieldRequestID:
+		return m.RequestID()
+	case rbacpermissionchangelog.FieldBeforeJSON:
+		return m.BeforeJSON()
+	case rbacpermissionchangelog.FieldAfterJSON:
+		return m.AfterJSON()
+	case rbacpermissionchangelog.FieldReason:
+		return m.Reason()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RbacPermissionChangeLogMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case rbacpermissionchangelog.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case rbacpermissionchangelog.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case rbacpermissionchangelog.FieldBizID:
+		return m.OldBizID(ctx)
+	case rbacpermissionchangelog.FieldWorkspaceID:
+		return m.OldWorkspaceID(ctx)
+	case rbacpermissionchangelog.FieldChangeType:
+		return m.OldChangeType(ctx)
+	case rbacpermissionchangelog.FieldTargetType:
+		return m.OldTargetType(ctx)
+	case rbacpermissionchangelog.FieldTargetID:
+		return m.OldTargetID(ctx)
+	case rbacpermissionchangelog.FieldOperatorID:
+		return m.OldOperatorID(ctx)
+	case rbacpermissionchangelog.FieldRequestID:
+		return m.OldRequestID(ctx)
+	case rbacpermissionchangelog.FieldBeforeJSON:
+		return m.OldBeforeJSON(ctx)
+	case rbacpermissionchangelog.FieldAfterJSON:
+		return m.OldAfterJSON(ctx)
+	case rbacpermissionchangelog.FieldReason:
+		return m.OldReason(ctx)
+	}
+	return nil, fmt.Errorf("unknown RbacPermissionChangeLog field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacPermissionChangeLogMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case rbacpermissionchangelog.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case rbacpermissionchangelog.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case rbacpermissionchangelog.FieldBizID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBizID(v)
+		return nil
+	case rbacpermissionchangelog.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkspaceID(v)
+		return nil
+	case rbacpermissionchangelog.FieldChangeType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChangeType(v)
+		return nil
+	case rbacpermissionchangelog.FieldTargetType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTargetType(v)
+		return nil
+	case rbacpermissionchangelog.FieldTargetID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTargetID(v)
+		return nil
+	case rbacpermissionchangelog.FieldOperatorID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOperatorID(v)
+		return nil
+	case rbacpermissionchangelog.FieldRequestID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRequestID(v)
+		return nil
+	case rbacpermissionchangelog.FieldBeforeJSON:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBeforeJSON(v)
+		return nil
+	case rbacpermissionchangelog.FieldAfterJSON:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAfterJSON(v)
+		return nil
+	case rbacpermissionchangelog.FieldReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReason(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacPermissionChangeLog field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RbacPermissionChangeLogMutation) AddedFields() []string {
+	var fields []string
+	if m.addbiz_id != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldBizID)
+	}
+	if m.addworkspace_id != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldWorkspaceID)
+	}
+	if m.addchange_type != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldChangeType)
+	}
+	if m.addtarget_type != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldTargetType)
+	}
+	if m.addtarget_id != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldTargetID)
+	}
+	if m.addoperator_id != nil {
+		fields = append(fields, rbacpermissionchangelog.FieldOperatorID)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RbacPermissionChangeLogMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case rbacpermissionchangelog.FieldBizID:
+		return m.AddedBizID()
+	case rbacpermissionchangelog.FieldWorkspaceID:
+		return m.AddedWorkspaceID()
+	case rbacpermissionchangelog.FieldChangeType:
+		return m.AddedChangeType()
+	case rbacpermissionchangelog.FieldTargetType:
+		return m.AddedTargetType()
+	case rbacpermissionchangelog.FieldTargetID:
+		return m.AddedTargetID()
+	case rbacpermissionchangelog.FieldOperatorID:
+		return m.AddedOperatorID()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacPermissionChangeLogMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case rbacpermissionchangelog.FieldBizID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBizID(v)
+		return nil
+	case rbacpermissionchangelog.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWorkspaceID(v)
+		return nil
+	case rbacpermissionchangelog.FieldChangeType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddChangeType(v)
+		return nil
+	case rbacpermissionchangelog.FieldTargetType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTargetType(v)
+		return nil
+	case rbacpermissionchangelog.FieldTargetID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTargetID(v)
+		return nil
+	case rbacpermissionchangelog.FieldOperatorID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOperatorID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacPermissionChangeLog numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RbacPermissionChangeLogMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(rbacpermissionchangelog.FieldBeforeJSON) {
+		fields = append(fields, rbacpermissionchangelog.FieldBeforeJSON)
+	}
+	if m.FieldCleared(rbacpermissionchangelog.FieldAfterJSON) {
+		fields = append(fields, rbacpermissionchangelog.FieldAfterJSON)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RbacPermissionChangeLogMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RbacPermissionChangeLogMutation) ClearField(name string) error {
+	switch name {
+	case rbacpermissionchangelog.FieldBeforeJSON:
+		m.ClearBeforeJSON()
+		return nil
+	case rbacpermissionchangelog.FieldAfterJSON:
+		m.ClearAfterJSON()
+		return nil
+	}
+	return fmt.Errorf("unknown RbacPermissionChangeLog nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RbacPermissionChangeLogMutation) ResetField(name string) error {
+	switch name {
+	case rbacpermissionchangelog.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case rbacpermissionchangelog.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case rbacpermissionchangelog.FieldBizID:
+		m.ResetBizID()
+		return nil
+	case rbacpermissionchangelog.FieldWorkspaceID:
+		m.ResetWorkspaceID()
+		return nil
+	case rbacpermissionchangelog.FieldChangeType:
+		m.ResetChangeType()
+		return nil
+	case rbacpermissionchangelog.FieldTargetType:
+		m.ResetTargetType()
+		return nil
+	case rbacpermissionchangelog.FieldTargetID:
+		m.ResetTargetID()
+		return nil
+	case rbacpermissionchangelog.FieldOperatorID:
+		m.ResetOperatorID()
+		return nil
+	case rbacpermissionchangelog.FieldRequestID:
+		m.ResetRequestID()
+		return nil
+	case rbacpermissionchangelog.FieldBeforeJSON:
+		m.ResetBeforeJSON()
+		return nil
+	case rbacpermissionchangelog.FieldAfterJSON:
+		m.ResetAfterJSON()
+		return nil
+	case rbacpermissionchangelog.FieldReason:
+		m.ResetReason()
+		return nil
+	}
+	return fmt.Errorf("unknown RbacPermissionChangeLog field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RbacPermissionChangeLogMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RbacPermissionChangeLogMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RbacPermissionChangeLogMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RbacPermissionChangeLogMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RbacPermissionChangeLogMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RbacPermissionChangeLogMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RbacPermissionChangeLogMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RbacPermissionChangeLog unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RbacPermissionChangeLogMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RbacPermissionChangeLog edge %s", name)
+}
+
+// RbacPermissionVersionMutation represents an operation that mutates the RbacPermissionVersion nodes in the graph.
+type RbacPermissionVersionMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	created_at      *time.Time
+	updated_at      *time.Time
+	workspace_id    *int64
+	addworkspace_id *int64
+	subject_type    *int8
+	addsubject_type *int8
+	subject_id      *int64
+	addsubject_id   *int64
+	version         *int64
+	addversion      *int64
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*RbacPermissionVersion, error)
+	predicates      []predicate.RbacPermissionVersion
+}
+
+var _ ent.Mutation = (*RbacPermissionVersionMutation)(nil)
+
+// rbacpermissionversionOption allows management of the mutation configuration using functional options.
+type rbacpermissionversionOption func(*RbacPermissionVersionMutation)
+
+// newRbacPermissionVersionMutation creates new mutation for the RbacPermissionVersion entity.
+func newRbacPermissionVersionMutation(c config, op Op, opts ...rbacpermissionversionOption) *RbacPermissionVersionMutation {
+	m := &RbacPermissionVersionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRbacPermissionVersion,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRbacPermissionVersionID sets the ID field of the mutation.
+func withRbacPermissionVersionID(id int) rbacpermissionversionOption {
+	return func(m *RbacPermissionVersionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RbacPermissionVersion
+		)
+		m.oldValue = func(ctx context.Context) (*RbacPermissionVersion, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RbacPermissionVersion.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRbacPermissionVersion sets the old RbacPermissionVersion of the mutation.
+func withRbacPermissionVersion(node *RbacPermissionVersion) rbacpermissionversionOption {
+	return func(m *RbacPermissionVersionMutation) {
+		m.oldValue = func(context.Context) (*RbacPermissionVersion, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RbacPermissionVersionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RbacPermissionVersionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RbacPermissionVersionMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RbacPermissionVersionMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RbacPermissionVersion.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RbacPermissionVersionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RbacPermissionVersionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RbacPermissionVersion entity.
+// If the RbacPermissionVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionVersionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RbacPermissionVersionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RbacPermissionVersionMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RbacPermissionVersionMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RbacPermissionVersion entity.
+// If the RbacPermissionVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionVersionMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RbacPermissionVersionMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetWorkspaceID sets the "workspace_id" field.
+func (m *RbacPermissionVersionMutation) SetWorkspaceID(i int64) {
+	m.workspace_id = &i
+	m.addworkspace_id = nil
+}
+
+// WorkspaceID returns the value of the "workspace_id" field in the mutation.
+func (m *RbacPermissionVersionMutation) WorkspaceID() (r int64, exists bool) {
+	v := m.workspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkspaceID returns the old "workspace_id" field's value of the RbacPermissionVersion entity.
+// If the RbacPermissionVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionVersionMutation) OldWorkspaceID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWorkspaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWorkspaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkspaceID: %w", err)
+	}
+	return oldValue.WorkspaceID, nil
+}
+
+// AddWorkspaceID adds i to the "workspace_id" field.
+func (m *RbacPermissionVersionMutation) AddWorkspaceID(i int64) {
+	if m.addworkspace_id != nil {
+		*m.addworkspace_id += i
+	} else {
+		m.addworkspace_id = &i
+	}
+}
+
+// AddedWorkspaceID returns the value that was added to the "workspace_id" field in this mutation.
+func (m *RbacPermissionVersionMutation) AddedWorkspaceID() (r int64, exists bool) {
+	v := m.addworkspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWorkspaceID resets all changes to the "workspace_id" field.
+func (m *RbacPermissionVersionMutation) ResetWorkspaceID() {
+	m.workspace_id = nil
+	m.addworkspace_id = nil
+}
+
+// SetSubjectType sets the "subject_type" field.
+func (m *RbacPermissionVersionMutation) SetSubjectType(i int8) {
+	m.subject_type = &i
+	m.addsubject_type = nil
+}
+
+// SubjectType returns the value of the "subject_type" field in the mutation.
+func (m *RbacPermissionVersionMutation) SubjectType() (r int8, exists bool) {
+	v := m.subject_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubjectType returns the old "subject_type" field's value of the RbacPermissionVersion entity.
+// If the RbacPermissionVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionVersionMutation) OldSubjectType(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubjectType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubjectType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubjectType: %w", err)
+	}
+	return oldValue.SubjectType, nil
+}
+
+// AddSubjectType adds i to the "subject_type" field.
+func (m *RbacPermissionVersionMutation) AddSubjectType(i int8) {
+	if m.addsubject_type != nil {
+		*m.addsubject_type += i
+	} else {
+		m.addsubject_type = &i
+	}
+}
+
+// AddedSubjectType returns the value that was added to the "subject_type" field in this mutation.
+func (m *RbacPermissionVersionMutation) AddedSubjectType() (r int8, exists bool) {
+	v := m.addsubject_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSubjectType resets all changes to the "subject_type" field.
+func (m *RbacPermissionVersionMutation) ResetSubjectType() {
+	m.subject_type = nil
+	m.addsubject_type = nil
+}
+
+// SetSubjectID sets the "subject_id" field.
+func (m *RbacPermissionVersionMutation) SetSubjectID(i int64) {
+	m.subject_id = &i
+	m.addsubject_id = nil
+}
+
+// SubjectID returns the value of the "subject_id" field in the mutation.
+func (m *RbacPermissionVersionMutation) SubjectID() (r int64, exists bool) {
+	v := m.subject_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubjectID returns the old "subject_id" field's value of the RbacPermissionVersion entity.
+// If the RbacPermissionVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionVersionMutation) OldSubjectID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubjectID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubjectID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubjectID: %w", err)
+	}
+	return oldValue.SubjectID, nil
+}
+
+// AddSubjectID adds i to the "subject_id" field.
+func (m *RbacPermissionVersionMutation) AddSubjectID(i int64) {
+	if m.addsubject_id != nil {
+		*m.addsubject_id += i
+	} else {
+		m.addsubject_id = &i
+	}
+}
+
+// AddedSubjectID returns the value that was added to the "subject_id" field in this mutation.
+func (m *RbacPermissionVersionMutation) AddedSubjectID() (r int64, exists bool) {
+	v := m.addsubject_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSubjectID resets all changes to the "subject_id" field.
+func (m *RbacPermissionVersionMutation) ResetSubjectID() {
+	m.subject_id = nil
+	m.addsubject_id = nil
+}
+
+// SetVersion sets the "version" field.
+func (m *RbacPermissionVersionMutation) SetVersion(i int64) {
+	m.version = &i
+	m.addversion = nil
+}
+
+// Version returns the value of the "version" field in the mutation.
+func (m *RbacPermissionVersionMutation) Version() (r int64, exists bool) {
+	v := m.version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVersion returns the old "version" field's value of the RbacPermissionVersion entity.
+// If the RbacPermissionVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacPermissionVersionMutation) OldVersion(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVersion: %w", err)
+	}
+	return oldValue.Version, nil
+}
+
+// AddVersion adds i to the "version" field.
+func (m *RbacPermissionVersionMutation) AddVersion(i int64) {
+	if m.addversion != nil {
+		*m.addversion += i
+	} else {
+		m.addversion = &i
+	}
+}
+
+// AddedVersion returns the value that was added to the "version" field in this mutation.
+func (m *RbacPermissionVersionMutation) AddedVersion() (r int64, exists bool) {
+	v := m.addversion
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetVersion resets all changes to the "version" field.
+func (m *RbacPermissionVersionMutation) ResetVersion() {
+	m.version = nil
+	m.addversion = nil
+}
+
+// Where appends a list predicates to the RbacPermissionVersionMutation builder.
+func (m *RbacPermissionVersionMutation) Where(ps ...predicate.RbacPermissionVersion) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RbacPermissionVersionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RbacPermissionVersionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RbacPermissionVersion, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RbacPermissionVersionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RbacPermissionVersionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RbacPermissionVersion).
+func (m *RbacPermissionVersionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RbacPermissionVersionMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.created_at != nil {
+		fields = append(fields, rbacpermissionversion.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, rbacpermissionversion.FieldUpdatedAt)
+	}
+	if m.workspace_id != nil {
+		fields = append(fields, rbacpermissionversion.FieldWorkspaceID)
+	}
+	if m.subject_type != nil {
+		fields = append(fields, rbacpermissionversion.FieldSubjectType)
+	}
+	if m.subject_id != nil {
+		fields = append(fields, rbacpermissionversion.FieldSubjectID)
+	}
+	if m.version != nil {
+		fields = append(fields, rbacpermissionversion.FieldVersion)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RbacPermissionVersionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case rbacpermissionversion.FieldCreatedAt:
+		return m.CreatedAt()
+	case rbacpermissionversion.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case rbacpermissionversion.FieldWorkspaceID:
+		return m.WorkspaceID()
+	case rbacpermissionversion.FieldSubjectType:
+		return m.SubjectType()
+	case rbacpermissionversion.FieldSubjectID:
+		return m.SubjectID()
+	case rbacpermissionversion.FieldVersion:
+		return m.Version()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RbacPermissionVersionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case rbacpermissionversion.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case rbacpermissionversion.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case rbacpermissionversion.FieldWorkspaceID:
+		return m.OldWorkspaceID(ctx)
+	case rbacpermissionversion.FieldSubjectType:
+		return m.OldSubjectType(ctx)
+	case rbacpermissionversion.FieldSubjectID:
+		return m.OldSubjectID(ctx)
+	case rbacpermissionversion.FieldVersion:
+		return m.OldVersion(ctx)
+	}
+	return nil, fmt.Errorf("unknown RbacPermissionVersion field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacPermissionVersionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case rbacpermissionversion.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case rbacpermissionversion.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case rbacpermissionversion.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkspaceID(v)
+		return nil
+	case rbacpermissionversion.FieldSubjectType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubjectType(v)
+		return nil
+	case rbacpermissionversion.FieldSubjectID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubjectID(v)
+		return nil
+	case rbacpermissionversion.FieldVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacPermissionVersion field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RbacPermissionVersionMutation) AddedFields() []string {
+	var fields []string
+	if m.addworkspace_id != nil {
+		fields = append(fields, rbacpermissionversion.FieldWorkspaceID)
+	}
+	if m.addsubject_type != nil {
+		fields = append(fields, rbacpermissionversion.FieldSubjectType)
+	}
+	if m.addsubject_id != nil {
+		fields = append(fields, rbacpermissionversion.FieldSubjectID)
+	}
+	if m.addversion != nil {
+		fields = append(fields, rbacpermissionversion.FieldVersion)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RbacPermissionVersionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case rbacpermissionversion.FieldWorkspaceID:
+		return m.AddedWorkspaceID()
+	case rbacpermissionversion.FieldSubjectType:
+		return m.AddedSubjectType()
+	case rbacpermissionversion.FieldSubjectID:
+		return m.AddedSubjectID()
+	case rbacpermissionversion.FieldVersion:
+		return m.AddedVersion()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacPermissionVersionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case rbacpermissionversion.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWorkspaceID(v)
+		return nil
+	case rbacpermissionversion.FieldSubjectType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSubjectType(v)
+		return nil
+	case rbacpermissionversion.FieldSubjectID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSubjectID(v)
+		return nil
+	case rbacpermissionversion.FieldVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacPermissionVersion numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RbacPermissionVersionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RbacPermissionVersionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RbacPermissionVersionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown RbacPermissionVersion nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RbacPermissionVersionMutation) ResetField(name string) error {
+	switch name {
+	case rbacpermissionversion.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case rbacpermissionversion.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case rbacpermissionversion.FieldWorkspaceID:
+		m.ResetWorkspaceID()
+		return nil
+	case rbacpermissionversion.FieldSubjectType:
+		m.ResetSubjectType()
+		return nil
+	case rbacpermissionversion.FieldSubjectID:
+		m.ResetSubjectID()
+		return nil
+	case rbacpermissionversion.FieldVersion:
+		m.ResetVersion()
+		return nil
+	}
+	return fmt.Errorf("unknown RbacPermissionVersion field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RbacPermissionVersionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RbacPermissionVersionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RbacPermissionVersionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RbacPermissionVersionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RbacPermissionVersionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RbacPermissionVersionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RbacPermissionVersionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RbacPermissionVersion unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RbacPermissionVersionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RbacPermissionVersion edge %s", name)
+}
+
+// RbacRoleMutation represents an operation that mutates the RbacRole nodes in the graph.
+type RbacRoleMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	created_at      *time.Time
+	updated_at      *time.Time
+	biz_id          *int64
+	addbiz_id       *int64
+	workspace_id    *int64
+	addworkspace_id *int64
+	code            *string
+	name            *string
+	role_type       *int8
+	addrole_type    *int8
+	status          *int8
+	addstatus       *int8
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*RbacRole, error)
+	predicates      []predicate.RbacRole
+}
+
+var _ ent.Mutation = (*RbacRoleMutation)(nil)
+
+// rbacroleOption allows management of the mutation configuration using functional options.
+type rbacroleOption func(*RbacRoleMutation)
+
+// newRbacRoleMutation creates new mutation for the RbacRole entity.
+func newRbacRoleMutation(c config, op Op, opts ...rbacroleOption) *RbacRoleMutation {
+	m := &RbacRoleMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRbacRole,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRbacRoleID sets the ID field of the mutation.
+func withRbacRoleID(id int) rbacroleOption {
+	return func(m *RbacRoleMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RbacRole
+		)
+		m.oldValue = func(ctx context.Context) (*RbacRole, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RbacRole.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRbacRole sets the old RbacRole of the mutation.
+func withRbacRole(node *RbacRole) rbacroleOption {
+	return func(m *RbacRoleMutation) {
+		m.oldValue = func(context.Context) (*RbacRole, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RbacRoleMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RbacRoleMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RbacRoleMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RbacRoleMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RbacRole.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RbacRoleMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RbacRoleMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RbacRole entity.
+// If the RbacRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacRoleMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RbacRoleMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RbacRoleMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RbacRoleMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RbacRole entity.
+// If the RbacRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacRoleMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RbacRoleMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetBizID sets the "biz_id" field.
+func (m *RbacRoleMutation) SetBizID(i int64) {
+	m.biz_id = &i
+	m.addbiz_id = nil
+}
+
+// BizID returns the value of the "biz_id" field in the mutation.
+func (m *RbacRoleMutation) BizID() (r int64, exists bool) {
+	v := m.biz_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBizID returns the old "biz_id" field's value of the RbacRole entity.
+// If the RbacRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacRoleMutation) OldBizID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBizID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBizID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBizID: %w", err)
+	}
+	return oldValue.BizID, nil
+}
+
+// AddBizID adds i to the "biz_id" field.
+func (m *RbacRoleMutation) AddBizID(i int64) {
+	if m.addbiz_id != nil {
+		*m.addbiz_id += i
+	} else {
+		m.addbiz_id = &i
+	}
+}
+
+// AddedBizID returns the value that was added to the "biz_id" field in this mutation.
+func (m *RbacRoleMutation) AddedBizID() (r int64, exists bool) {
+	v := m.addbiz_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBizID resets all changes to the "biz_id" field.
+func (m *RbacRoleMutation) ResetBizID() {
+	m.biz_id = nil
+	m.addbiz_id = nil
+}
+
+// SetWorkspaceID sets the "workspace_id" field.
+func (m *RbacRoleMutation) SetWorkspaceID(i int64) {
+	m.workspace_id = &i
+	m.addworkspace_id = nil
+}
+
+// WorkspaceID returns the value of the "workspace_id" field in the mutation.
+func (m *RbacRoleMutation) WorkspaceID() (r int64, exists bool) {
+	v := m.workspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkspaceID returns the old "workspace_id" field's value of the RbacRole entity.
+// If the RbacRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacRoleMutation) OldWorkspaceID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWorkspaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWorkspaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkspaceID: %w", err)
+	}
+	return oldValue.WorkspaceID, nil
+}
+
+// AddWorkspaceID adds i to the "workspace_id" field.
+func (m *RbacRoleMutation) AddWorkspaceID(i int64) {
+	if m.addworkspace_id != nil {
+		*m.addworkspace_id += i
+	} else {
+		m.addworkspace_id = &i
+	}
+}
+
+// AddedWorkspaceID returns the value that was added to the "workspace_id" field in this mutation.
+func (m *RbacRoleMutation) AddedWorkspaceID() (r int64, exists bool) {
+	v := m.addworkspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWorkspaceID resets all changes to the "workspace_id" field.
+func (m *RbacRoleMutation) ResetWorkspaceID() {
+	m.workspace_id = nil
+	m.addworkspace_id = nil
+}
+
+// SetCode sets the "code" field.
+func (m *RbacRoleMutation) SetCode(s string) {
+	m.code = &s
+}
+
+// Code returns the value of the "code" field in the mutation.
+func (m *RbacRoleMutation) Code() (r string, exists bool) {
+	v := m.code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCode returns the old "code" field's value of the RbacRole entity.
+// If the RbacRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacRoleMutation) OldCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCode: %w", err)
+	}
+	return oldValue.Code, nil
+}
+
+// ResetCode resets all changes to the "code" field.
+func (m *RbacRoleMutation) ResetCode() {
+	m.code = nil
+}
+
+// SetName sets the "name" field.
+func (m *RbacRoleMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *RbacRoleMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the RbacRole entity.
+// If the RbacRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacRoleMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *RbacRoleMutation) ResetName() {
+	m.name = nil
+}
+
+// SetRoleType sets the "role_type" field.
+func (m *RbacRoleMutation) SetRoleType(i int8) {
+	m.role_type = &i
+	m.addrole_type = nil
+}
+
+// RoleType returns the value of the "role_type" field in the mutation.
+func (m *RbacRoleMutation) RoleType() (r int8, exists bool) {
+	v := m.role_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRoleType returns the old "role_type" field's value of the RbacRole entity.
+// If the RbacRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacRoleMutation) OldRoleType(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRoleType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRoleType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRoleType: %w", err)
+	}
+	return oldValue.RoleType, nil
+}
+
+// AddRoleType adds i to the "role_type" field.
+func (m *RbacRoleMutation) AddRoleType(i int8) {
+	if m.addrole_type != nil {
+		*m.addrole_type += i
+	} else {
+		m.addrole_type = &i
+	}
+}
+
+// AddedRoleType returns the value that was added to the "role_type" field in this mutation.
+func (m *RbacRoleMutation) AddedRoleType() (r int8, exists bool) {
+	v := m.addrole_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRoleType resets all changes to the "role_type" field.
+func (m *RbacRoleMutation) ResetRoleType() {
+	m.role_type = nil
+	m.addrole_type = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *RbacRoleMutation) SetStatus(i int8) {
+	m.status = &i
+	m.addstatus = nil
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *RbacRoleMutation) Status() (r int8, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the RbacRole entity.
+// If the RbacRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacRoleMutation) OldStatus(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// AddStatus adds i to the "status" field.
+func (m *RbacRoleMutation) AddStatus(i int8) {
+	if m.addstatus != nil {
+		*m.addstatus += i
+	} else {
+		m.addstatus = &i
+	}
+}
+
+// AddedStatus returns the value that was added to the "status" field in this mutation.
+func (m *RbacRoleMutation) AddedStatus() (r int8, exists bool) {
+	v := m.addstatus
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *RbacRoleMutation) ResetStatus() {
+	m.status = nil
+	m.addstatus = nil
+}
+
+// Where appends a list predicates to the RbacRoleMutation builder.
+func (m *RbacRoleMutation) Where(ps ...predicate.RbacRole) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RbacRoleMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RbacRoleMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RbacRole, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RbacRoleMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RbacRoleMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RbacRole).
+func (m *RbacRoleMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RbacRoleMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.created_at != nil {
+		fields = append(fields, rbacrole.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, rbacrole.FieldUpdatedAt)
+	}
+	if m.biz_id != nil {
+		fields = append(fields, rbacrole.FieldBizID)
+	}
+	if m.workspace_id != nil {
+		fields = append(fields, rbacrole.FieldWorkspaceID)
+	}
+	if m.code != nil {
+		fields = append(fields, rbacrole.FieldCode)
+	}
+	if m.name != nil {
+		fields = append(fields, rbacrole.FieldName)
+	}
+	if m.role_type != nil {
+		fields = append(fields, rbacrole.FieldRoleType)
+	}
+	if m.status != nil {
+		fields = append(fields, rbacrole.FieldStatus)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RbacRoleMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case rbacrole.FieldCreatedAt:
+		return m.CreatedAt()
+	case rbacrole.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case rbacrole.FieldBizID:
+		return m.BizID()
+	case rbacrole.FieldWorkspaceID:
+		return m.WorkspaceID()
+	case rbacrole.FieldCode:
+		return m.Code()
+	case rbacrole.FieldName:
+		return m.Name()
+	case rbacrole.FieldRoleType:
+		return m.RoleType()
+	case rbacrole.FieldStatus:
+		return m.Status()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RbacRoleMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case rbacrole.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case rbacrole.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case rbacrole.FieldBizID:
+		return m.OldBizID(ctx)
+	case rbacrole.FieldWorkspaceID:
+		return m.OldWorkspaceID(ctx)
+	case rbacrole.FieldCode:
+		return m.OldCode(ctx)
+	case rbacrole.FieldName:
+		return m.OldName(ctx)
+	case rbacrole.FieldRoleType:
+		return m.OldRoleType(ctx)
+	case rbacrole.FieldStatus:
+		return m.OldStatus(ctx)
+	}
+	return nil, fmt.Errorf("unknown RbacRole field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacRoleMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case rbacrole.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case rbacrole.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case rbacrole.FieldBizID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBizID(v)
+		return nil
+	case rbacrole.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkspaceID(v)
+		return nil
+	case rbacrole.FieldCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCode(v)
+		return nil
+	case rbacrole.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case rbacrole.FieldRoleType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRoleType(v)
+		return nil
+	case rbacrole.FieldStatus:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacRole field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RbacRoleMutation) AddedFields() []string {
+	var fields []string
+	if m.addbiz_id != nil {
+		fields = append(fields, rbacrole.FieldBizID)
+	}
+	if m.addworkspace_id != nil {
+		fields = append(fields, rbacrole.FieldWorkspaceID)
+	}
+	if m.addrole_type != nil {
+		fields = append(fields, rbacrole.FieldRoleType)
+	}
+	if m.addstatus != nil {
+		fields = append(fields, rbacrole.FieldStatus)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RbacRoleMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case rbacrole.FieldBizID:
+		return m.AddedBizID()
+	case rbacrole.FieldWorkspaceID:
+		return m.AddedWorkspaceID()
+	case rbacrole.FieldRoleType:
+		return m.AddedRoleType()
+	case rbacrole.FieldStatus:
+		return m.AddedStatus()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacRoleMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case rbacrole.FieldBizID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBizID(v)
+		return nil
+	case rbacrole.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWorkspaceID(v)
+		return nil
+	case rbacrole.FieldRoleType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRoleType(v)
+		return nil
+	case rbacrole.FieldStatus:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddStatus(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacRole numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RbacRoleMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RbacRoleMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RbacRoleMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown RbacRole nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RbacRoleMutation) ResetField(name string) error {
+	switch name {
+	case rbacrole.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case rbacrole.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case rbacrole.FieldBizID:
+		m.ResetBizID()
+		return nil
+	case rbacrole.FieldWorkspaceID:
+		m.ResetWorkspaceID()
+		return nil
+	case rbacrole.FieldCode:
+		m.ResetCode()
+		return nil
+	case rbacrole.FieldName:
+		m.ResetName()
+		return nil
+	case rbacrole.FieldRoleType:
+		m.ResetRoleType()
+		return nil
+	case rbacrole.FieldStatus:
+		m.ResetStatus()
+		return nil
+	}
+	return fmt.Errorf("unknown RbacRole field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RbacRoleMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RbacRoleMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RbacRoleMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RbacRoleMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RbacRoleMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RbacRoleMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RbacRoleMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RbacRole unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RbacRoleMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RbacRole edge %s", name)
+}
+
+// RbacRolePermissionMutation represents an operation that mutates the RbacRolePermission nodes in the graph.
+type RbacRolePermissionMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *int
+	created_at       *time.Time
+	updated_at       *time.Time
+	workspace_id     *int64
+	addworkspace_id  *int64
+	role_id          *int64
+	addrole_id       *int64
+	permission_id    *int64
+	addpermission_id *int64
+	clearedFields    map[string]struct{}
+	done             bool
+	oldValue         func(context.Context) (*RbacRolePermission, error)
+	predicates       []predicate.RbacRolePermission
+}
+
+var _ ent.Mutation = (*RbacRolePermissionMutation)(nil)
+
+// rbacrolepermissionOption allows management of the mutation configuration using functional options.
+type rbacrolepermissionOption func(*RbacRolePermissionMutation)
+
+// newRbacRolePermissionMutation creates new mutation for the RbacRolePermission entity.
+func newRbacRolePermissionMutation(c config, op Op, opts ...rbacrolepermissionOption) *RbacRolePermissionMutation {
+	m := &RbacRolePermissionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRbacRolePermission,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRbacRolePermissionID sets the ID field of the mutation.
+func withRbacRolePermissionID(id int) rbacrolepermissionOption {
+	return func(m *RbacRolePermissionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RbacRolePermission
+		)
+		m.oldValue = func(ctx context.Context) (*RbacRolePermission, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RbacRolePermission.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRbacRolePermission sets the old RbacRolePermission of the mutation.
+func withRbacRolePermission(node *RbacRolePermission) rbacrolepermissionOption {
+	return func(m *RbacRolePermissionMutation) {
+		m.oldValue = func(context.Context) (*RbacRolePermission, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RbacRolePermissionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RbacRolePermissionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RbacRolePermissionMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RbacRolePermissionMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RbacRolePermission.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RbacRolePermissionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RbacRolePermissionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RbacRolePermission entity.
+// If the RbacRolePermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacRolePermissionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RbacRolePermissionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RbacRolePermissionMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RbacRolePermissionMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RbacRolePermission entity.
+// If the RbacRolePermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacRolePermissionMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RbacRolePermissionMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetWorkspaceID sets the "workspace_id" field.
+func (m *RbacRolePermissionMutation) SetWorkspaceID(i int64) {
+	m.workspace_id = &i
+	m.addworkspace_id = nil
+}
+
+// WorkspaceID returns the value of the "workspace_id" field in the mutation.
+func (m *RbacRolePermissionMutation) WorkspaceID() (r int64, exists bool) {
+	v := m.workspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkspaceID returns the old "workspace_id" field's value of the RbacRolePermission entity.
+// If the RbacRolePermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacRolePermissionMutation) OldWorkspaceID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWorkspaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWorkspaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkspaceID: %w", err)
+	}
+	return oldValue.WorkspaceID, nil
+}
+
+// AddWorkspaceID adds i to the "workspace_id" field.
+func (m *RbacRolePermissionMutation) AddWorkspaceID(i int64) {
+	if m.addworkspace_id != nil {
+		*m.addworkspace_id += i
+	} else {
+		m.addworkspace_id = &i
+	}
+}
+
+// AddedWorkspaceID returns the value that was added to the "workspace_id" field in this mutation.
+func (m *RbacRolePermissionMutation) AddedWorkspaceID() (r int64, exists bool) {
+	v := m.addworkspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWorkspaceID resets all changes to the "workspace_id" field.
+func (m *RbacRolePermissionMutation) ResetWorkspaceID() {
+	m.workspace_id = nil
+	m.addworkspace_id = nil
+}
+
+// SetRoleID sets the "role_id" field.
+func (m *RbacRolePermissionMutation) SetRoleID(i int64) {
+	m.role_id = &i
+	m.addrole_id = nil
+}
+
+// RoleID returns the value of the "role_id" field in the mutation.
+func (m *RbacRolePermissionMutation) RoleID() (r int64, exists bool) {
+	v := m.role_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRoleID returns the old "role_id" field's value of the RbacRolePermission entity.
+// If the RbacRolePermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacRolePermissionMutation) OldRoleID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRoleID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRoleID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRoleID: %w", err)
+	}
+	return oldValue.RoleID, nil
+}
+
+// AddRoleID adds i to the "role_id" field.
+func (m *RbacRolePermissionMutation) AddRoleID(i int64) {
+	if m.addrole_id != nil {
+		*m.addrole_id += i
+	} else {
+		m.addrole_id = &i
+	}
+}
+
+// AddedRoleID returns the value that was added to the "role_id" field in this mutation.
+func (m *RbacRolePermissionMutation) AddedRoleID() (r int64, exists bool) {
+	v := m.addrole_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRoleID resets all changes to the "role_id" field.
+func (m *RbacRolePermissionMutation) ResetRoleID() {
+	m.role_id = nil
+	m.addrole_id = nil
+}
+
+// SetPermissionID sets the "permission_id" field.
+func (m *RbacRolePermissionMutation) SetPermissionID(i int64) {
+	m.permission_id = &i
+	m.addpermission_id = nil
+}
+
+// PermissionID returns the value of the "permission_id" field in the mutation.
+func (m *RbacRolePermissionMutation) PermissionID() (r int64, exists bool) {
+	v := m.permission_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPermissionID returns the old "permission_id" field's value of the RbacRolePermission entity.
+// If the RbacRolePermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacRolePermissionMutation) OldPermissionID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPermissionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPermissionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPermissionID: %w", err)
+	}
+	return oldValue.PermissionID, nil
+}
+
+// AddPermissionID adds i to the "permission_id" field.
+func (m *RbacRolePermissionMutation) AddPermissionID(i int64) {
+	if m.addpermission_id != nil {
+		*m.addpermission_id += i
+	} else {
+		m.addpermission_id = &i
+	}
+}
+
+// AddedPermissionID returns the value that was added to the "permission_id" field in this mutation.
+func (m *RbacRolePermissionMutation) AddedPermissionID() (r int64, exists bool) {
+	v := m.addpermission_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPermissionID resets all changes to the "permission_id" field.
+func (m *RbacRolePermissionMutation) ResetPermissionID() {
+	m.permission_id = nil
+	m.addpermission_id = nil
+}
+
+// Where appends a list predicates to the RbacRolePermissionMutation builder.
+func (m *RbacRolePermissionMutation) Where(ps ...predicate.RbacRolePermission) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RbacRolePermissionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RbacRolePermissionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RbacRolePermission, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RbacRolePermissionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RbacRolePermissionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RbacRolePermission).
+func (m *RbacRolePermissionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RbacRolePermissionMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.created_at != nil {
+		fields = append(fields, rbacrolepermission.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, rbacrolepermission.FieldUpdatedAt)
+	}
+	if m.workspace_id != nil {
+		fields = append(fields, rbacrolepermission.FieldWorkspaceID)
+	}
+	if m.role_id != nil {
+		fields = append(fields, rbacrolepermission.FieldRoleID)
+	}
+	if m.permission_id != nil {
+		fields = append(fields, rbacrolepermission.FieldPermissionID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RbacRolePermissionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case rbacrolepermission.FieldCreatedAt:
+		return m.CreatedAt()
+	case rbacrolepermission.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case rbacrolepermission.FieldWorkspaceID:
+		return m.WorkspaceID()
+	case rbacrolepermission.FieldRoleID:
+		return m.RoleID()
+	case rbacrolepermission.FieldPermissionID:
+		return m.PermissionID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RbacRolePermissionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case rbacrolepermission.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case rbacrolepermission.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case rbacrolepermission.FieldWorkspaceID:
+		return m.OldWorkspaceID(ctx)
+	case rbacrolepermission.FieldRoleID:
+		return m.OldRoleID(ctx)
+	case rbacrolepermission.FieldPermissionID:
+		return m.OldPermissionID(ctx)
+	}
+	return nil, fmt.Errorf("unknown RbacRolePermission field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacRolePermissionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case rbacrolepermission.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case rbacrolepermission.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case rbacrolepermission.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkspaceID(v)
+		return nil
+	case rbacrolepermission.FieldRoleID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRoleID(v)
+		return nil
+	case rbacrolepermission.FieldPermissionID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPermissionID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacRolePermission field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RbacRolePermissionMutation) AddedFields() []string {
+	var fields []string
+	if m.addworkspace_id != nil {
+		fields = append(fields, rbacrolepermission.FieldWorkspaceID)
+	}
+	if m.addrole_id != nil {
+		fields = append(fields, rbacrolepermission.FieldRoleID)
+	}
+	if m.addpermission_id != nil {
+		fields = append(fields, rbacrolepermission.FieldPermissionID)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RbacRolePermissionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case rbacrolepermission.FieldWorkspaceID:
+		return m.AddedWorkspaceID()
+	case rbacrolepermission.FieldRoleID:
+		return m.AddedRoleID()
+	case rbacrolepermission.FieldPermissionID:
+		return m.AddedPermissionID()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacRolePermissionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case rbacrolepermission.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWorkspaceID(v)
+		return nil
+	case rbacrolepermission.FieldRoleID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRoleID(v)
+		return nil
+	case rbacrolepermission.FieldPermissionID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPermissionID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacRolePermission numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RbacRolePermissionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RbacRolePermissionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RbacRolePermissionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown RbacRolePermission nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RbacRolePermissionMutation) ResetField(name string) error {
+	switch name {
+	case rbacrolepermission.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case rbacrolepermission.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case rbacrolepermission.FieldWorkspaceID:
+		m.ResetWorkspaceID()
+		return nil
+	case rbacrolepermission.FieldRoleID:
+		m.ResetRoleID()
+		return nil
+	case rbacrolepermission.FieldPermissionID:
+		m.ResetPermissionID()
+		return nil
+	}
+	return fmt.Errorf("unknown RbacRolePermission field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RbacRolePermissionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RbacRolePermissionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RbacRolePermissionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RbacRolePermissionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RbacRolePermissionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RbacRolePermissionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RbacRolePermissionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RbacRolePermission unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RbacRolePermissionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RbacRolePermission edge %s", name)
+}
+
+// RbacUserRoleMutation represents an operation that mutates the RbacUserRole nodes in the graph.
+type RbacUserRoleMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *int
+	created_at       *time.Time
+	updated_at       *time.Time
+	workspace_id     *int64
+	addworkspace_id  *int64
+	user_id          *int64
+	adduser_id       *int64
+	role_id          *int64
+	addrole_id       *int64
+	source_type      *int8
+	addsource_type   *int8
+	effective_end_at *time.Time
+	clearedFields    map[string]struct{}
+	done             bool
+	oldValue         func(context.Context) (*RbacUserRole, error)
+	predicates       []predicate.RbacUserRole
+}
+
+var _ ent.Mutation = (*RbacUserRoleMutation)(nil)
+
+// rbacuserroleOption allows management of the mutation configuration using functional options.
+type rbacuserroleOption func(*RbacUserRoleMutation)
+
+// newRbacUserRoleMutation creates new mutation for the RbacUserRole entity.
+func newRbacUserRoleMutation(c config, op Op, opts ...rbacuserroleOption) *RbacUserRoleMutation {
+	m := &RbacUserRoleMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRbacUserRole,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRbacUserRoleID sets the ID field of the mutation.
+func withRbacUserRoleID(id int) rbacuserroleOption {
+	return func(m *RbacUserRoleMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RbacUserRole
+		)
+		m.oldValue = func(ctx context.Context) (*RbacUserRole, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RbacUserRole.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRbacUserRole sets the old RbacUserRole of the mutation.
+func withRbacUserRole(node *RbacUserRole) rbacuserroleOption {
+	return func(m *RbacUserRoleMutation) {
+		m.oldValue = func(context.Context) (*RbacUserRole, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RbacUserRoleMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RbacUserRoleMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RbacUserRoleMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RbacUserRoleMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RbacUserRole.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RbacUserRoleMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RbacUserRoleMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RbacUserRole entity.
+// If the RbacUserRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacUserRoleMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RbacUserRoleMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RbacUserRoleMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RbacUserRoleMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RbacUserRole entity.
+// If the RbacUserRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacUserRoleMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RbacUserRoleMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetWorkspaceID sets the "workspace_id" field.
+func (m *RbacUserRoleMutation) SetWorkspaceID(i int64) {
+	m.workspace_id = &i
+	m.addworkspace_id = nil
+}
+
+// WorkspaceID returns the value of the "workspace_id" field in the mutation.
+func (m *RbacUserRoleMutation) WorkspaceID() (r int64, exists bool) {
+	v := m.workspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkspaceID returns the old "workspace_id" field's value of the RbacUserRole entity.
+// If the RbacUserRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacUserRoleMutation) OldWorkspaceID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWorkspaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWorkspaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkspaceID: %w", err)
+	}
+	return oldValue.WorkspaceID, nil
+}
+
+// AddWorkspaceID adds i to the "workspace_id" field.
+func (m *RbacUserRoleMutation) AddWorkspaceID(i int64) {
+	if m.addworkspace_id != nil {
+		*m.addworkspace_id += i
+	} else {
+		m.addworkspace_id = &i
+	}
+}
+
+// AddedWorkspaceID returns the value that was added to the "workspace_id" field in this mutation.
+func (m *RbacUserRoleMutation) AddedWorkspaceID() (r int64, exists bool) {
+	v := m.addworkspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWorkspaceID resets all changes to the "workspace_id" field.
+func (m *RbacUserRoleMutation) ResetWorkspaceID() {
+	m.workspace_id = nil
+	m.addworkspace_id = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *RbacUserRoleMutation) SetUserID(i int64) {
+	m.user_id = &i
+	m.adduser_id = nil
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *RbacUserRoleMutation) UserID() (r int64, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the RbacUserRole entity.
+// If the RbacUserRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacUserRoleMutation) OldUserID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// AddUserID adds i to the "user_id" field.
+func (m *RbacUserRoleMutation) AddUserID(i int64) {
+	if m.adduser_id != nil {
+		*m.adduser_id += i
+	} else {
+		m.adduser_id = &i
+	}
+}
+
+// AddedUserID returns the value that was added to the "user_id" field in this mutation.
+func (m *RbacUserRoleMutation) AddedUserID() (r int64, exists bool) {
+	v := m.adduser_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *RbacUserRoleMutation) ResetUserID() {
+	m.user_id = nil
+	m.adduser_id = nil
+}
+
+// SetRoleID sets the "role_id" field.
+func (m *RbacUserRoleMutation) SetRoleID(i int64) {
+	m.role_id = &i
+	m.addrole_id = nil
+}
+
+// RoleID returns the value of the "role_id" field in the mutation.
+func (m *RbacUserRoleMutation) RoleID() (r int64, exists bool) {
+	v := m.role_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRoleID returns the old "role_id" field's value of the RbacUserRole entity.
+// If the RbacUserRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacUserRoleMutation) OldRoleID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRoleID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRoleID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRoleID: %w", err)
+	}
+	return oldValue.RoleID, nil
+}
+
+// AddRoleID adds i to the "role_id" field.
+func (m *RbacUserRoleMutation) AddRoleID(i int64) {
+	if m.addrole_id != nil {
+		*m.addrole_id += i
+	} else {
+		m.addrole_id = &i
+	}
+}
+
+// AddedRoleID returns the value that was added to the "role_id" field in this mutation.
+func (m *RbacUserRoleMutation) AddedRoleID() (r int64, exists bool) {
+	v := m.addrole_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRoleID resets all changes to the "role_id" field.
+func (m *RbacUserRoleMutation) ResetRoleID() {
+	m.role_id = nil
+	m.addrole_id = nil
+}
+
+// SetSourceType sets the "source_type" field.
+func (m *RbacUserRoleMutation) SetSourceType(i int8) {
+	m.source_type = &i
+	m.addsource_type = nil
+}
+
+// SourceType returns the value of the "source_type" field in the mutation.
+func (m *RbacUserRoleMutation) SourceType() (r int8, exists bool) {
+	v := m.source_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceType returns the old "source_type" field's value of the RbacUserRole entity.
+// If the RbacUserRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacUserRoleMutation) OldSourceType(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceType: %w", err)
+	}
+	return oldValue.SourceType, nil
+}
+
+// AddSourceType adds i to the "source_type" field.
+func (m *RbacUserRoleMutation) AddSourceType(i int8) {
+	if m.addsource_type != nil {
+		*m.addsource_type += i
+	} else {
+		m.addsource_type = &i
+	}
+}
+
+// AddedSourceType returns the value that was added to the "source_type" field in this mutation.
+func (m *RbacUserRoleMutation) AddedSourceType() (r int8, exists bool) {
+	v := m.addsource_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSourceType resets all changes to the "source_type" field.
+func (m *RbacUserRoleMutation) ResetSourceType() {
+	m.source_type = nil
+	m.addsource_type = nil
+}
+
+// SetEffectiveEndAt sets the "effective_end_at" field.
+func (m *RbacUserRoleMutation) SetEffectiveEndAt(t time.Time) {
+	m.effective_end_at = &t
+}
+
+// EffectiveEndAt returns the value of the "effective_end_at" field in the mutation.
+func (m *RbacUserRoleMutation) EffectiveEndAt() (r time.Time, exists bool) {
+	v := m.effective_end_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEffectiveEndAt returns the old "effective_end_at" field's value of the RbacUserRole entity.
+// If the RbacUserRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacUserRoleMutation) OldEffectiveEndAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEffectiveEndAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEffectiveEndAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEffectiveEndAt: %w", err)
+	}
+	return oldValue.EffectiveEndAt, nil
+}
+
+// ClearEffectiveEndAt clears the value of the "effective_end_at" field.
+func (m *RbacUserRoleMutation) ClearEffectiveEndAt() {
+	m.effective_end_at = nil
+	m.clearedFields[rbacuserrole.FieldEffectiveEndAt] = struct{}{}
+}
+
+// EffectiveEndAtCleared returns if the "effective_end_at" field was cleared in this mutation.
+func (m *RbacUserRoleMutation) EffectiveEndAtCleared() bool {
+	_, ok := m.clearedFields[rbacuserrole.FieldEffectiveEndAt]
+	return ok
+}
+
+// ResetEffectiveEndAt resets all changes to the "effective_end_at" field.
+func (m *RbacUserRoleMutation) ResetEffectiveEndAt() {
+	m.effective_end_at = nil
+	delete(m.clearedFields, rbacuserrole.FieldEffectiveEndAt)
+}
+
+// Where appends a list predicates to the RbacUserRoleMutation builder.
+func (m *RbacUserRoleMutation) Where(ps ...predicate.RbacUserRole) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RbacUserRoleMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RbacUserRoleMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RbacUserRole, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RbacUserRoleMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RbacUserRoleMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RbacUserRole).
+func (m *RbacUserRoleMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RbacUserRoleMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.created_at != nil {
+		fields = append(fields, rbacuserrole.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, rbacuserrole.FieldUpdatedAt)
+	}
+	if m.workspace_id != nil {
+		fields = append(fields, rbacuserrole.FieldWorkspaceID)
+	}
+	if m.user_id != nil {
+		fields = append(fields, rbacuserrole.FieldUserID)
+	}
+	if m.role_id != nil {
+		fields = append(fields, rbacuserrole.FieldRoleID)
+	}
+	if m.source_type != nil {
+		fields = append(fields, rbacuserrole.FieldSourceType)
+	}
+	if m.effective_end_at != nil {
+		fields = append(fields, rbacuserrole.FieldEffectiveEndAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RbacUserRoleMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case rbacuserrole.FieldCreatedAt:
+		return m.CreatedAt()
+	case rbacuserrole.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case rbacuserrole.FieldWorkspaceID:
+		return m.WorkspaceID()
+	case rbacuserrole.FieldUserID:
+		return m.UserID()
+	case rbacuserrole.FieldRoleID:
+		return m.RoleID()
+	case rbacuserrole.FieldSourceType:
+		return m.SourceType()
+	case rbacuserrole.FieldEffectiveEndAt:
+		return m.EffectiveEndAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RbacUserRoleMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case rbacuserrole.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case rbacuserrole.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case rbacuserrole.FieldWorkspaceID:
+		return m.OldWorkspaceID(ctx)
+	case rbacuserrole.FieldUserID:
+		return m.OldUserID(ctx)
+	case rbacuserrole.FieldRoleID:
+		return m.OldRoleID(ctx)
+	case rbacuserrole.FieldSourceType:
+		return m.OldSourceType(ctx)
+	case rbacuserrole.FieldEffectiveEndAt:
+		return m.OldEffectiveEndAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown RbacUserRole field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacUserRoleMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case rbacuserrole.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case rbacuserrole.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case rbacuserrole.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkspaceID(v)
+		return nil
+	case rbacuserrole.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case rbacuserrole.FieldRoleID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRoleID(v)
+		return nil
+	case rbacuserrole.FieldSourceType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceType(v)
+		return nil
+	case rbacuserrole.FieldEffectiveEndAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEffectiveEndAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacUserRole field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RbacUserRoleMutation) AddedFields() []string {
+	var fields []string
+	if m.addworkspace_id != nil {
+		fields = append(fields, rbacuserrole.FieldWorkspaceID)
+	}
+	if m.adduser_id != nil {
+		fields = append(fields, rbacuserrole.FieldUserID)
+	}
+	if m.addrole_id != nil {
+		fields = append(fields, rbacuserrole.FieldRoleID)
+	}
+	if m.addsource_type != nil {
+		fields = append(fields, rbacuserrole.FieldSourceType)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RbacUserRoleMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case rbacuserrole.FieldWorkspaceID:
+		return m.AddedWorkspaceID()
+	case rbacuserrole.FieldUserID:
+		return m.AddedUserID()
+	case rbacuserrole.FieldRoleID:
+		return m.AddedRoleID()
+	case rbacuserrole.FieldSourceType:
+		return m.AddedSourceType()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacUserRoleMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case rbacuserrole.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWorkspaceID(v)
+		return nil
+	case rbacuserrole.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUserID(v)
+		return nil
+	case rbacuserrole.FieldRoleID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRoleID(v)
+		return nil
+	case rbacuserrole.FieldSourceType:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSourceType(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacUserRole numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RbacUserRoleMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(rbacuserrole.FieldEffectiveEndAt) {
+		fields = append(fields, rbacuserrole.FieldEffectiveEndAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RbacUserRoleMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RbacUserRoleMutation) ClearField(name string) error {
+	switch name {
+	case rbacuserrole.FieldEffectiveEndAt:
+		m.ClearEffectiveEndAt()
+		return nil
+	}
+	return fmt.Errorf("unknown RbacUserRole nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RbacUserRoleMutation) ResetField(name string) error {
+	switch name {
+	case rbacuserrole.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case rbacuserrole.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case rbacuserrole.FieldWorkspaceID:
+		m.ResetWorkspaceID()
+		return nil
+	case rbacuserrole.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case rbacuserrole.FieldRoleID:
+		m.ResetRoleID()
+		return nil
+	case rbacuserrole.FieldSourceType:
+		m.ResetSourceType()
+		return nil
+	case rbacuserrole.FieldEffectiveEndAt:
+		m.ResetEffectiveEndAt()
+		return nil
+	}
+	return fmt.Errorf("unknown RbacUserRole field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RbacUserRoleMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RbacUserRoleMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RbacUserRoleMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RbacUserRoleMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RbacUserRoleMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RbacUserRoleMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RbacUserRoleMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RbacUserRole unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RbacUserRoleMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RbacUserRole edge %s", name)
 }
 
 // TodoMutation represents an operation that mutates the Todo nodes in the graph.
@@ -5740,4 +12085,1617 @@ func (m *UserIdentityMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *UserIdentityMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown UserIdentity edge %s", name)
+}
+
+// WorkspaceMutation represents an operation that mutates the Workspace nodes in the graph.
+type WorkspaceMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *int
+	created_at       *time.Time
+	updated_at       *time.Time
+	biz_id           *int64
+	addbiz_id        *int64
+	slug             *string
+	name             *string
+	owner_user_id    *int64
+	addowner_user_id *int64
+	status           *int8
+	addstatus        *int8
+	settings         *map[string]interface{}
+	clearedFields    map[string]struct{}
+	done             bool
+	oldValue         func(context.Context) (*Workspace, error)
+	predicates       []predicate.Workspace
+}
+
+var _ ent.Mutation = (*WorkspaceMutation)(nil)
+
+// workspaceOption allows management of the mutation configuration using functional options.
+type workspaceOption func(*WorkspaceMutation)
+
+// newWorkspaceMutation creates new mutation for the Workspace entity.
+func newWorkspaceMutation(c config, op Op, opts ...workspaceOption) *WorkspaceMutation {
+	m := &WorkspaceMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeWorkspace,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withWorkspaceID sets the ID field of the mutation.
+func withWorkspaceID(id int) workspaceOption {
+	return func(m *WorkspaceMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Workspace
+		)
+		m.oldValue = func(ctx context.Context) (*Workspace, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Workspace.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withWorkspace sets the old Workspace of the mutation.
+func withWorkspace(node *Workspace) workspaceOption {
+	return func(m *WorkspaceMutation) {
+		m.oldValue = func(context.Context) (*Workspace, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m WorkspaceMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m WorkspaceMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *WorkspaceMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *WorkspaceMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Workspace.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *WorkspaceMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *WorkspaceMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Workspace entity.
+// If the Workspace object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *WorkspaceMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *WorkspaceMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *WorkspaceMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Workspace entity.
+// If the Workspace object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *WorkspaceMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetBizID sets the "biz_id" field.
+func (m *WorkspaceMutation) SetBizID(i int64) {
+	m.biz_id = &i
+	m.addbiz_id = nil
+}
+
+// BizID returns the value of the "biz_id" field in the mutation.
+func (m *WorkspaceMutation) BizID() (r int64, exists bool) {
+	v := m.biz_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBizID returns the old "biz_id" field's value of the Workspace entity.
+// If the Workspace object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMutation) OldBizID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBizID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBizID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBizID: %w", err)
+	}
+	return oldValue.BizID, nil
+}
+
+// AddBizID adds i to the "biz_id" field.
+func (m *WorkspaceMutation) AddBizID(i int64) {
+	if m.addbiz_id != nil {
+		*m.addbiz_id += i
+	} else {
+		m.addbiz_id = &i
+	}
+}
+
+// AddedBizID returns the value that was added to the "biz_id" field in this mutation.
+func (m *WorkspaceMutation) AddedBizID() (r int64, exists bool) {
+	v := m.addbiz_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBizID resets all changes to the "biz_id" field.
+func (m *WorkspaceMutation) ResetBizID() {
+	m.biz_id = nil
+	m.addbiz_id = nil
+}
+
+// SetSlug sets the "slug" field.
+func (m *WorkspaceMutation) SetSlug(s string) {
+	m.slug = &s
+}
+
+// Slug returns the value of the "slug" field in the mutation.
+func (m *WorkspaceMutation) Slug() (r string, exists bool) {
+	v := m.slug
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlug returns the old "slug" field's value of the Workspace entity.
+// If the Workspace object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMutation) OldSlug(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSlug is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSlug requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlug: %w", err)
+	}
+	return oldValue.Slug, nil
+}
+
+// ResetSlug resets all changes to the "slug" field.
+func (m *WorkspaceMutation) ResetSlug() {
+	m.slug = nil
+}
+
+// SetName sets the "name" field.
+func (m *WorkspaceMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *WorkspaceMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Workspace entity.
+// If the Workspace object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *WorkspaceMutation) ResetName() {
+	m.name = nil
+}
+
+// SetOwnerUserID sets the "owner_user_id" field.
+func (m *WorkspaceMutation) SetOwnerUserID(i int64) {
+	m.owner_user_id = &i
+	m.addowner_user_id = nil
+}
+
+// OwnerUserID returns the value of the "owner_user_id" field in the mutation.
+func (m *WorkspaceMutation) OwnerUserID() (r int64, exists bool) {
+	v := m.owner_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOwnerUserID returns the old "owner_user_id" field's value of the Workspace entity.
+// If the Workspace object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMutation) OldOwnerUserID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOwnerUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOwnerUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOwnerUserID: %w", err)
+	}
+	return oldValue.OwnerUserID, nil
+}
+
+// AddOwnerUserID adds i to the "owner_user_id" field.
+func (m *WorkspaceMutation) AddOwnerUserID(i int64) {
+	if m.addowner_user_id != nil {
+		*m.addowner_user_id += i
+	} else {
+		m.addowner_user_id = &i
+	}
+}
+
+// AddedOwnerUserID returns the value that was added to the "owner_user_id" field in this mutation.
+func (m *WorkspaceMutation) AddedOwnerUserID() (r int64, exists bool) {
+	v := m.addowner_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOwnerUserID resets all changes to the "owner_user_id" field.
+func (m *WorkspaceMutation) ResetOwnerUserID() {
+	m.owner_user_id = nil
+	m.addowner_user_id = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *WorkspaceMutation) SetStatus(i int8) {
+	m.status = &i
+	m.addstatus = nil
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *WorkspaceMutation) Status() (r int8, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the Workspace entity.
+// If the Workspace object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMutation) OldStatus(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// AddStatus adds i to the "status" field.
+func (m *WorkspaceMutation) AddStatus(i int8) {
+	if m.addstatus != nil {
+		*m.addstatus += i
+	} else {
+		m.addstatus = &i
+	}
+}
+
+// AddedStatus returns the value that was added to the "status" field in this mutation.
+func (m *WorkspaceMutation) AddedStatus() (r int8, exists bool) {
+	v := m.addstatus
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *WorkspaceMutation) ResetStatus() {
+	m.status = nil
+	m.addstatus = nil
+}
+
+// SetSettings sets the "settings" field.
+func (m *WorkspaceMutation) SetSettings(value map[string]interface{}) {
+	m.settings = &value
+}
+
+// Settings returns the value of the "settings" field in the mutation.
+func (m *WorkspaceMutation) Settings() (r map[string]interface{}, exists bool) {
+	v := m.settings
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSettings returns the old "settings" field's value of the Workspace entity.
+// If the Workspace object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMutation) OldSettings(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSettings is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSettings requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSettings: %w", err)
+	}
+	return oldValue.Settings, nil
+}
+
+// ClearSettings clears the value of the "settings" field.
+func (m *WorkspaceMutation) ClearSettings() {
+	m.settings = nil
+	m.clearedFields[workspace.FieldSettings] = struct{}{}
+}
+
+// SettingsCleared returns if the "settings" field was cleared in this mutation.
+func (m *WorkspaceMutation) SettingsCleared() bool {
+	_, ok := m.clearedFields[workspace.FieldSettings]
+	return ok
+}
+
+// ResetSettings resets all changes to the "settings" field.
+func (m *WorkspaceMutation) ResetSettings() {
+	m.settings = nil
+	delete(m.clearedFields, workspace.FieldSettings)
+}
+
+// Where appends a list predicates to the WorkspaceMutation builder.
+func (m *WorkspaceMutation) Where(ps ...predicate.Workspace) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the WorkspaceMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *WorkspaceMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Workspace, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *WorkspaceMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *WorkspaceMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Workspace).
+func (m *WorkspaceMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *WorkspaceMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.created_at != nil {
+		fields = append(fields, workspace.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, workspace.FieldUpdatedAt)
+	}
+	if m.biz_id != nil {
+		fields = append(fields, workspace.FieldBizID)
+	}
+	if m.slug != nil {
+		fields = append(fields, workspace.FieldSlug)
+	}
+	if m.name != nil {
+		fields = append(fields, workspace.FieldName)
+	}
+	if m.owner_user_id != nil {
+		fields = append(fields, workspace.FieldOwnerUserID)
+	}
+	if m.status != nil {
+		fields = append(fields, workspace.FieldStatus)
+	}
+	if m.settings != nil {
+		fields = append(fields, workspace.FieldSettings)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *WorkspaceMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case workspace.FieldCreatedAt:
+		return m.CreatedAt()
+	case workspace.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case workspace.FieldBizID:
+		return m.BizID()
+	case workspace.FieldSlug:
+		return m.Slug()
+	case workspace.FieldName:
+		return m.Name()
+	case workspace.FieldOwnerUserID:
+		return m.OwnerUserID()
+	case workspace.FieldStatus:
+		return m.Status()
+	case workspace.FieldSettings:
+		return m.Settings()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *WorkspaceMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case workspace.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case workspace.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case workspace.FieldBizID:
+		return m.OldBizID(ctx)
+	case workspace.FieldSlug:
+		return m.OldSlug(ctx)
+	case workspace.FieldName:
+		return m.OldName(ctx)
+	case workspace.FieldOwnerUserID:
+		return m.OldOwnerUserID(ctx)
+	case workspace.FieldStatus:
+		return m.OldStatus(ctx)
+	case workspace.FieldSettings:
+		return m.OldSettings(ctx)
+	}
+	return nil, fmt.Errorf("unknown Workspace field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WorkspaceMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case workspace.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case workspace.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case workspace.FieldBizID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBizID(v)
+		return nil
+	case workspace.FieldSlug:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlug(v)
+		return nil
+	case workspace.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case workspace.FieldOwnerUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOwnerUserID(v)
+		return nil
+	case workspace.FieldStatus:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case workspace.FieldSettings:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSettings(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Workspace field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *WorkspaceMutation) AddedFields() []string {
+	var fields []string
+	if m.addbiz_id != nil {
+		fields = append(fields, workspace.FieldBizID)
+	}
+	if m.addowner_user_id != nil {
+		fields = append(fields, workspace.FieldOwnerUserID)
+	}
+	if m.addstatus != nil {
+		fields = append(fields, workspace.FieldStatus)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *WorkspaceMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case workspace.FieldBizID:
+		return m.AddedBizID()
+	case workspace.FieldOwnerUserID:
+		return m.AddedOwnerUserID()
+	case workspace.FieldStatus:
+		return m.AddedStatus()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WorkspaceMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case workspace.FieldBizID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBizID(v)
+		return nil
+	case workspace.FieldOwnerUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOwnerUserID(v)
+		return nil
+	case workspace.FieldStatus:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddStatus(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Workspace numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *WorkspaceMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(workspace.FieldSettings) {
+		fields = append(fields, workspace.FieldSettings)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *WorkspaceMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *WorkspaceMutation) ClearField(name string) error {
+	switch name {
+	case workspace.FieldSettings:
+		m.ClearSettings()
+		return nil
+	}
+	return fmt.Errorf("unknown Workspace nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *WorkspaceMutation) ResetField(name string) error {
+	switch name {
+	case workspace.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case workspace.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case workspace.FieldBizID:
+		m.ResetBizID()
+		return nil
+	case workspace.FieldSlug:
+		m.ResetSlug()
+		return nil
+	case workspace.FieldName:
+		m.ResetName()
+		return nil
+	case workspace.FieldOwnerUserID:
+		m.ResetOwnerUserID()
+		return nil
+	case workspace.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case workspace.FieldSettings:
+		m.ResetSettings()
+		return nil
+	}
+	return fmt.Errorf("unknown Workspace field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *WorkspaceMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *WorkspaceMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *WorkspaceMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *WorkspaceMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *WorkspaceMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *WorkspaceMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *WorkspaceMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown Workspace unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *WorkspaceMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown Workspace edge %s", name)
+}
+
+// WorkspaceMemberMutation represents an operation that mutates the WorkspaceMember nodes in the graph.
+type WorkspaceMemberMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	created_at      *time.Time
+	updated_at      *time.Time
+	biz_id          *int64
+	addbiz_id       *int64
+	workspace_id    *int64
+	addworkspace_id *int64
+	user_id         *int64
+	adduser_id      *int64
+	status          *int8
+	addstatus       *int8
+	joined_at       *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*WorkspaceMember, error)
+	predicates      []predicate.WorkspaceMember
+}
+
+var _ ent.Mutation = (*WorkspaceMemberMutation)(nil)
+
+// workspacememberOption allows management of the mutation configuration using functional options.
+type workspacememberOption func(*WorkspaceMemberMutation)
+
+// newWorkspaceMemberMutation creates new mutation for the WorkspaceMember entity.
+func newWorkspaceMemberMutation(c config, op Op, opts ...workspacememberOption) *WorkspaceMemberMutation {
+	m := &WorkspaceMemberMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeWorkspaceMember,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withWorkspaceMemberID sets the ID field of the mutation.
+func withWorkspaceMemberID(id int) workspacememberOption {
+	return func(m *WorkspaceMemberMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *WorkspaceMember
+		)
+		m.oldValue = func(ctx context.Context) (*WorkspaceMember, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().WorkspaceMember.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withWorkspaceMember sets the old WorkspaceMember of the mutation.
+func withWorkspaceMember(node *WorkspaceMember) workspacememberOption {
+	return func(m *WorkspaceMemberMutation) {
+		m.oldValue = func(context.Context) (*WorkspaceMember, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m WorkspaceMemberMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m WorkspaceMemberMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *WorkspaceMemberMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *WorkspaceMemberMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().WorkspaceMember.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *WorkspaceMemberMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *WorkspaceMemberMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the WorkspaceMember entity.
+// If the WorkspaceMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMemberMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *WorkspaceMemberMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *WorkspaceMemberMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *WorkspaceMemberMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the WorkspaceMember entity.
+// If the WorkspaceMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMemberMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *WorkspaceMemberMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetBizID sets the "biz_id" field.
+func (m *WorkspaceMemberMutation) SetBizID(i int64) {
+	m.biz_id = &i
+	m.addbiz_id = nil
+}
+
+// BizID returns the value of the "biz_id" field in the mutation.
+func (m *WorkspaceMemberMutation) BizID() (r int64, exists bool) {
+	v := m.biz_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBizID returns the old "biz_id" field's value of the WorkspaceMember entity.
+// If the WorkspaceMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMemberMutation) OldBizID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBizID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBizID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBizID: %w", err)
+	}
+	return oldValue.BizID, nil
+}
+
+// AddBizID adds i to the "biz_id" field.
+func (m *WorkspaceMemberMutation) AddBizID(i int64) {
+	if m.addbiz_id != nil {
+		*m.addbiz_id += i
+	} else {
+		m.addbiz_id = &i
+	}
+}
+
+// AddedBizID returns the value that was added to the "biz_id" field in this mutation.
+func (m *WorkspaceMemberMutation) AddedBizID() (r int64, exists bool) {
+	v := m.addbiz_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBizID resets all changes to the "biz_id" field.
+func (m *WorkspaceMemberMutation) ResetBizID() {
+	m.biz_id = nil
+	m.addbiz_id = nil
+}
+
+// SetWorkspaceID sets the "workspace_id" field.
+func (m *WorkspaceMemberMutation) SetWorkspaceID(i int64) {
+	m.workspace_id = &i
+	m.addworkspace_id = nil
+}
+
+// WorkspaceID returns the value of the "workspace_id" field in the mutation.
+func (m *WorkspaceMemberMutation) WorkspaceID() (r int64, exists bool) {
+	v := m.workspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkspaceID returns the old "workspace_id" field's value of the WorkspaceMember entity.
+// If the WorkspaceMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMemberMutation) OldWorkspaceID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWorkspaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWorkspaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkspaceID: %w", err)
+	}
+	return oldValue.WorkspaceID, nil
+}
+
+// AddWorkspaceID adds i to the "workspace_id" field.
+func (m *WorkspaceMemberMutation) AddWorkspaceID(i int64) {
+	if m.addworkspace_id != nil {
+		*m.addworkspace_id += i
+	} else {
+		m.addworkspace_id = &i
+	}
+}
+
+// AddedWorkspaceID returns the value that was added to the "workspace_id" field in this mutation.
+func (m *WorkspaceMemberMutation) AddedWorkspaceID() (r int64, exists bool) {
+	v := m.addworkspace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWorkspaceID resets all changes to the "workspace_id" field.
+func (m *WorkspaceMemberMutation) ResetWorkspaceID() {
+	m.workspace_id = nil
+	m.addworkspace_id = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *WorkspaceMemberMutation) SetUserID(i int64) {
+	m.user_id = &i
+	m.adduser_id = nil
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *WorkspaceMemberMutation) UserID() (r int64, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the WorkspaceMember entity.
+// If the WorkspaceMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMemberMutation) OldUserID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// AddUserID adds i to the "user_id" field.
+func (m *WorkspaceMemberMutation) AddUserID(i int64) {
+	if m.adduser_id != nil {
+		*m.adduser_id += i
+	} else {
+		m.adduser_id = &i
+	}
+}
+
+// AddedUserID returns the value that was added to the "user_id" field in this mutation.
+func (m *WorkspaceMemberMutation) AddedUserID() (r int64, exists bool) {
+	v := m.adduser_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *WorkspaceMemberMutation) ResetUserID() {
+	m.user_id = nil
+	m.adduser_id = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *WorkspaceMemberMutation) SetStatus(i int8) {
+	m.status = &i
+	m.addstatus = nil
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *WorkspaceMemberMutation) Status() (r int8, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the WorkspaceMember entity.
+// If the WorkspaceMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMemberMutation) OldStatus(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// AddStatus adds i to the "status" field.
+func (m *WorkspaceMemberMutation) AddStatus(i int8) {
+	if m.addstatus != nil {
+		*m.addstatus += i
+	} else {
+		m.addstatus = &i
+	}
+}
+
+// AddedStatus returns the value that was added to the "status" field in this mutation.
+func (m *WorkspaceMemberMutation) AddedStatus() (r int8, exists bool) {
+	v := m.addstatus
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *WorkspaceMemberMutation) ResetStatus() {
+	m.status = nil
+	m.addstatus = nil
+}
+
+// SetJoinedAt sets the "joined_at" field.
+func (m *WorkspaceMemberMutation) SetJoinedAt(t time.Time) {
+	m.joined_at = &t
+}
+
+// JoinedAt returns the value of the "joined_at" field in the mutation.
+func (m *WorkspaceMemberMutation) JoinedAt() (r time.Time, exists bool) {
+	v := m.joined_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldJoinedAt returns the old "joined_at" field's value of the WorkspaceMember entity.
+// If the WorkspaceMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMemberMutation) OldJoinedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldJoinedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldJoinedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldJoinedAt: %w", err)
+	}
+	return oldValue.JoinedAt, nil
+}
+
+// ResetJoinedAt resets all changes to the "joined_at" field.
+func (m *WorkspaceMemberMutation) ResetJoinedAt() {
+	m.joined_at = nil
+}
+
+// Where appends a list predicates to the WorkspaceMemberMutation builder.
+func (m *WorkspaceMemberMutation) Where(ps ...predicate.WorkspaceMember) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the WorkspaceMemberMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *WorkspaceMemberMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.WorkspaceMember, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *WorkspaceMemberMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *WorkspaceMemberMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (WorkspaceMember).
+func (m *WorkspaceMemberMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *WorkspaceMemberMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.created_at != nil {
+		fields = append(fields, workspacemember.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, workspacemember.FieldUpdatedAt)
+	}
+	if m.biz_id != nil {
+		fields = append(fields, workspacemember.FieldBizID)
+	}
+	if m.workspace_id != nil {
+		fields = append(fields, workspacemember.FieldWorkspaceID)
+	}
+	if m.user_id != nil {
+		fields = append(fields, workspacemember.FieldUserID)
+	}
+	if m.status != nil {
+		fields = append(fields, workspacemember.FieldStatus)
+	}
+	if m.joined_at != nil {
+		fields = append(fields, workspacemember.FieldJoinedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *WorkspaceMemberMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case workspacemember.FieldCreatedAt:
+		return m.CreatedAt()
+	case workspacemember.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case workspacemember.FieldBizID:
+		return m.BizID()
+	case workspacemember.FieldWorkspaceID:
+		return m.WorkspaceID()
+	case workspacemember.FieldUserID:
+		return m.UserID()
+	case workspacemember.FieldStatus:
+		return m.Status()
+	case workspacemember.FieldJoinedAt:
+		return m.JoinedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *WorkspaceMemberMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case workspacemember.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case workspacemember.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case workspacemember.FieldBizID:
+		return m.OldBizID(ctx)
+	case workspacemember.FieldWorkspaceID:
+		return m.OldWorkspaceID(ctx)
+	case workspacemember.FieldUserID:
+		return m.OldUserID(ctx)
+	case workspacemember.FieldStatus:
+		return m.OldStatus(ctx)
+	case workspacemember.FieldJoinedAt:
+		return m.OldJoinedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown WorkspaceMember field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WorkspaceMemberMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case workspacemember.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case workspacemember.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case workspacemember.FieldBizID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBizID(v)
+		return nil
+	case workspacemember.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkspaceID(v)
+		return nil
+	case workspacemember.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case workspacemember.FieldStatus:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case workspacemember.FieldJoinedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetJoinedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown WorkspaceMember field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *WorkspaceMemberMutation) AddedFields() []string {
+	var fields []string
+	if m.addbiz_id != nil {
+		fields = append(fields, workspacemember.FieldBizID)
+	}
+	if m.addworkspace_id != nil {
+		fields = append(fields, workspacemember.FieldWorkspaceID)
+	}
+	if m.adduser_id != nil {
+		fields = append(fields, workspacemember.FieldUserID)
+	}
+	if m.addstatus != nil {
+		fields = append(fields, workspacemember.FieldStatus)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *WorkspaceMemberMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case workspacemember.FieldBizID:
+		return m.AddedBizID()
+	case workspacemember.FieldWorkspaceID:
+		return m.AddedWorkspaceID()
+	case workspacemember.FieldUserID:
+		return m.AddedUserID()
+	case workspacemember.FieldStatus:
+		return m.AddedStatus()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WorkspaceMemberMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case workspacemember.FieldBizID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBizID(v)
+		return nil
+	case workspacemember.FieldWorkspaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWorkspaceID(v)
+		return nil
+	case workspacemember.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUserID(v)
+		return nil
+	case workspacemember.FieldStatus:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddStatus(v)
+		return nil
+	}
+	return fmt.Errorf("unknown WorkspaceMember numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *WorkspaceMemberMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *WorkspaceMemberMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *WorkspaceMemberMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown WorkspaceMember nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *WorkspaceMemberMutation) ResetField(name string) error {
+	switch name {
+	case workspacemember.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case workspacemember.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case workspacemember.FieldBizID:
+		m.ResetBizID()
+		return nil
+	case workspacemember.FieldWorkspaceID:
+		m.ResetWorkspaceID()
+		return nil
+	case workspacemember.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case workspacemember.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case workspacemember.FieldJoinedAt:
+		m.ResetJoinedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown WorkspaceMember field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *WorkspaceMemberMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *WorkspaceMemberMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *WorkspaceMemberMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *WorkspaceMemberMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *WorkspaceMemberMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *WorkspaceMemberMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *WorkspaceMemberMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown WorkspaceMember unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *WorkspaceMemberMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown WorkspaceMember edge %s", name)
 }

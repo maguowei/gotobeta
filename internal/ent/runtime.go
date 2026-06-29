@@ -9,10 +9,19 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/authactiontoken"
 	"github.com/maguowei/gotobeta/internal/ent/authrefreshtoken"
 	"github.com/maguowei/gotobeta/internal/ent/oauthloginstate"
+	"github.com/maguowei/gotobeta/internal/ent/rbacaclentry"
+	"github.com/maguowei/gotobeta/internal/ent/rbacpermission"
+	"github.com/maguowei/gotobeta/internal/ent/rbacpermissionchangelog"
+	"github.com/maguowei/gotobeta/internal/ent/rbacpermissionversion"
+	"github.com/maguowei/gotobeta/internal/ent/rbacrole"
+	"github.com/maguowei/gotobeta/internal/ent/rbacrolepermission"
+	"github.com/maguowei/gotobeta/internal/ent/rbacuserrole"
 	"github.com/maguowei/gotobeta/internal/ent/schema"
 	"github.com/maguowei/gotobeta/internal/ent/todo"
 	"github.com/maguowei/gotobeta/internal/ent/user"
 	"github.com/maguowei/gotobeta/internal/ent/useridentity"
+	"github.com/maguowei/gotobeta/internal/ent/workspace"
+	"github.com/maguowei/gotobeta/internal/ent/workspacemember"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -131,6 +140,217 @@ func init() {
 	oauthloginstateDescRedirectURL := oauthloginstateFields[2].Descriptor()
 	// oauthloginstate.RedirectURLValidator is a validator for the "redirect_url" field. It is called by the builders before save.
 	oauthloginstate.RedirectURLValidator = oauthloginstateDescRedirectURL.Validators[0].(func(string) error)
+	rbacaclentryMixin := schema.RbacAclEntry{}.Mixin()
+	rbacaclentryMixinFields0 := rbacaclentryMixin[0].Fields()
+	_ = rbacaclentryMixinFields0
+	rbacaclentryFields := schema.RbacAclEntry{}.Fields()
+	_ = rbacaclentryFields
+	// rbacaclentryDescCreatedAt is the schema descriptor for created_at field.
+	rbacaclentryDescCreatedAt := rbacaclentryMixinFields0[0].Descriptor()
+	// rbacaclentry.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rbacaclentry.DefaultCreatedAt = rbacaclentryDescCreatedAt.Default.(func() time.Time)
+	// rbacaclentryDescUpdatedAt is the schema descriptor for updated_at field.
+	rbacaclentryDescUpdatedAt := rbacaclentryMixinFields0[1].Descriptor()
+	// rbacaclentry.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rbacaclentry.DefaultUpdatedAt = rbacaclentryDescUpdatedAt.Default.(func() time.Time)
+	// rbacaclentry.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rbacaclentry.UpdateDefaultUpdatedAt = rbacaclentryDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// rbacaclentryDescResourceType is the schema descriptor for resource_type field.
+	rbacaclentryDescResourceType := rbacaclentryFields[4].Descriptor()
+	// rbacaclentry.ResourceTypeValidator is a validator for the "resource_type" field. It is called by the builders before save.
+	rbacaclentry.ResourceTypeValidator = rbacaclentryDescResourceType.Validators[0].(func(string) error)
+	// rbacaclentryDescResourceID is the schema descriptor for resource_id field.
+	rbacaclentryDescResourceID := rbacaclentryFields[5].Descriptor()
+	// rbacaclentry.ResourceIDValidator is a validator for the "resource_id" field. It is called by the builders before save.
+	rbacaclentry.ResourceIDValidator = rbacaclentryDescResourceID.Validators[0].(func(string) error)
+	// rbacaclentryDescActionCode is the schema descriptor for action_code field.
+	rbacaclentryDescActionCode := rbacaclentryFields[6].Descriptor()
+	// rbacaclentry.ActionCodeValidator is a validator for the "action_code" field. It is called by the builders before save.
+	rbacaclentry.ActionCodeValidator = rbacaclentryDescActionCode.Validators[0].(func(string) error)
+	// rbacaclentryDescReason is the schema descriptor for reason field.
+	rbacaclentryDescReason := rbacaclentryFields[8].Descriptor()
+	// rbacaclentry.DefaultReason holds the default value on creation for the reason field.
+	rbacaclentry.DefaultReason = rbacaclentryDescReason.Default.(string)
+	// rbacaclentry.ReasonValidator is a validator for the "reason" field. It is called by the builders before save.
+	rbacaclentry.ReasonValidator = rbacaclentryDescReason.Validators[0].(func(string) error)
+	// rbacaclentryDescSourceType is the schema descriptor for source_type field.
+	rbacaclentryDescSourceType := rbacaclentryFields[9].Descriptor()
+	// rbacaclentry.DefaultSourceType holds the default value on creation for the source_type field.
+	rbacaclentry.DefaultSourceType = rbacaclentryDescSourceType.Default.(int8)
+	// rbacaclentryDescCreatedBy is the schema descriptor for created_by field.
+	rbacaclentryDescCreatedBy := rbacaclentryFields[11].Descriptor()
+	// rbacaclentry.DefaultCreatedBy holds the default value on creation for the created_by field.
+	rbacaclentry.DefaultCreatedBy = rbacaclentryDescCreatedBy.Default.(int64)
+	rbacpermissionMixin := schema.RbacPermission{}.Mixin()
+	rbacpermissionMixinFields0 := rbacpermissionMixin[0].Fields()
+	_ = rbacpermissionMixinFields0
+	rbacpermissionFields := schema.RbacPermission{}.Fields()
+	_ = rbacpermissionFields
+	// rbacpermissionDescCreatedAt is the schema descriptor for created_at field.
+	rbacpermissionDescCreatedAt := rbacpermissionMixinFields0[0].Descriptor()
+	// rbacpermission.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rbacpermission.DefaultCreatedAt = rbacpermissionDescCreatedAt.Default.(func() time.Time)
+	// rbacpermissionDescUpdatedAt is the schema descriptor for updated_at field.
+	rbacpermissionDescUpdatedAt := rbacpermissionMixinFields0[1].Descriptor()
+	// rbacpermission.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rbacpermission.DefaultUpdatedAt = rbacpermissionDescUpdatedAt.Default.(func() time.Time)
+	// rbacpermission.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rbacpermission.UpdateDefaultUpdatedAt = rbacpermissionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// rbacpermissionDescWorkspaceID is the schema descriptor for workspace_id field.
+	rbacpermissionDescWorkspaceID := rbacpermissionFields[1].Descriptor()
+	// rbacpermission.DefaultWorkspaceID holds the default value on creation for the workspace_id field.
+	rbacpermission.DefaultWorkspaceID = rbacpermissionDescWorkspaceID.Default.(int64)
+	// rbacpermissionDescCode is the schema descriptor for code field.
+	rbacpermissionDescCode := rbacpermissionFields[2].Descriptor()
+	// rbacpermission.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	rbacpermission.CodeValidator = rbacpermissionDescCode.Validators[0].(func(string) error)
+	// rbacpermissionDescName is the schema descriptor for name field.
+	rbacpermissionDescName := rbacpermissionFields[3].Descriptor()
+	// rbacpermission.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	rbacpermission.NameValidator = rbacpermissionDescName.Validators[0].(func(string) error)
+	// rbacpermissionDescResourceType is the schema descriptor for resource_type field.
+	rbacpermissionDescResourceType := rbacpermissionFields[4].Descriptor()
+	// rbacpermission.DefaultResourceType holds the default value on creation for the resource_type field.
+	rbacpermission.DefaultResourceType = rbacpermissionDescResourceType.Default.(string)
+	// rbacpermission.ResourceTypeValidator is a validator for the "resource_type" field. It is called by the builders before save.
+	rbacpermission.ResourceTypeValidator = rbacpermissionDescResourceType.Validators[0].(func(string) error)
+	// rbacpermissionDescActionKey is the schema descriptor for action_key field.
+	rbacpermissionDescActionKey := rbacpermissionFields[5].Descriptor()
+	// rbacpermission.DefaultActionKey holds the default value on creation for the action_key field.
+	rbacpermission.DefaultActionKey = rbacpermissionDescActionKey.Default.(string)
+	// rbacpermission.ActionKeyValidator is a validator for the "action_key" field. It is called by the builders before save.
+	rbacpermission.ActionKeyValidator = rbacpermissionDescActionKey.Validators[0].(func(string) error)
+	// rbacpermissionDescStatus is the schema descriptor for status field.
+	rbacpermissionDescStatus := rbacpermissionFields[6].Descriptor()
+	// rbacpermission.DefaultStatus holds the default value on creation for the status field.
+	rbacpermission.DefaultStatus = rbacpermissionDescStatus.Default.(int8)
+	rbacpermissionchangelogMixin := schema.RbacPermissionChangeLog{}.Mixin()
+	rbacpermissionchangelogMixinFields0 := rbacpermissionchangelogMixin[0].Fields()
+	_ = rbacpermissionchangelogMixinFields0
+	rbacpermissionchangelogFields := schema.RbacPermissionChangeLog{}.Fields()
+	_ = rbacpermissionchangelogFields
+	// rbacpermissionchangelogDescCreatedAt is the schema descriptor for created_at field.
+	rbacpermissionchangelogDescCreatedAt := rbacpermissionchangelogMixinFields0[0].Descriptor()
+	// rbacpermissionchangelog.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rbacpermissionchangelog.DefaultCreatedAt = rbacpermissionchangelogDescCreatedAt.Default.(func() time.Time)
+	// rbacpermissionchangelogDescUpdatedAt is the schema descriptor for updated_at field.
+	rbacpermissionchangelogDescUpdatedAt := rbacpermissionchangelogMixinFields0[1].Descriptor()
+	// rbacpermissionchangelog.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rbacpermissionchangelog.DefaultUpdatedAt = rbacpermissionchangelogDescUpdatedAt.Default.(func() time.Time)
+	// rbacpermissionchangelog.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rbacpermissionchangelog.UpdateDefaultUpdatedAt = rbacpermissionchangelogDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// rbacpermissionchangelogDescTargetID is the schema descriptor for target_id field.
+	rbacpermissionchangelogDescTargetID := rbacpermissionchangelogFields[4].Descriptor()
+	// rbacpermissionchangelog.DefaultTargetID holds the default value on creation for the target_id field.
+	rbacpermissionchangelog.DefaultTargetID = rbacpermissionchangelogDescTargetID.Default.(int64)
+	// rbacpermissionchangelogDescOperatorID is the schema descriptor for operator_id field.
+	rbacpermissionchangelogDescOperatorID := rbacpermissionchangelogFields[5].Descriptor()
+	// rbacpermissionchangelog.DefaultOperatorID holds the default value on creation for the operator_id field.
+	rbacpermissionchangelog.DefaultOperatorID = rbacpermissionchangelogDescOperatorID.Default.(int64)
+	// rbacpermissionchangelogDescRequestID is the schema descriptor for request_id field.
+	rbacpermissionchangelogDescRequestID := rbacpermissionchangelogFields[6].Descriptor()
+	// rbacpermissionchangelog.DefaultRequestID holds the default value on creation for the request_id field.
+	rbacpermissionchangelog.DefaultRequestID = rbacpermissionchangelogDescRequestID.Default.(string)
+	// rbacpermissionchangelog.RequestIDValidator is a validator for the "request_id" field. It is called by the builders before save.
+	rbacpermissionchangelog.RequestIDValidator = rbacpermissionchangelogDescRequestID.Validators[0].(func(string) error)
+	// rbacpermissionchangelogDescReason is the schema descriptor for reason field.
+	rbacpermissionchangelogDescReason := rbacpermissionchangelogFields[9].Descriptor()
+	// rbacpermissionchangelog.DefaultReason holds the default value on creation for the reason field.
+	rbacpermissionchangelog.DefaultReason = rbacpermissionchangelogDescReason.Default.(string)
+	// rbacpermissionchangelog.ReasonValidator is a validator for the "reason" field. It is called by the builders before save.
+	rbacpermissionchangelog.ReasonValidator = rbacpermissionchangelogDescReason.Validators[0].(func(string) error)
+	rbacpermissionversionMixin := schema.RbacPermissionVersion{}.Mixin()
+	rbacpermissionversionMixinFields0 := rbacpermissionversionMixin[0].Fields()
+	_ = rbacpermissionversionMixinFields0
+	rbacpermissionversionFields := schema.RbacPermissionVersion{}.Fields()
+	_ = rbacpermissionversionFields
+	// rbacpermissionversionDescCreatedAt is the schema descriptor for created_at field.
+	rbacpermissionversionDescCreatedAt := rbacpermissionversionMixinFields0[0].Descriptor()
+	// rbacpermissionversion.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rbacpermissionversion.DefaultCreatedAt = rbacpermissionversionDescCreatedAt.Default.(func() time.Time)
+	// rbacpermissionversionDescUpdatedAt is the schema descriptor for updated_at field.
+	rbacpermissionversionDescUpdatedAt := rbacpermissionversionMixinFields0[1].Descriptor()
+	// rbacpermissionversion.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rbacpermissionversion.DefaultUpdatedAt = rbacpermissionversionDescUpdatedAt.Default.(func() time.Time)
+	// rbacpermissionversion.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rbacpermissionversion.UpdateDefaultUpdatedAt = rbacpermissionversionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// rbacpermissionversionDescVersion is the schema descriptor for version field.
+	rbacpermissionversionDescVersion := rbacpermissionversionFields[3].Descriptor()
+	// rbacpermissionversion.DefaultVersion holds the default value on creation for the version field.
+	rbacpermissionversion.DefaultVersion = rbacpermissionversionDescVersion.Default.(int64)
+	rbacroleMixin := schema.RbacRole{}.Mixin()
+	rbacroleMixinFields0 := rbacroleMixin[0].Fields()
+	_ = rbacroleMixinFields0
+	rbacroleFields := schema.RbacRole{}.Fields()
+	_ = rbacroleFields
+	// rbacroleDescCreatedAt is the schema descriptor for created_at field.
+	rbacroleDescCreatedAt := rbacroleMixinFields0[0].Descriptor()
+	// rbacrole.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rbacrole.DefaultCreatedAt = rbacroleDescCreatedAt.Default.(func() time.Time)
+	// rbacroleDescUpdatedAt is the schema descriptor for updated_at field.
+	rbacroleDescUpdatedAt := rbacroleMixinFields0[1].Descriptor()
+	// rbacrole.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rbacrole.DefaultUpdatedAt = rbacroleDescUpdatedAt.Default.(func() time.Time)
+	// rbacrole.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rbacrole.UpdateDefaultUpdatedAt = rbacroleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// rbacroleDescWorkspaceID is the schema descriptor for workspace_id field.
+	rbacroleDescWorkspaceID := rbacroleFields[1].Descriptor()
+	// rbacrole.DefaultWorkspaceID holds the default value on creation for the workspace_id field.
+	rbacrole.DefaultWorkspaceID = rbacroleDescWorkspaceID.Default.(int64)
+	// rbacroleDescCode is the schema descriptor for code field.
+	rbacroleDescCode := rbacroleFields[2].Descriptor()
+	// rbacrole.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	rbacrole.CodeValidator = rbacroleDescCode.Validators[0].(func(string) error)
+	// rbacroleDescName is the schema descriptor for name field.
+	rbacroleDescName := rbacroleFields[3].Descriptor()
+	// rbacrole.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	rbacrole.NameValidator = rbacroleDescName.Validators[0].(func(string) error)
+	// rbacroleDescRoleType is the schema descriptor for role_type field.
+	rbacroleDescRoleType := rbacroleFields[4].Descriptor()
+	// rbacrole.DefaultRoleType holds the default value on creation for the role_type field.
+	rbacrole.DefaultRoleType = rbacroleDescRoleType.Default.(int8)
+	// rbacroleDescStatus is the schema descriptor for status field.
+	rbacroleDescStatus := rbacroleFields[5].Descriptor()
+	// rbacrole.DefaultStatus holds the default value on creation for the status field.
+	rbacrole.DefaultStatus = rbacroleDescStatus.Default.(int8)
+	rbacrolepermissionMixin := schema.RbacRolePermission{}.Mixin()
+	rbacrolepermissionMixinFields0 := rbacrolepermissionMixin[0].Fields()
+	_ = rbacrolepermissionMixinFields0
+	rbacrolepermissionFields := schema.RbacRolePermission{}.Fields()
+	_ = rbacrolepermissionFields
+	// rbacrolepermissionDescCreatedAt is the schema descriptor for created_at field.
+	rbacrolepermissionDescCreatedAt := rbacrolepermissionMixinFields0[0].Descriptor()
+	// rbacrolepermission.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rbacrolepermission.DefaultCreatedAt = rbacrolepermissionDescCreatedAt.Default.(func() time.Time)
+	// rbacrolepermissionDescUpdatedAt is the schema descriptor for updated_at field.
+	rbacrolepermissionDescUpdatedAt := rbacrolepermissionMixinFields0[1].Descriptor()
+	// rbacrolepermission.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rbacrolepermission.DefaultUpdatedAt = rbacrolepermissionDescUpdatedAt.Default.(func() time.Time)
+	// rbacrolepermission.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rbacrolepermission.UpdateDefaultUpdatedAt = rbacrolepermissionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// rbacrolepermissionDescWorkspaceID is the schema descriptor for workspace_id field.
+	rbacrolepermissionDescWorkspaceID := rbacrolepermissionFields[0].Descriptor()
+	// rbacrolepermission.DefaultWorkspaceID holds the default value on creation for the workspace_id field.
+	rbacrolepermission.DefaultWorkspaceID = rbacrolepermissionDescWorkspaceID.Default.(int64)
+	rbacuserroleMixin := schema.RbacUserRole{}.Mixin()
+	rbacuserroleMixinFields0 := rbacuserroleMixin[0].Fields()
+	_ = rbacuserroleMixinFields0
+	rbacuserroleFields := schema.RbacUserRole{}.Fields()
+	_ = rbacuserroleFields
+	// rbacuserroleDescCreatedAt is the schema descriptor for created_at field.
+	rbacuserroleDescCreatedAt := rbacuserroleMixinFields0[0].Descriptor()
+	// rbacuserrole.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rbacuserrole.DefaultCreatedAt = rbacuserroleDescCreatedAt.Default.(func() time.Time)
+	// rbacuserroleDescUpdatedAt is the schema descriptor for updated_at field.
+	rbacuserroleDescUpdatedAt := rbacuserroleMixinFields0[1].Descriptor()
+	// rbacuserrole.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rbacuserrole.DefaultUpdatedAt = rbacuserroleDescUpdatedAt.Default.(func() time.Time)
+	// rbacuserrole.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rbacuserrole.UpdateDefaultUpdatedAt = rbacuserroleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// rbacuserroleDescSourceType is the schema descriptor for source_type field.
+	rbacuserroleDescSourceType := rbacuserroleFields[3].Descriptor()
+	// rbacuserrole.DefaultSourceType holds the default value on creation for the source_type field.
+	rbacuserrole.DefaultSourceType = rbacuserroleDescSourceType.Default.(int8)
 	todoMixin := schema.Todo{}.Mixin()
 	todoMixinFields0 := todoMixin[0].Fields()
 	_ = todoMixinFields0
@@ -260,4 +480,54 @@ func init() {
 	useridentity.DefaultProfileURL = useridentityDescProfileURL.Default.(string)
 	// useridentity.ProfileURLValidator is a validator for the "profile_url" field. It is called by the builders before save.
 	useridentity.ProfileURLValidator = useridentityDescProfileURL.Validators[0].(func(string) error)
+	workspaceMixin := schema.Workspace{}.Mixin()
+	workspaceMixinFields0 := workspaceMixin[0].Fields()
+	_ = workspaceMixinFields0
+	workspaceFields := schema.Workspace{}.Fields()
+	_ = workspaceFields
+	// workspaceDescCreatedAt is the schema descriptor for created_at field.
+	workspaceDescCreatedAt := workspaceMixinFields0[0].Descriptor()
+	// workspace.DefaultCreatedAt holds the default value on creation for the created_at field.
+	workspace.DefaultCreatedAt = workspaceDescCreatedAt.Default.(func() time.Time)
+	// workspaceDescUpdatedAt is the schema descriptor for updated_at field.
+	workspaceDescUpdatedAt := workspaceMixinFields0[1].Descriptor()
+	// workspace.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	workspace.DefaultUpdatedAt = workspaceDescUpdatedAt.Default.(func() time.Time)
+	// workspace.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	workspace.UpdateDefaultUpdatedAt = workspaceDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// workspaceDescSlug is the schema descriptor for slug field.
+	workspaceDescSlug := workspaceFields[1].Descriptor()
+	// workspace.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
+	workspace.SlugValidator = workspaceDescSlug.Validators[0].(func(string) error)
+	// workspaceDescName is the schema descriptor for name field.
+	workspaceDescName := workspaceFields[2].Descriptor()
+	// workspace.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	workspace.NameValidator = workspaceDescName.Validators[0].(func(string) error)
+	// workspaceDescStatus is the schema descriptor for status field.
+	workspaceDescStatus := workspaceFields[4].Descriptor()
+	// workspace.DefaultStatus holds the default value on creation for the status field.
+	workspace.DefaultStatus = workspaceDescStatus.Default.(int8)
+	workspacememberMixin := schema.WorkspaceMember{}.Mixin()
+	workspacememberMixinFields0 := workspacememberMixin[0].Fields()
+	_ = workspacememberMixinFields0
+	workspacememberFields := schema.WorkspaceMember{}.Fields()
+	_ = workspacememberFields
+	// workspacememberDescCreatedAt is the schema descriptor for created_at field.
+	workspacememberDescCreatedAt := workspacememberMixinFields0[0].Descriptor()
+	// workspacemember.DefaultCreatedAt holds the default value on creation for the created_at field.
+	workspacemember.DefaultCreatedAt = workspacememberDescCreatedAt.Default.(func() time.Time)
+	// workspacememberDescUpdatedAt is the schema descriptor for updated_at field.
+	workspacememberDescUpdatedAt := workspacememberMixinFields0[1].Descriptor()
+	// workspacemember.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	workspacemember.DefaultUpdatedAt = workspacememberDescUpdatedAt.Default.(func() time.Time)
+	// workspacemember.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	workspacemember.UpdateDefaultUpdatedAt = workspacememberDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// workspacememberDescStatus is the schema descriptor for status field.
+	workspacememberDescStatus := workspacememberFields[3].Descriptor()
+	// workspacemember.DefaultStatus holds the default value on creation for the status field.
+	workspacemember.DefaultStatus = workspacememberDescStatus.Default.(int8)
+	// workspacememberDescJoinedAt is the schema descriptor for joined_at field.
+	workspacememberDescJoinedAt := workspacememberFields[4].Descriptor()
+	// workspacemember.DefaultJoinedAt holds the default value on creation for the joined_at field.
+	workspacemember.DefaultJoinedAt = workspacememberDescJoinedAt.Default.(func() time.Time)
 }

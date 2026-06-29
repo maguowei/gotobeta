@@ -20,12 +20,30 @@ type Tx struct {
 	AuthRefreshToken *AuthRefreshTokenClient
 	// OAuthLoginState is the client for interacting with the OAuthLoginState builders.
 	OAuthLoginState *OAuthLoginStateClient
+	// RbacAclEntry is the client for interacting with the RbacAclEntry builders.
+	RbacAclEntry *RbacAclEntryClient
+	// RbacPermission is the client for interacting with the RbacPermission builders.
+	RbacPermission *RbacPermissionClient
+	// RbacPermissionChangeLog is the client for interacting with the RbacPermissionChangeLog builders.
+	RbacPermissionChangeLog *RbacPermissionChangeLogClient
+	// RbacPermissionVersion is the client for interacting with the RbacPermissionVersion builders.
+	RbacPermissionVersion *RbacPermissionVersionClient
+	// RbacRole is the client for interacting with the RbacRole builders.
+	RbacRole *RbacRoleClient
+	// RbacRolePermission is the client for interacting with the RbacRolePermission builders.
+	RbacRolePermission *RbacRolePermissionClient
+	// RbacUserRole is the client for interacting with the RbacUserRole builders.
+	RbacUserRole *RbacUserRoleClient
 	// Todo is the client for interacting with the Todo builders.
 	Todo *TodoClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// UserIdentity is the client for interacting with the UserIdentity builders.
 	UserIdentity *UserIdentityClient
+	// Workspace is the client for interacting with the Workspace builders.
+	Workspace *WorkspaceClient
+	// WorkspaceMember is the client for interacting with the WorkspaceMember builders.
+	WorkspaceMember *WorkspaceMemberClient
 
 	// lazily loaded.
 	client     *Client
@@ -161,9 +179,18 @@ func (tx *Tx) init() {
 	tx.AuthActionToken = NewAuthActionTokenClient(tx.config)
 	tx.AuthRefreshToken = NewAuthRefreshTokenClient(tx.config)
 	tx.OAuthLoginState = NewOAuthLoginStateClient(tx.config)
+	tx.RbacAclEntry = NewRbacAclEntryClient(tx.config)
+	tx.RbacPermission = NewRbacPermissionClient(tx.config)
+	tx.RbacPermissionChangeLog = NewRbacPermissionChangeLogClient(tx.config)
+	tx.RbacPermissionVersion = NewRbacPermissionVersionClient(tx.config)
+	tx.RbacRole = NewRbacRoleClient(tx.config)
+	tx.RbacRolePermission = NewRbacRolePermissionClient(tx.config)
+	tx.RbacUserRole = NewRbacUserRoleClient(tx.config)
 	tx.Todo = NewTodoClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.UserIdentity = NewUserIdentityClient(tx.config)
+	tx.Workspace = NewWorkspaceClient(tx.config)
+	tx.WorkspaceMember = NewWorkspaceMemberClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

@@ -57,6 +57,90 @@ func (f OAuthLoginStateFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Va
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OAuthLoginStateMutation", m)
 }
 
+// The RbacAclEntryFunc type is an adapter to allow the use of ordinary
+// function as RbacAclEntry mutator.
+type RbacAclEntryFunc func(context.Context, *ent.RbacAclEntryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RbacAclEntryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RbacAclEntryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RbacAclEntryMutation", m)
+}
+
+// The RbacPermissionFunc type is an adapter to allow the use of ordinary
+// function as RbacPermission mutator.
+type RbacPermissionFunc func(context.Context, *ent.RbacPermissionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RbacPermissionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RbacPermissionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RbacPermissionMutation", m)
+}
+
+// The RbacPermissionChangeLogFunc type is an adapter to allow the use of ordinary
+// function as RbacPermissionChangeLog mutator.
+type RbacPermissionChangeLogFunc func(context.Context, *ent.RbacPermissionChangeLogMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RbacPermissionChangeLogFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RbacPermissionChangeLogMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RbacPermissionChangeLogMutation", m)
+}
+
+// The RbacPermissionVersionFunc type is an adapter to allow the use of ordinary
+// function as RbacPermissionVersion mutator.
+type RbacPermissionVersionFunc func(context.Context, *ent.RbacPermissionVersionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RbacPermissionVersionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RbacPermissionVersionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RbacPermissionVersionMutation", m)
+}
+
+// The RbacRoleFunc type is an adapter to allow the use of ordinary
+// function as RbacRole mutator.
+type RbacRoleFunc func(context.Context, *ent.RbacRoleMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RbacRoleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RbacRoleMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RbacRoleMutation", m)
+}
+
+// The RbacRolePermissionFunc type is an adapter to allow the use of ordinary
+// function as RbacRolePermission mutator.
+type RbacRolePermissionFunc func(context.Context, *ent.RbacRolePermissionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RbacRolePermissionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RbacRolePermissionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RbacRolePermissionMutation", m)
+}
+
+// The RbacUserRoleFunc type is an adapter to allow the use of ordinary
+// function as RbacUserRole mutator.
+type RbacUserRoleFunc func(context.Context, *ent.RbacUserRoleMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RbacUserRoleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RbacUserRoleMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RbacUserRoleMutation", m)
+}
+
 // The TodoFunc type is an adapter to allow the use of ordinary
 // function as Todo mutator.
 type TodoFunc func(context.Context, *ent.TodoMutation) (ent.Value, error)
@@ -91,6 +175,30 @@ func (f UserIdentityFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserIdentityMutation", m)
+}
+
+// The WorkspaceFunc type is an adapter to allow the use of ordinary
+// function as Workspace mutator.
+type WorkspaceFunc func(context.Context, *ent.WorkspaceMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WorkspaceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WorkspaceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WorkspaceMutation", m)
+}
+
+// The WorkspaceMemberFunc type is an adapter to allow the use of ordinary
+// function as WorkspaceMember mutator.
+type WorkspaceMemberFunc func(context.Context, *ent.WorkspaceMemberMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WorkspaceMemberFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WorkspaceMemberMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WorkspaceMemberMutation", m)
 }
 
 // Condition is a hook condition function.

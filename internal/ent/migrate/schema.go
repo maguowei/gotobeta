@@ -108,6 +108,231 @@ var (
 			},
 		},
 	}
+	// RbacACLEntriesColumns holds the columns for the "rbac_acl_entries" table.
+	RbacACLEntriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "biz_id", Type: field.TypeInt64, Unique: true},
+		{Name: "workspace_id", Type: field.TypeInt64},
+		{Name: "subject_type", Type: field.TypeInt8},
+		{Name: "subject_id", Type: field.TypeInt64},
+		{Name: "resource_type", Type: field.TypeString, Size: 64},
+		{Name: "resource_id", Type: field.TypeString, Size: 128},
+		{Name: "action_code", Type: field.TypeString, Size: 128},
+		{Name: "effect", Type: field.TypeInt8},
+		{Name: "reason", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "source_type", Type: field.TypeInt8, Default: 1},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
+		{Name: "created_by", Type: field.TypeInt64, Default: 0},
+	}
+	// RbacACLEntriesTable holds the schema information for the "rbac_acl_entries" table.
+	RbacACLEntriesTable = &schema.Table{
+		Name:       "rbac_acl_entries",
+		Columns:    RbacACLEntriesColumns,
+		PrimaryKey: []*schema.Column{RbacACLEntriesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rbacaclentry_workspace_id_subject_type_subject_id_action_code_effect",
+				Unique:  false,
+				Columns: []*schema.Column{RbacACLEntriesColumns[4], RbacACLEntriesColumns[5], RbacACLEntriesColumns[6], RbacACLEntriesColumns[9], RbacACLEntriesColumns[10]},
+			},
+			{
+				Name:    "rbacaclentry_workspace_id_resource_type_resource_id_action_code_effect",
+				Unique:  false,
+				Columns: []*schema.Column{RbacACLEntriesColumns[4], RbacACLEntriesColumns[7], RbacACLEntriesColumns[8], RbacACLEntriesColumns[9], RbacACLEntriesColumns[10]},
+			},
+			{
+				Name:    "rbacaclentry_workspace_id_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{RbacACLEntriesColumns[4], RbacACLEntriesColumns[13]},
+			},
+		},
+	}
+	// RbacPermissionsColumns holds the columns for the "rbac_permissions" table.
+	RbacPermissionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "biz_id", Type: field.TypeInt64, Unique: true},
+		{Name: "workspace_id", Type: field.TypeInt64, Default: 0},
+		{Name: "code", Type: field.TypeString, Size: 128},
+		{Name: "name", Type: field.TypeString, Size: 100},
+		{Name: "resource_type", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "action_key", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "status", Type: field.TypeInt8, Default: 1},
+	}
+	// RbacPermissionsTable holds the schema information for the "rbac_permissions" table.
+	RbacPermissionsTable = &schema.Table{
+		Name:       "rbac_permissions",
+		Columns:    RbacPermissionsColumns,
+		PrimaryKey: []*schema.Column{RbacPermissionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rbacpermission_workspace_id_code",
+				Unique:  true,
+				Columns: []*schema.Column{RbacPermissionsColumns[4], RbacPermissionsColumns[5]},
+			},
+			{
+				Name:    "rbacpermission_workspace_id_resource_type_action_key",
+				Unique:  false,
+				Columns: []*schema.Column{RbacPermissionsColumns[4], RbacPermissionsColumns[7], RbacPermissionsColumns[8]},
+			},
+		},
+	}
+	// RbacPermissionChangeLogsColumns holds the columns for the "rbac_permission_change_logs" table.
+	RbacPermissionChangeLogsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "biz_id", Type: field.TypeInt64, Unique: true},
+		{Name: "workspace_id", Type: field.TypeInt64},
+		{Name: "change_type", Type: field.TypeInt8},
+		{Name: "target_type", Type: field.TypeInt8},
+		{Name: "target_id", Type: field.TypeInt64, Default: 0},
+		{Name: "operator_id", Type: field.TypeInt64, Default: 0},
+		{Name: "request_id", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "before_json", Type: field.TypeJSON, Nullable: true},
+		{Name: "after_json", Type: field.TypeJSON, Nullable: true},
+		{Name: "reason", Type: field.TypeString, Size: 255, Default: ""},
+	}
+	// RbacPermissionChangeLogsTable holds the schema information for the "rbac_permission_change_logs" table.
+	RbacPermissionChangeLogsTable = &schema.Table{
+		Name:       "rbac_permission_change_logs",
+		Columns:    RbacPermissionChangeLogsColumns,
+		PrimaryKey: []*schema.Column{RbacPermissionChangeLogsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rbacpermissionchangelog_workspace_id_target_type_target_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{RbacPermissionChangeLogsColumns[4], RbacPermissionChangeLogsColumns[6], RbacPermissionChangeLogsColumns[7], RbacPermissionChangeLogsColumns[1]},
+			},
+			{
+				Name:    "rbacpermissionchangelog_operator_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{RbacPermissionChangeLogsColumns[8], RbacPermissionChangeLogsColumns[1]},
+			},
+		},
+	}
+	// RbacPermissionVersionsColumns holds the columns for the "rbac_permission_versions" table.
+	RbacPermissionVersionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "workspace_id", Type: field.TypeInt64},
+		{Name: "subject_type", Type: field.TypeInt8},
+		{Name: "subject_id", Type: field.TypeInt64},
+		{Name: "version", Type: field.TypeInt64, Default: 1},
+	}
+	// RbacPermissionVersionsTable holds the schema information for the "rbac_permission_versions" table.
+	RbacPermissionVersionsTable = &schema.Table{
+		Name:       "rbac_permission_versions",
+		Columns:    RbacPermissionVersionsColumns,
+		PrimaryKey: []*schema.Column{RbacPermissionVersionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rbacpermissionversion_workspace_id_subject_type_subject_id",
+				Unique:  true,
+				Columns: []*schema.Column{RbacPermissionVersionsColumns[3], RbacPermissionVersionsColumns[4], RbacPermissionVersionsColumns[5]},
+			},
+		},
+	}
+	// RbacRolesColumns holds the columns for the "rbac_roles" table.
+	RbacRolesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "biz_id", Type: field.TypeInt64, Unique: true},
+		{Name: "workspace_id", Type: field.TypeInt64, Default: 0},
+		{Name: "code", Type: field.TypeString, Size: 64},
+		{Name: "name", Type: field.TypeString, Size: 100},
+		{Name: "role_type", Type: field.TypeInt8, Default: 2},
+		{Name: "status", Type: field.TypeInt8, Default: 1},
+	}
+	// RbacRolesTable holds the schema information for the "rbac_roles" table.
+	RbacRolesTable = &schema.Table{
+		Name:       "rbac_roles",
+		Columns:    RbacRolesColumns,
+		PrimaryKey: []*schema.Column{RbacRolesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rbacrole_workspace_id_code",
+				Unique:  true,
+				Columns: []*schema.Column{RbacRolesColumns[4], RbacRolesColumns[5]},
+			},
+			{
+				Name:    "rbacrole_workspace_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{RbacRolesColumns[4], RbacRolesColumns[8]},
+			},
+		},
+	}
+	// RbacRolePermissionsColumns holds the columns for the "rbac_role_permissions" table.
+	RbacRolePermissionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "workspace_id", Type: field.TypeInt64, Default: 0},
+		{Name: "role_id", Type: field.TypeInt64},
+		{Name: "permission_id", Type: field.TypeInt64},
+	}
+	// RbacRolePermissionsTable holds the schema information for the "rbac_role_permissions" table.
+	RbacRolePermissionsTable = &schema.Table{
+		Name:       "rbac_role_permissions",
+		Columns:    RbacRolePermissionsColumns,
+		PrimaryKey: []*schema.Column{RbacRolePermissionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rbacrolepermission_role_id_permission_id",
+				Unique:  true,
+				Columns: []*schema.Column{RbacRolePermissionsColumns[4], RbacRolePermissionsColumns[5]},
+			},
+			{
+				Name:    "rbacrolepermission_permission_id",
+				Unique:  false,
+				Columns: []*schema.Column{RbacRolePermissionsColumns[5]},
+			},
+			{
+				Name:    "rbacrolepermission_workspace_id_role_id",
+				Unique:  false,
+				Columns: []*schema.Column{RbacRolePermissionsColumns[3], RbacRolePermissionsColumns[4]},
+			},
+		},
+	}
+	// RbacUserRolesColumns holds the columns for the "rbac_user_roles" table.
+	RbacUserRolesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "workspace_id", Type: field.TypeInt64},
+		{Name: "user_id", Type: field.TypeInt64},
+		{Name: "role_id", Type: field.TypeInt64},
+		{Name: "source_type", Type: field.TypeInt8, Default: 1},
+		{Name: "effective_end_at", Type: field.TypeTime, Nullable: true},
+	}
+	// RbacUserRolesTable holds the schema information for the "rbac_user_roles" table.
+	RbacUserRolesTable = &schema.Table{
+		Name:       "rbac_user_roles",
+		Columns:    RbacUserRolesColumns,
+		PrimaryKey: []*schema.Column{RbacUserRolesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rbacuserrole_workspace_id_user_id_role_id",
+				Unique:  true,
+				Columns: []*schema.Column{RbacUserRolesColumns[3], RbacUserRolesColumns[4], RbacUserRolesColumns[5]},
+			},
+			{
+				Name:    "rbacuserrole_role_id",
+				Unique:  false,
+				Columns: []*schema.Column{RbacUserRolesColumns[5]},
+			},
+			{
+				Name:    "rbacuserrole_workspace_id_user_id_effective_end_at",
+				Unique:  false,
+				Columns: []*schema.Column{RbacUserRolesColumns[3], RbacUserRolesColumns[4], RbacUserRolesColumns[7]},
+			},
+		},
+	}
 	// TodosColumns holds the columns for the "todos" table.
 	TodosColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -205,15 +430,78 @@ var (
 			},
 		},
 	}
+	// WorkspacesColumns holds the columns for the "workspaces" table.
+	WorkspacesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "biz_id", Type: field.TypeInt64, Unique: true},
+		{Name: "slug", Type: field.TypeString, Unique: true, Size: 50},
+		{Name: "name", Type: field.TypeString, Size: 100},
+		{Name: "owner_user_id", Type: field.TypeInt64},
+		{Name: "status", Type: field.TypeInt8, Default: 1},
+		{Name: "settings", Type: field.TypeJSON, Nullable: true},
+	}
+	// WorkspacesTable holds the schema information for the "workspaces" table.
+	WorkspacesTable = &schema.Table{
+		Name:       "workspaces",
+		Columns:    WorkspacesColumns,
+		PrimaryKey: []*schema.Column{WorkspacesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "workspace_owner_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{WorkspacesColumns[6]},
+			},
+		},
+	}
+	// WorkspaceMembersColumns holds the columns for the "workspace_members" table.
+	WorkspaceMembersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "biz_id", Type: field.TypeInt64, Unique: true},
+		{Name: "workspace_id", Type: field.TypeInt64},
+		{Name: "user_id", Type: field.TypeInt64},
+		{Name: "status", Type: field.TypeInt8, Default: 1},
+		{Name: "joined_at", Type: field.TypeTime},
+	}
+	// WorkspaceMembersTable holds the schema information for the "workspace_members" table.
+	WorkspaceMembersTable = &schema.Table{
+		Name:       "workspace_members",
+		Columns:    WorkspaceMembersColumns,
+		PrimaryKey: []*schema.Column{WorkspaceMembersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "workspacemember_workspace_id_user_id",
+				Unique:  true,
+				Columns: []*schema.Column{WorkspaceMembersColumns[4], WorkspaceMembersColumns[5]},
+			},
+			{
+				Name:    "workspacemember_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{WorkspaceMembersColumns[5]},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AppSettingsTable,
 		AuthActionTokensTable,
 		AuthRefreshTokensTable,
 		OauthLoginStatesTable,
+		RbacACLEntriesTable,
+		RbacPermissionsTable,
+		RbacPermissionChangeLogsTable,
+		RbacPermissionVersionsTable,
+		RbacRolesTable,
+		RbacRolePermissionsTable,
+		RbacUserRolesTable,
 		TodosTable,
 		UsersTable,
 		UserIdentitiesTable,
+		WorkspacesTable,
+		WorkspaceMembersTable,
 	}
 )
 

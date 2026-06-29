@@ -18,9 +18,18 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/authactiontoken"
 	"github.com/maguowei/gotobeta/internal/ent/authrefreshtoken"
 	"github.com/maguowei/gotobeta/internal/ent/oauthloginstate"
+	"github.com/maguowei/gotobeta/internal/ent/rbacaclentry"
+	"github.com/maguowei/gotobeta/internal/ent/rbacpermission"
+	"github.com/maguowei/gotobeta/internal/ent/rbacpermissionchangelog"
+	"github.com/maguowei/gotobeta/internal/ent/rbacpermissionversion"
+	"github.com/maguowei/gotobeta/internal/ent/rbacrole"
+	"github.com/maguowei/gotobeta/internal/ent/rbacrolepermission"
+	"github.com/maguowei/gotobeta/internal/ent/rbacuserrole"
 	"github.com/maguowei/gotobeta/internal/ent/todo"
 	"github.com/maguowei/gotobeta/internal/ent/user"
 	"github.com/maguowei/gotobeta/internal/ent/useridentity"
+	"github.com/maguowei/gotobeta/internal/ent/workspace"
+	"github.com/maguowei/gotobeta/internal/ent/workspacemember"
 )
 
 // Client is the client that holds all ent builders.
@@ -36,12 +45,30 @@ type Client struct {
 	AuthRefreshToken *AuthRefreshTokenClient
 	// OAuthLoginState is the client for interacting with the OAuthLoginState builders.
 	OAuthLoginState *OAuthLoginStateClient
+	// RbacAclEntry is the client for interacting with the RbacAclEntry builders.
+	RbacAclEntry *RbacAclEntryClient
+	// RbacPermission is the client for interacting with the RbacPermission builders.
+	RbacPermission *RbacPermissionClient
+	// RbacPermissionChangeLog is the client for interacting with the RbacPermissionChangeLog builders.
+	RbacPermissionChangeLog *RbacPermissionChangeLogClient
+	// RbacPermissionVersion is the client for interacting with the RbacPermissionVersion builders.
+	RbacPermissionVersion *RbacPermissionVersionClient
+	// RbacRole is the client for interacting with the RbacRole builders.
+	RbacRole *RbacRoleClient
+	// RbacRolePermission is the client for interacting with the RbacRolePermission builders.
+	RbacRolePermission *RbacRolePermissionClient
+	// RbacUserRole is the client for interacting with the RbacUserRole builders.
+	RbacUserRole *RbacUserRoleClient
 	// Todo is the client for interacting with the Todo builders.
 	Todo *TodoClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// UserIdentity is the client for interacting with the UserIdentity builders.
 	UserIdentity *UserIdentityClient
+	// Workspace is the client for interacting with the Workspace builders.
+	Workspace *WorkspaceClient
+	// WorkspaceMember is the client for interacting with the WorkspaceMember builders.
+	WorkspaceMember *WorkspaceMemberClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -57,9 +84,18 @@ func (c *Client) init() {
 	c.AuthActionToken = NewAuthActionTokenClient(c.config)
 	c.AuthRefreshToken = NewAuthRefreshTokenClient(c.config)
 	c.OAuthLoginState = NewOAuthLoginStateClient(c.config)
+	c.RbacAclEntry = NewRbacAclEntryClient(c.config)
+	c.RbacPermission = NewRbacPermissionClient(c.config)
+	c.RbacPermissionChangeLog = NewRbacPermissionChangeLogClient(c.config)
+	c.RbacPermissionVersion = NewRbacPermissionVersionClient(c.config)
+	c.RbacRole = NewRbacRoleClient(c.config)
+	c.RbacRolePermission = NewRbacRolePermissionClient(c.config)
+	c.RbacUserRole = NewRbacUserRoleClient(c.config)
 	c.Todo = NewTodoClient(c.config)
 	c.User = NewUserClient(c.config)
 	c.UserIdentity = NewUserIdentityClient(c.config)
+	c.Workspace = NewWorkspaceClient(c.config)
+	c.WorkspaceMember = NewWorkspaceMemberClient(c.config)
 }
 
 type (
@@ -150,15 +186,24 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:              ctx,
-		config:           cfg,
-		AppSetting:       NewAppSettingClient(cfg),
-		AuthActionToken:  NewAuthActionTokenClient(cfg),
-		AuthRefreshToken: NewAuthRefreshTokenClient(cfg),
-		OAuthLoginState:  NewOAuthLoginStateClient(cfg),
-		Todo:             NewTodoClient(cfg),
-		User:             NewUserClient(cfg),
-		UserIdentity:     NewUserIdentityClient(cfg),
+		ctx:                     ctx,
+		config:                  cfg,
+		AppSetting:              NewAppSettingClient(cfg),
+		AuthActionToken:         NewAuthActionTokenClient(cfg),
+		AuthRefreshToken:        NewAuthRefreshTokenClient(cfg),
+		OAuthLoginState:         NewOAuthLoginStateClient(cfg),
+		RbacAclEntry:            NewRbacAclEntryClient(cfg),
+		RbacPermission:          NewRbacPermissionClient(cfg),
+		RbacPermissionChangeLog: NewRbacPermissionChangeLogClient(cfg),
+		RbacPermissionVersion:   NewRbacPermissionVersionClient(cfg),
+		RbacRole:                NewRbacRoleClient(cfg),
+		RbacRolePermission:      NewRbacRolePermissionClient(cfg),
+		RbacUserRole:            NewRbacUserRoleClient(cfg),
+		Todo:                    NewTodoClient(cfg),
+		User:                    NewUserClient(cfg),
+		UserIdentity:            NewUserIdentityClient(cfg),
+		Workspace:               NewWorkspaceClient(cfg),
+		WorkspaceMember:         NewWorkspaceMemberClient(cfg),
 	}, nil
 }
 
@@ -176,15 +221,24 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:              ctx,
-		config:           cfg,
-		AppSetting:       NewAppSettingClient(cfg),
-		AuthActionToken:  NewAuthActionTokenClient(cfg),
-		AuthRefreshToken: NewAuthRefreshTokenClient(cfg),
-		OAuthLoginState:  NewOAuthLoginStateClient(cfg),
-		Todo:             NewTodoClient(cfg),
-		User:             NewUserClient(cfg),
-		UserIdentity:     NewUserIdentityClient(cfg),
+		ctx:                     ctx,
+		config:                  cfg,
+		AppSetting:              NewAppSettingClient(cfg),
+		AuthActionToken:         NewAuthActionTokenClient(cfg),
+		AuthRefreshToken:        NewAuthRefreshTokenClient(cfg),
+		OAuthLoginState:         NewOAuthLoginStateClient(cfg),
+		RbacAclEntry:            NewRbacAclEntryClient(cfg),
+		RbacPermission:          NewRbacPermissionClient(cfg),
+		RbacPermissionChangeLog: NewRbacPermissionChangeLogClient(cfg),
+		RbacPermissionVersion:   NewRbacPermissionVersionClient(cfg),
+		RbacRole:                NewRbacRoleClient(cfg),
+		RbacRolePermission:      NewRbacRolePermissionClient(cfg),
+		RbacUserRole:            NewRbacUserRoleClient(cfg),
+		Todo:                    NewTodoClient(cfg),
+		User:                    NewUserClient(cfg),
+		UserIdentity:            NewUserIdentityClient(cfg),
+		Workspace:               NewWorkspaceClient(cfg),
+		WorkspaceMember:         NewWorkspaceMemberClient(cfg),
 	}, nil
 }
 
@@ -214,8 +268,10 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AppSetting, c.AuthActionToken, c.AuthRefreshToken, c.OAuthLoginState, c.Todo,
-		c.User, c.UserIdentity,
+		c.AppSetting, c.AuthActionToken, c.AuthRefreshToken, c.OAuthLoginState,
+		c.RbacAclEntry, c.RbacPermission, c.RbacPermissionChangeLog,
+		c.RbacPermissionVersion, c.RbacRole, c.RbacRolePermission, c.RbacUserRole,
+		c.Todo, c.User, c.UserIdentity, c.Workspace, c.WorkspaceMember,
 	} {
 		n.Use(hooks...)
 	}
@@ -225,8 +281,10 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AppSetting, c.AuthActionToken, c.AuthRefreshToken, c.OAuthLoginState, c.Todo,
-		c.User, c.UserIdentity,
+		c.AppSetting, c.AuthActionToken, c.AuthRefreshToken, c.OAuthLoginState,
+		c.RbacAclEntry, c.RbacPermission, c.RbacPermissionChangeLog,
+		c.RbacPermissionVersion, c.RbacRole, c.RbacRolePermission, c.RbacUserRole,
+		c.Todo, c.User, c.UserIdentity, c.Workspace, c.WorkspaceMember,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -243,12 +301,30 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AuthRefreshToken.mutate(ctx, m)
 	case *OAuthLoginStateMutation:
 		return c.OAuthLoginState.mutate(ctx, m)
+	case *RbacAclEntryMutation:
+		return c.RbacAclEntry.mutate(ctx, m)
+	case *RbacPermissionMutation:
+		return c.RbacPermission.mutate(ctx, m)
+	case *RbacPermissionChangeLogMutation:
+		return c.RbacPermissionChangeLog.mutate(ctx, m)
+	case *RbacPermissionVersionMutation:
+		return c.RbacPermissionVersion.mutate(ctx, m)
+	case *RbacRoleMutation:
+		return c.RbacRole.mutate(ctx, m)
+	case *RbacRolePermissionMutation:
+		return c.RbacRolePermission.mutate(ctx, m)
+	case *RbacUserRoleMutation:
+		return c.RbacUserRole.mutate(ctx, m)
 	case *TodoMutation:
 		return c.Todo.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	case *UserIdentityMutation:
 		return c.UserIdentity.mutate(ctx, m)
+	case *WorkspaceMutation:
+		return c.Workspace.mutate(ctx, m)
+	case *WorkspaceMemberMutation:
+		return c.WorkspaceMember.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -786,6 +862,937 @@ func (c *OAuthLoginStateClient) mutate(ctx context.Context, m *OAuthLoginStateMu
 	}
 }
 
+// RbacAclEntryClient is a client for the RbacAclEntry schema.
+type RbacAclEntryClient struct {
+	config
+}
+
+// NewRbacAclEntryClient returns a client for the RbacAclEntry from the given config.
+func NewRbacAclEntryClient(c config) *RbacAclEntryClient {
+	return &RbacAclEntryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `rbacaclentry.Hooks(f(g(h())))`.
+func (c *RbacAclEntryClient) Use(hooks ...Hook) {
+	c.hooks.RbacAclEntry = append(c.hooks.RbacAclEntry, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `rbacaclentry.Intercept(f(g(h())))`.
+func (c *RbacAclEntryClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RbacAclEntry = append(c.inters.RbacAclEntry, interceptors...)
+}
+
+// Create returns a builder for creating a RbacAclEntry entity.
+func (c *RbacAclEntryClient) Create() *RbacAclEntryCreate {
+	mutation := newRbacAclEntryMutation(c.config, OpCreate)
+	return &RbacAclEntryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RbacAclEntry entities.
+func (c *RbacAclEntryClient) CreateBulk(builders ...*RbacAclEntryCreate) *RbacAclEntryCreateBulk {
+	return &RbacAclEntryCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RbacAclEntryClient) MapCreateBulk(slice any, setFunc func(*RbacAclEntryCreate, int)) *RbacAclEntryCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RbacAclEntryCreateBulk{err: fmt.Errorf("calling to RbacAclEntryClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RbacAclEntryCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RbacAclEntryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RbacAclEntry.
+func (c *RbacAclEntryClient) Update() *RbacAclEntryUpdate {
+	mutation := newRbacAclEntryMutation(c.config, OpUpdate)
+	return &RbacAclEntryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RbacAclEntryClient) UpdateOne(_m *RbacAclEntry) *RbacAclEntryUpdateOne {
+	mutation := newRbacAclEntryMutation(c.config, OpUpdateOne, withRbacAclEntry(_m))
+	return &RbacAclEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RbacAclEntryClient) UpdateOneID(id int) *RbacAclEntryUpdateOne {
+	mutation := newRbacAclEntryMutation(c.config, OpUpdateOne, withRbacAclEntryID(id))
+	return &RbacAclEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RbacAclEntry.
+func (c *RbacAclEntryClient) Delete() *RbacAclEntryDelete {
+	mutation := newRbacAclEntryMutation(c.config, OpDelete)
+	return &RbacAclEntryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RbacAclEntryClient) DeleteOne(_m *RbacAclEntry) *RbacAclEntryDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RbacAclEntryClient) DeleteOneID(id int) *RbacAclEntryDeleteOne {
+	builder := c.Delete().Where(rbacaclentry.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RbacAclEntryDeleteOne{builder}
+}
+
+// Query returns a query builder for RbacAclEntry.
+func (c *RbacAclEntryClient) Query() *RbacAclEntryQuery {
+	return &RbacAclEntryQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRbacAclEntry},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RbacAclEntry entity by its id.
+func (c *RbacAclEntryClient) Get(ctx context.Context, id int) (*RbacAclEntry, error) {
+	return c.Query().Where(rbacaclentry.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RbacAclEntryClient) GetX(ctx context.Context, id int) *RbacAclEntry {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RbacAclEntryClient) Hooks() []Hook {
+	return c.hooks.RbacAclEntry
+}
+
+// Interceptors returns the client interceptors.
+func (c *RbacAclEntryClient) Interceptors() []Interceptor {
+	return c.inters.RbacAclEntry
+}
+
+func (c *RbacAclEntryClient) mutate(ctx context.Context, m *RbacAclEntryMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RbacAclEntryCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RbacAclEntryUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RbacAclEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RbacAclEntryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RbacAclEntry mutation op: %q", m.Op())
+	}
+}
+
+// RbacPermissionClient is a client for the RbacPermission schema.
+type RbacPermissionClient struct {
+	config
+}
+
+// NewRbacPermissionClient returns a client for the RbacPermission from the given config.
+func NewRbacPermissionClient(c config) *RbacPermissionClient {
+	return &RbacPermissionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `rbacpermission.Hooks(f(g(h())))`.
+func (c *RbacPermissionClient) Use(hooks ...Hook) {
+	c.hooks.RbacPermission = append(c.hooks.RbacPermission, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `rbacpermission.Intercept(f(g(h())))`.
+func (c *RbacPermissionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RbacPermission = append(c.inters.RbacPermission, interceptors...)
+}
+
+// Create returns a builder for creating a RbacPermission entity.
+func (c *RbacPermissionClient) Create() *RbacPermissionCreate {
+	mutation := newRbacPermissionMutation(c.config, OpCreate)
+	return &RbacPermissionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RbacPermission entities.
+func (c *RbacPermissionClient) CreateBulk(builders ...*RbacPermissionCreate) *RbacPermissionCreateBulk {
+	return &RbacPermissionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RbacPermissionClient) MapCreateBulk(slice any, setFunc func(*RbacPermissionCreate, int)) *RbacPermissionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RbacPermissionCreateBulk{err: fmt.Errorf("calling to RbacPermissionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RbacPermissionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RbacPermissionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RbacPermission.
+func (c *RbacPermissionClient) Update() *RbacPermissionUpdate {
+	mutation := newRbacPermissionMutation(c.config, OpUpdate)
+	return &RbacPermissionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RbacPermissionClient) UpdateOne(_m *RbacPermission) *RbacPermissionUpdateOne {
+	mutation := newRbacPermissionMutation(c.config, OpUpdateOne, withRbacPermission(_m))
+	return &RbacPermissionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RbacPermissionClient) UpdateOneID(id int) *RbacPermissionUpdateOne {
+	mutation := newRbacPermissionMutation(c.config, OpUpdateOne, withRbacPermissionID(id))
+	return &RbacPermissionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RbacPermission.
+func (c *RbacPermissionClient) Delete() *RbacPermissionDelete {
+	mutation := newRbacPermissionMutation(c.config, OpDelete)
+	return &RbacPermissionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RbacPermissionClient) DeleteOne(_m *RbacPermission) *RbacPermissionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RbacPermissionClient) DeleteOneID(id int) *RbacPermissionDeleteOne {
+	builder := c.Delete().Where(rbacpermission.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RbacPermissionDeleteOne{builder}
+}
+
+// Query returns a query builder for RbacPermission.
+func (c *RbacPermissionClient) Query() *RbacPermissionQuery {
+	return &RbacPermissionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRbacPermission},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RbacPermission entity by its id.
+func (c *RbacPermissionClient) Get(ctx context.Context, id int) (*RbacPermission, error) {
+	return c.Query().Where(rbacpermission.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RbacPermissionClient) GetX(ctx context.Context, id int) *RbacPermission {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RbacPermissionClient) Hooks() []Hook {
+	return c.hooks.RbacPermission
+}
+
+// Interceptors returns the client interceptors.
+func (c *RbacPermissionClient) Interceptors() []Interceptor {
+	return c.inters.RbacPermission
+}
+
+func (c *RbacPermissionClient) mutate(ctx context.Context, m *RbacPermissionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RbacPermissionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RbacPermissionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RbacPermissionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RbacPermissionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RbacPermission mutation op: %q", m.Op())
+	}
+}
+
+// RbacPermissionChangeLogClient is a client for the RbacPermissionChangeLog schema.
+type RbacPermissionChangeLogClient struct {
+	config
+}
+
+// NewRbacPermissionChangeLogClient returns a client for the RbacPermissionChangeLog from the given config.
+func NewRbacPermissionChangeLogClient(c config) *RbacPermissionChangeLogClient {
+	return &RbacPermissionChangeLogClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `rbacpermissionchangelog.Hooks(f(g(h())))`.
+func (c *RbacPermissionChangeLogClient) Use(hooks ...Hook) {
+	c.hooks.RbacPermissionChangeLog = append(c.hooks.RbacPermissionChangeLog, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `rbacpermissionchangelog.Intercept(f(g(h())))`.
+func (c *RbacPermissionChangeLogClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RbacPermissionChangeLog = append(c.inters.RbacPermissionChangeLog, interceptors...)
+}
+
+// Create returns a builder for creating a RbacPermissionChangeLog entity.
+func (c *RbacPermissionChangeLogClient) Create() *RbacPermissionChangeLogCreate {
+	mutation := newRbacPermissionChangeLogMutation(c.config, OpCreate)
+	return &RbacPermissionChangeLogCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RbacPermissionChangeLog entities.
+func (c *RbacPermissionChangeLogClient) CreateBulk(builders ...*RbacPermissionChangeLogCreate) *RbacPermissionChangeLogCreateBulk {
+	return &RbacPermissionChangeLogCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RbacPermissionChangeLogClient) MapCreateBulk(slice any, setFunc func(*RbacPermissionChangeLogCreate, int)) *RbacPermissionChangeLogCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RbacPermissionChangeLogCreateBulk{err: fmt.Errorf("calling to RbacPermissionChangeLogClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RbacPermissionChangeLogCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RbacPermissionChangeLogCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RbacPermissionChangeLog.
+func (c *RbacPermissionChangeLogClient) Update() *RbacPermissionChangeLogUpdate {
+	mutation := newRbacPermissionChangeLogMutation(c.config, OpUpdate)
+	return &RbacPermissionChangeLogUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RbacPermissionChangeLogClient) UpdateOne(_m *RbacPermissionChangeLog) *RbacPermissionChangeLogUpdateOne {
+	mutation := newRbacPermissionChangeLogMutation(c.config, OpUpdateOne, withRbacPermissionChangeLog(_m))
+	return &RbacPermissionChangeLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RbacPermissionChangeLogClient) UpdateOneID(id int) *RbacPermissionChangeLogUpdateOne {
+	mutation := newRbacPermissionChangeLogMutation(c.config, OpUpdateOne, withRbacPermissionChangeLogID(id))
+	return &RbacPermissionChangeLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RbacPermissionChangeLog.
+func (c *RbacPermissionChangeLogClient) Delete() *RbacPermissionChangeLogDelete {
+	mutation := newRbacPermissionChangeLogMutation(c.config, OpDelete)
+	return &RbacPermissionChangeLogDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RbacPermissionChangeLogClient) DeleteOne(_m *RbacPermissionChangeLog) *RbacPermissionChangeLogDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RbacPermissionChangeLogClient) DeleteOneID(id int) *RbacPermissionChangeLogDeleteOne {
+	builder := c.Delete().Where(rbacpermissionchangelog.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RbacPermissionChangeLogDeleteOne{builder}
+}
+
+// Query returns a query builder for RbacPermissionChangeLog.
+func (c *RbacPermissionChangeLogClient) Query() *RbacPermissionChangeLogQuery {
+	return &RbacPermissionChangeLogQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRbacPermissionChangeLog},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RbacPermissionChangeLog entity by its id.
+func (c *RbacPermissionChangeLogClient) Get(ctx context.Context, id int) (*RbacPermissionChangeLog, error) {
+	return c.Query().Where(rbacpermissionchangelog.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RbacPermissionChangeLogClient) GetX(ctx context.Context, id int) *RbacPermissionChangeLog {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RbacPermissionChangeLogClient) Hooks() []Hook {
+	return c.hooks.RbacPermissionChangeLog
+}
+
+// Interceptors returns the client interceptors.
+func (c *RbacPermissionChangeLogClient) Interceptors() []Interceptor {
+	return c.inters.RbacPermissionChangeLog
+}
+
+func (c *RbacPermissionChangeLogClient) mutate(ctx context.Context, m *RbacPermissionChangeLogMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RbacPermissionChangeLogCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RbacPermissionChangeLogUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RbacPermissionChangeLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RbacPermissionChangeLogDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RbacPermissionChangeLog mutation op: %q", m.Op())
+	}
+}
+
+// RbacPermissionVersionClient is a client for the RbacPermissionVersion schema.
+type RbacPermissionVersionClient struct {
+	config
+}
+
+// NewRbacPermissionVersionClient returns a client for the RbacPermissionVersion from the given config.
+func NewRbacPermissionVersionClient(c config) *RbacPermissionVersionClient {
+	return &RbacPermissionVersionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `rbacpermissionversion.Hooks(f(g(h())))`.
+func (c *RbacPermissionVersionClient) Use(hooks ...Hook) {
+	c.hooks.RbacPermissionVersion = append(c.hooks.RbacPermissionVersion, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `rbacpermissionversion.Intercept(f(g(h())))`.
+func (c *RbacPermissionVersionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RbacPermissionVersion = append(c.inters.RbacPermissionVersion, interceptors...)
+}
+
+// Create returns a builder for creating a RbacPermissionVersion entity.
+func (c *RbacPermissionVersionClient) Create() *RbacPermissionVersionCreate {
+	mutation := newRbacPermissionVersionMutation(c.config, OpCreate)
+	return &RbacPermissionVersionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RbacPermissionVersion entities.
+func (c *RbacPermissionVersionClient) CreateBulk(builders ...*RbacPermissionVersionCreate) *RbacPermissionVersionCreateBulk {
+	return &RbacPermissionVersionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RbacPermissionVersionClient) MapCreateBulk(slice any, setFunc func(*RbacPermissionVersionCreate, int)) *RbacPermissionVersionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RbacPermissionVersionCreateBulk{err: fmt.Errorf("calling to RbacPermissionVersionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RbacPermissionVersionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RbacPermissionVersionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RbacPermissionVersion.
+func (c *RbacPermissionVersionClient) Update() *RbacPermissionVersionUpdate {
+	mutation := newRbacPermissionVersionMutation(c.config, OpUpdate)
+	return &RbacPermissionVersionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RbacPermissionVersionClient) UpdateOne(_m *RbacPermissionVersion) *RbacPermissionVersionUpdateOne {
+	mutation := newRbacPermissionVersionMutation(c.config, OpUpdateOne, withRbacPermissionVersion(_m))
+	return &RbacPermissionVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RbacPermissionVersionClient) UpdateOneID(id int) *RbacPermissionVersionUpdateOne {
+	mutation := newRbacPermissionVersionMutation(c.config, OpUpdateOne, withRbacPermissionVersionID(id))
+	return &RbacPermissionVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RbacPermissionVersion.
+func (c *RbacPermissionVersionClient) Delete() *RbacPermissionVersionDelete {
+	mutation := newRbacPermissionVersionMutation(c.config, OpDelete)
+	return &RbacPermissionVersionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RbacPermissionVersionClient) DeleteOne(_m *RbacPermissionVersion) *RbacPermissionVersionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RbacPermissionVersionClient) DeleteOneID(id int) *RbacPermissionVersionDeleteOne {
+	builder := c.Delete().Where(rbacpermissionversion.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RbacPermissionVersionDeleteOne{builder}
+}
+
+// Query returns a query builder for RbacPermissionVersion.
+func (c *RbacPermissionVersionClient) Query() *RbacPermissionVersionQuery {
+	return &RbacPermissionVersionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRbacPermissionVersion},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RbacPermissionVersion entity by its id.
+func (c *RbacPermissionVersionClient) Get(ctx context.Context, id int) (*RbacPermissionVersion, error) {
+	return c.Query().Where(rbacpermissionversion.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RbacPermissionVersionClient) GetX(ctx context.Context, id int) *RbacPermissionVersion {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RbacPermissionVersionClient) Hooks() []Hook {
+	return c.hooks.RbacPermissionVersion
+}
+
+// Interceptors returns the client interceptors.
+func (c *RbacPermissionVersionClient) Interceptors() []Interceptor {
+	return c.inters.RbacPermissionVersion
+}
+
+func (c *RbacPermissionVersionClient) mutate(ctx context.Context, m *RbacPermissionVersionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RbacPermissionVersionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RbacPermissionVersionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RbacPermissionVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RbacPermissionVersionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RbacPermissionVersion mutation op: %q", m.Op())
+	}
+}
+
+// RbacRoleClient is a client for the RbacRole schema.
+type RbacRoleClient struct {
+	config
+}
+
+// NewRbacRoleClient returns a client for the RbacRole from the given config.
+func NewRbacRoleClient(c config) *RbacRoleClient {
+	return &RbacRoleClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `rbacrole.Hooks(f(g(h())))`.
+func (c *RbacRoleClient) Use(hooks ...Hook) {
+	c.hooks.RbacRole = append(c.hooks.RbacRole, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `rbacrole.Intercept(f(g(h())))`.
+func (c *RbacRoleClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RbacRole = append(c.inters.RbacRole, interceptors...)
+}
+
+// Create returns a builder for creating a RbacRole entity.
+func (c *RbacRoleClient) Create() *RbacRoleCreate {
+	mutation := newRbacRoleMutation(c.config, OpCreate)
+	return &RbacRoleCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RbacRole entities.
+func (c *RbacRoleClient) CreateBulk(builders ...*RbacRoleCreate) *RbacRoleCreateBulk {
+	return &RbacRoleCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RbacRoleClient) MapCreateBulk(slice any, setFunc func(*RbacRoleCreate, int)) *RbacRoleCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RbacRoleCreateBulk{err: fmt.Errorf("calling to RbacRoleClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RbacRoleCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RbacRoleCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RbacRole.
+func (c *RbacRoleClient) Update() *RbacRoleUpdate {
+	mutation := newRbacRoleMutation(c.config, OpUpdate)
+	return &RbacRoleUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RbacRoleClient) UpdateOne(_m *RbacRole) *RbacRoleUpdateOne {
+	mutation := newRbacRoleMutation(c.config, OpUpdateOne, withRbacRole(_m))
+	return &RbacRoleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RbacRoleClient) UpdateOneID(id int) *RbacRoleUpdateOne {
+	mutation := newRbacRoleMutation(c.config, OpUpdateOne, withRbacRoleID(id))
+	return &RbacRoleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RbacRole.
+func (c *RbacRoleClient) Delete() *RbacRoleDelete {
+	mutation := newRbacRoleMutation(c.config, OpDelete)
+	return &RbacRoleDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RbacRoleClient) DeleteOne(_m *RbacRole) *RbacRoleDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RbacRoleClient) DeleteOneID(id int) *RbacRoleDeleteOne {
+	builder := c.Delete().Where(rbacrole.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RbacRoleDeleteOne{builder}
+}
+
+// Query returns a query builder for RbacRole.
+func (c *RbacRoleClient) Query() *RbacRoleQuery {
+	return &RbacRoleQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRbacRole},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RbacRole entity by its id.
+func (c *RbacRoleClient) Get(ctx context.Context, id int) (*RbacRole, error) {
+	return c.Query().Where(rbacrole.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RbacRoleClient) GetX(ctx context.Context, id int) *RbacRole {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RbacRoleClient) Hooks() []Hook {
+	return c.hooks.RbacRole
+}
+
+// Interceptors returns the client interceptors.
+func (c *RbacRoleClient) Interceptors() []Interceptor {
+	return c.inters.RbacRole
+}
+
+func (c *RbacRoleClient) mutate(ctx context.Context, m *RbacRoleMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RbacRoleCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RbacRoleUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RbacRoleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RbacRoleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RbacRole mutation op: %q", m.Op())
+	}
+}
+
+// RbacRolePermissionClient is a client for the RbacRolePermission schema.
+type RbacRolePermissionClient struct {
+	config
+}
+
+// NewRbacRolePermissionClient returns a client for the RbacRolePermission from the given config.
+func NewRbacRolePermissionClient(c config) *RbacRolePermissionClient {
+	return &RbacRolePermissionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `rbacrolepermission.Hooks(f(g(h())))`.
+func (c *RbacRolePermissionClient) Use(hooks ...Hook) {
+	c.hooks.RbacRolePermission = append(c.hooks.RbacRolePermission, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `rbacrolepermission.Intercept(f(g(h())))`.
+func (c *RbacRolePermissionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RbacRolePermission = append(c.inters.RbacRolePermission, interceptors...)
+}
+
+// Create returns a builder for creating a RbacRolePermission entity.
+func (c *RbacRolePermissionClient) Create() *RbacRolePermissionCreate {
+	mutation := newRbacRolePermissionMutation(c.config, OpCreate)
+	return &RbacRolePermissionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RbacRolePermission entities.
+func (c *RbacRolePermissionClient) CreateBulk(builders ...*RbacRolePermissionCreate) *RbacRolePermissionCreateBulk {
+	return &RbacRolePermissionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RbacRolePermissionClient) MapCreateBulk(slice any, setFunc func(*RbacRolePermissionCreate, int)) *RbacRolePermissionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RbacRolePermissionCreateBulk{err: fmt.Errorf("calling to RbacRolePermissionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RbacRolePermissionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RbacRolePermissionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RbacRolePermission.
+func (c *RbacRolePermissionClient) Update() *RbacRolePermissionUpdate {
+	mutation := newRbacRolePermissionMutation(c.config, OpUpdate)
+	return &RbacRolePermissionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RbacRolePermissionClient) UpdateOne(_m *RbacRolePermission) *RbacRolePermissionUpdateOne {
+	mutation := newRbacRolePermissionMutation(c.config, OpUpdateOne, withRbacRolePermission(_m))
+	return &RbacRolePermissionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RbacRolePermissionClient) UpdateOneID(id int) *RbacRolePermissionUpdateOne {
+	mutation := newRbacRolePermissionMutation(c.config, OpUpdateOne, withRbacRolePermissionID(id))
+	return &RbacRolePermissionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RbacRolePermission.
+func (c *RbacRolePermissionClient) Delete() *RbacRolePermissionDelete {
+	mutation := newRbacRolePermissionMutation(c.config, OpDelete)
+	return &RbacRolePermissionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RbacRolePermissionClient) DeleteOne(_m *RbacRolePermission) *RbacRolePermissionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RbacRolePermissionClient) DeleteOneID(id int) *RbacRolePermissionDeleteOne {
+	builder := c.Delete().Where(rbacrolepermission.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RbacRolePermissionDeleteOne{builder}
+}
+
+// Query returns a query builder for RbacRolePermission.
+func (c *RbacRolePermissionClient) Query() *RbacRolePermissionQuery {
+	return &RbacRolePermissionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRbacRolePermission},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RbacRolePermission entity by its id.
+func (c *RbacRolePermissionClient) Get(ctx context.Context, id int) (*RbacRolePermission, error) {
+	return c.Query().Where(rbacrolepermission.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RbacRolePermissionClient) GetX(ctx context.Context, id int) *RbacRolePermission {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RbacRolePermissionClient) Hooks() []Hook {
+	return c.hooks.RbacRolePermission
+}
+
+// Interceptors returns the client interceptors.
+func (c *RbacRolePermissionClient) Interceptors() []Interceptor {
+	return c.inters.RbacRolePermission
+}
+
+func (c *RbacRolePermissionClient) mutate(ctx context.Context, m *RbacRolePermissionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RbacRolePermissionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RbacRolePermissionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RbacRolePermissionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RbacRolePermissionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RbacRolePermission mutation op: %q", m.Op())
+	}
+}
+
+// RbacUserRoleClient is a client for the RbacUserRole schema.
+type RbacUserRoleClient struct {
+	config
+}
+
+// NewRbacUserRoleClient returns a client for the RbacUserRole from the given config.
+func NewRbacUserRoleClient(c config) *RbacUserRoleClient {
+	return &RbacUserRoleClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `rbacuserrole.Hooks(f(g(h())))`.
+func (c *RbacUserRoleClient) Use(hooks ...Hook) {
+	c.hooks.RbacUserRole = append(c.hooks.RbacUserRole, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `rbacuserrole.Intercept(f(g(h())))`.
+func (c *RbacUserRoleClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RbacUserRole = append(c.inters.RbacUserRole, interceptors...)
+}
+
+// Create returns a builder for creating a RbacUserRole entity.
+func (c *RbacUserRoleClient) Create() *RbacUserRoleCreate {
+	mutation := newRbacUserRoleMutation(c.config, OpCreate)
+	return &RbacUserRoleCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RbacUserRole entities.
+func (c *RbacUserRoleClient) CreateBulk(builders ...*RbacUserRoleCreate) *RbacUserRoleCreateBulk {
+	return &RbacUserRoleCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RbacUserRoleClient) MapCreateBulk(slice any, setFunc func(*RbacUserRoleCreate, int)) *RbacUserRoleCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RbacUserRoleCreateBulk{err: fmt.Errorf("calling to RbacUserRoleClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RbacUserRoleCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RbacUserRoleCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RbacUserRole.
+func (c *RbacUserRoleClient) Update() *RbacUserRoleUpdate {
+	mutation := newRbacUserRoleMutation(c.config, OpUpdate)
+	return &RbacUserRoleUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RbacUserRoleClient) UpdateOne(_m *RbacUserRole) *RbacUserRoleUpdateOne {
+	mutation := newRbacUserRoleMutation(c.config, OpUpdateOne, withRbacUserRole(_m))
+	return &RbacUserRoleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RbacUserRoleClient) UpdateOneID(id int) *RbacUserRoleUpdateOne {
+	mutation := newRbacUserRoleMutation(c.config, OpUpdateOne, withRbacUserRoleID(id))
+	return &RbacUserRoleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RbacUserRole.
+func (c *RbacUserRoleClient) Delete() *RbacUserRoleDelete {
+	mutation := newRbacUserRoleMutation(c.config, OpDelete)
+	return &RbacUserRoleDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RbacUserRoleClient) DeleteOne(_m *RbacUserRole) *RbacUserRoleDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RbacUserRoleClient) DeleteOneID(id int) *RbacUserRoleDeleteOne {
+	builder := c.Delete().Where(rbacuserrole.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RbacUserRoleDeleteOne{builder}
+}
+
+// Query returns a query builder for RbacUserRole.
+func (c *RbacUserRoleClient) Query() *RbacUserRoleQuery {
+	return &RbacUserRoleQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRbacUserRole},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RbacUserRole entity by its id.
+func (c *RbacUserRoleClient) Get(ctx context.Context, id int) (*RbacUserRole, error) {
+	return c.Query().Where(rbacuserrole.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RbacUserRoleClient) GetX(ctx context.Context, id int) *RbacUserRole {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RbacUserRoleClient) Hooks() []Hook {
+	return c.hooks.RbacUserRole
+}
+
+// Interceptors returns the client interceptors.
+func (c *RbacUserRoleClient) Interceptors() []Interceptor {
+	return c.inters.RbacUserRole
+}
+
+func (c *RbacUserRoleClient) mutate(ctx context.Context, m *RbacUserRoleMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RbacUserRoleCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RbacUserRoleUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RbacUserRoleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RbacUserRoleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RbacUserRole mutation op: %q", m.Op())
+	}
+}
+
 // TodoClient is a client for the Todo schema.
 type TodoClient struct {
 	config
@@ -1185,14 +2192,284 @@ func (c *UserIdentityClient) mutate(ctx context.Context, m *UserIdentityMutation
 	}
 }
 
+// WorkspaceClient is a client for the Workspace schema.
+type WorkspaceClient struct {
+	config
+}
+
+// NewWorkspaceClient returns a client for the Workspace from the given config.
+func NewWorkspaceClient(c config) *WorkspaceClient {
+	return &WorkspaceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `workspace.Hooks(f(g(h())))`.
+func (c *WorkspaceClient) Use(hooks ...Hook) {
+	c.hooks.Workspace = append(c.hooks.Workspace, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `workspace.Intercept(f(g(h())))`.
+func (c *WorkspaceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Workspace = append(c.inters.Workspace, interceptors...)
+}
+
+// Create returns a builder for creating a Workspace entity.
+func (c *WorkspaceClient) Create() *WorkspaceCreate {
+	mutation := newWorkspaceMutation(c.config, OpCreate)
+	return &WorkspaceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Workspace entities.
+func (c *WorkspaceClient) CreateBulk(builders ...*WorkspaceCreate) *WorkspaceCreateBulk {
+	return &WorkspaceCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WorkspaceClient) MapCreateBulk(slice any, setFunc func(*WorkspaceCreate, int)) *WorkspaceCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WorkspaceCreateBulk{err: fmt.Errorf("calling to WorkspaceClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WorkspaceCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WorkspaceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Workspace.
+func (c *WorkspaceClient) Update() *WorkspaceUpdate {
+	mutation := newWorkspaceMutation(c.config, OpUpdate)
+	return &WorkspaceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WorkspaceClient) UpdateOne(_m *Workspace) *WorkspaceUpdateOne {
+	mutation := newWorkspaceMutation(c.config, OpUpdateOne, withWorkspace(_m))
+	return &WorkspaceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WorkspaceClient) UpdateOneID(id int) *WorkspaceUpdateOne {
+	mutation := newWorkspaceMutation(c.config, OpUpdateOne, withWorkspaceID(id))
+	return &WorkspaceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Workspace.
+func (c *WorkspaceClient) Delete() *WorkspaceDelete {
+	mutation := newWorkspaceMutation(c.config, OpDelete)
+	return &WorkspaceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WorkspaceClient) DeleteOne(_m *Workspace) *WorkspaceDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WorkspaceClient) DeleteOneID(id int) *WorkspaceDeleteOne {
+	builder := c.Delete().Where(workspace.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WorkspaceDeleteOne{builder}
+}
+
+// Query returns a query builder for Workspace.
+func (c *WorkspaceClient) Query() *WorkspaceQuery {
+	return &WorkspaceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWorkspace},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Workspace entity by its id.
+func (c *WorkspaceClient) Get(ctx context.Context, id int) (*Workspace, error) {
+	return c.Query().Where(workspace.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WorkspaceClient) GetX(ctx context.Context, id int) *Workspace {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *WorkspaceClient) Hooks() []Hook {
+	return c.hooks.Workspace
+}
+
+// Interceptors returns the client interceptors.
+func (c *WorkspaceClient) Interceptors() []Interceptor {
+	return c.inters.Workspace
+}
+
+func (c *WorkspaceClient) mutate(ctx context.Context, m *WorkspaceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WorkspaceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WorkspaceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WorkspaceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WorkspaceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Workspace mutation op: %q", m.Op())
+	}
+}
+
+// WorkspaceMemberClient is a client for the WorkspaceMember schema.
+type WorkspaceMemberClient struct {
+	config
+}
+
+// NewWorkspaceMemberClient returns a client for the WorkspaceMember from the given config.
+func NewWorkspaceMemberClient(c config) *WorkspaceMemberClient {
+	return &WorkspaceMemberClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `workspacemember.Hooks(f(g(h())))`.
+func (c *WorkspaceMemberClient) Use(hooks ...Hook) {
+	c.hooks.WorkspaceMember = append(c.hooks.WorkspaceMember, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `workspacemember.Intercept(f(g(h())))`.
+func (c *WorkspaceMemberClient) Intercept(interceptors ...Interceptor) {
+	c.inters.WorkspaceMember = append(c.inters.WorkspaceMember, interceptors...)
+}
+
+// Create returns a builder for creating a WorkspaceMember entity.
+func (c *WorkspaceMemberClient) Create() *WorkspaceMemberCreate {
+	mutation := newWorkspaceMemberMutation(c.config, OpCreate)
+	return &WorkspaceMemberCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of WorkspaceMember entities.
+func (c *WorkspaceMemberClient) CreateBulk(builders ...*WorkspaceMemberCreate) *WorkspaceMemberCreateBulk {
+	return &WorkspaceMemberCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WorkspaceMemberClient) MapCreateBulk(slice any, setFunc func(*WorkspaceMemberCreate, int)) *WorkspaceMemberCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WorkspaceMemberCreateBulk{err: fmt.Errorf("calling to WorkspaceMemberClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WorkspaceMemberCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WorkspaceMemberCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for WorkspaceMember.
+func (c *WorkspaceMemberClient) Update() *WorkspaceMemberUpdate {
+	mutation := newWorkspaceMemberMutation(c.config, OpUpdate)
+	return &WorkspaceMemberUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WorkspaceMemberClient) UpdateOne(_m *WorkspaceMember) *WorkspaceMemberUpdateOne {
+	mutation := newWorkspaceMemberMutation(c.config, OpUpdateOne, withWorkspaceMember(_m))
+	return &WorkspaceMemberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WorkspaceMemberClient) UpdateOneID(id int) *WorkspaceMemberUpdateOne {
+	mutation := newWorkspaceMemberMutation(c.config, OpUpdateOne, withWorkspaceMemberID(id))
+	return &WorkspaceMemberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for WorkspaceMember.
+func (c *WorkspaceMemberClient) Delete() *WorkspaceMemberDelete {
+	mutation := newWorkspaceMemberMutation(c.config, OpDelete)
+	return &WorkspaceMemberDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WorkspaceMemberClient) DeleteOne(_m *WorkspaceMember) *WorkspaceMemberDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WorkspaceMemberClient) DeleteOneID(id int) *WorkspaceMemberDeleteOne {
+	builder := c.Delete().Where(workspacemember.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WorkspaceMemberDeleteOne{builder}
+}
+
+// Query returns a query builder for WorkspaceMember.
+func (c *WorkspaceMemberClient) Query() *WorkspaceMemberQuery {
+	return &WorkspaceMemberQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWorkspaceMember},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a WorkspaceMember entity by its id.
+func (c *WorkspaceMemberClient) Get(ctx context.Context, id int) (*WorkspaceMember, error) {
+	return c.Query().Where(workspacemember.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WorkspaceMemberClient) GetX(ctx context.Context, id int) *WorkspaceMember {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *WorkspaceMemberClient) Hooks() []Hook {
+	return c.hooks.WorkspaceMember
+}
+
+// Interceptors returns the client interceptors.
+func (c *WorkspaceMemberClient) Interceptors() []Interceptor {
+	return c.inters.WorkspaceMember
+}
+
+func (c *WorkspaceMemberClient) mutate(ctx context.Context, m *WorkspaceMemberMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WorkspaceMemberCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WorkspaceMemberUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WorkspaceMemberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WorkspaceMemberDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown WorkspaceMember mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AppSetting, AuthActionToken, AuthRefreshToken, OAuthLoginState, Todo, User,
-		UserIdentity []ent.Hook
+		AppSetting, AuthActionToken, AuthRefreshToken, OAuthLoginState, RbacAclEntry,
+		RbacPermission, RbacPermissionChangeLog, RbacPermissionVersion, RbacRole,
+		RbacRolePermission, RbacUserRole, Todo, User, UserIdentity, Workspace,
+		WorkspaceMember []ent.Hook
 	}
 	inters struct {
-		AppSetting, AuthActionToken, AuthRefreshToken, OAuthLoginState, Todo, User,
-		UserIdentity []ent.Interceptor
+		AppSetting, AuthActionToken, AuthRefreshToken, OAuthLoginState, RbacAclEntry,
+		RbacPermission, RbacPermissionChangeLog, RbacPermissionVersion, RbacRole,
+		RbacRolePermission, RbacUserRole, Todo, User, UserIdentity, Workspace,
+		WorkspaceMember []ent.Interceptor
 	}
 )

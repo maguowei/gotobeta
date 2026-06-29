@@ -16,9 +16,18 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/authactiontoken"
 	"github.com/maguowei/gotobeta/internal/ent/authrefreshtoken"
 	"github.com/maguowei/gotobeta/internal/ent/oauthloginstate"
+	"github.com/maguowei/gotobeta/internal/ent/rbacaclentry"
+	"github.com/maguowei/gotobeta/internal/ent/rbacpermission"
+	"github.com/maguowei/gotobeta/internal/ent/rbacpermissionchangelog"
+	"github.com/maguowei/gotobeta/internal/ent/rbacpermissionversion"
+	"github.com/maguowei/gotobeta/internal/ent/rbacrole"
+	"github.com/maguowei/gotobeta/internal/ent/rbacrolepermission"
+	"github.com/maguowei/gotobeta/internal/ent/rbacuserrole"
 	"github.com/maguowei/gotobeta/internal/ent/todo"
 	"github.com/maguowei/gotobeta/internal/ent/user"
 	"github.com/maguowei/gotobeta/internal/ent/useridentity"
+	"github.com/maguowei/gotobeta/internal/ent/workspace"
+	"github.com/maguowei/gotobeta/internal/ent/workspacemember"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -79,13 +88,22 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			appsetting.Table:       appsetting.ValidColumn,
-			authactiontoken.Table:  authactiontoken.ValidColumn,
-			authrefreshtoken.Table: authrefreshtoken.ValidColumn,
-			oauthloginstate.Table:  oauthloginstate.ValidColumn,
-			todo.Table:             todo.ValidColumn,
-			user.Table:             user.ValidColumn,
-			useridentity.Table:     useridentity.ValidColumn,
+			appsetting.Table:              appsetting.ValidColumn,
+			authactiontoken.Table:         authactiontoken.ValidColumn,
+			authrefreshtoken.Table:        authrefreshtoken.ValidColumn,
+			oauthloginstate.Table:         oauthloginstate.ValidColumn,
+			rbacaclentry.Table:            rbacaclentry.ValidColumn,
+			rbacpermission.Table:          rbacpermission.ValidColumn,
+			rbacpermissionchangelog.Table: rbacpermissionchangelog.ValidColumn,
+			rbacpermissionversion.Table:   rbacpermissionversion.ValidColumn,
+			rbacrole.Table:                rbacrole.ValidColumn,
+			rbacrolepermission.Table:      rbacrolepermission.ValidColumn,
+			rbacuserrole.Table:            rbacuserrole.ValidColumn,
+			todo.Table:                    todo.ValidColumn,
+			user.Table:                    user.ValidColumn,
+			useridentity.Table:            useridentity.ValidColumn,
+			workspace.Table:               workspace.ValidColumn,
+			workspacemember.Table:         workspacemember.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

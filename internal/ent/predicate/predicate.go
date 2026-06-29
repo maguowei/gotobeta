@@ -18,6 +18,27 @@ type AuthRefreshToken func(*sql.Selector)
 // OAuthLoginState is the predicate function for oauthloginstate builders.
 type OAuthLoginState func(*sql.Selector)
 
+// RbacAclEntry is the predicate function for rbacaclentry builders.
+type RbacAclEntry func(*sql.Selector)
+
+// RbacPermission is the predicate function for rbacpermission builders.
+type RbacPermission func(*sql.Selector)
+
+// RbacPermissionChangeLog is the predicate function for rbacpermissionchangelog builders.
+type RbacPermissionChangeLog func(*sql.Selector)
+
+// RbacPermissionVersion is the predicate function for rbacpermissionversion builders.
+type RbacPermissionVersion func(*sql.Selector)
+
+// RbacRole is the predicate function for rbacrole builders.
+type RbacRole func(*sql.Selector)
+
+// RbacRolePermission is the predicate function for rbacrolepermission builders.
+type RbacRolePermission func(*sql.Selector)
+
+// RbacUserRole is the predicate function for rbacuserrole builders.
+type RbacUserRole func(*sql.Selector)
+
 // Todo is the predicate function for todo builders.
 type Todo func(*sql.Selector)
 
@@ -26,3 +47,9 @@ type User func(*sql.Selector)
 
 // UserIdentity is the predicate function for useridentity builders.
 type UserIdentity func(*sql.Selector)
+
+// Workspace is the predicate function for workspace builders.
+type Workspace func(*sql.Selector)
+
+// WorkspaceMember is the predicate function for workspacemember builders.
+type WorkspaceMember func(*sql.Selector)
