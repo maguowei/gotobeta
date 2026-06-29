@@ -26,6 +26,7 @@ sentry:
   enabled: false
   dsn: ""
   env: "local"
+  sample_rate: 1.0
 
 tracing:
   endpoint: ""

@@ -75,6 +75,9 @@ func TestLoadAppliesIMAndObjStoreDefaults(t *testing.T) {
 	if cfg.Server.MaxHeaderBytes != 1048576 {
 		t.Fatalf("Server.MaxHeaderBytes = %d, want 1048576", cfg.Server.MaxHeaderBytes)
 	}
+	if cfg.Sentry.SampleRate != 1.0 {
+		t.Fatalf("Sentry.SampleRate = %v, want 1.0", cfg.Sentry.SampleRate)
+	}
 	if cfg.IM.WSTicketTTL != "30s" {
 		t.Fatalf("IM.WSTicketTTL = %q, want 30s", cfg.IM.WSTicketTTL)
 	}
@@ -454,6 +457,13 @@ func TestValidateRejectsInvalidRuntimeSettings(t *testing.T) {
 			},
 			wantErr: "database.conn_max_idle_time 必须大于等于 0",
 		},
+		{
+			name: "sentry sample rate out of range",
+			mutate: func(cfg *Config) {
+				cfg.Sentry.SampleRate = 1.5
+			},
+			wantErr: "sentry.sample_rate 必须在 (0, 1] 之间",
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -498,9 +508,10 @@ func validConfig() *Config {
 			Namespace: "gotobeta",
 		},
 		Sentry: SentryConfig{
-			Enabled: false,
-			DSN:     "",
-			Env:     "test",
+			Enabled:    false,
+			DSN:        "",
+			Env:        "test",
+			SampleRate: 1.0,
 		},
 		SMTP: SMTPConfig{
 			Enabled: false,

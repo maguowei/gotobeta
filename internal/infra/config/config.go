@@ -108,9 +108,10 @@ type MetricsConfig struct {
 
 // SentryConfig 是 Sentry 配置。
 type SentryConfig struct {
-	Enabled bool   `mapstructure:"enabled"`
-	DSN     string `mapstructure:"dsn"`
-	Env     string `mapstructure:"env"`
+	Enabled    bool    `mapstructure:"enabled"`
+	DSN        string  `mapstructure:"dsn"`
+	Env        string  `mapstructure:"env"`
+	SampleRate float64 `mapstructure:"sample_rate"` // 错误事件采样率 (0,1]，prod 可降，默认 1.0
 }
 
 // TracingConfig 是分布式追踪配置。
@@ -316,6 +317,10 @@ func (c *Config) Validate() error {
 
 	if c.Sentry.Enabled && strings.TrimSpace(c.Sentry.DSN) == "" {
 		return errors.New("sentry.dsn 不能为空")
+	}
+
+	if c.Sentry.SampleRate <= 0 || c.Sentry.SampleRate > 1 {
+		return errors.New("sentry.sample_rate 必须在 (0, 1] 之间")
 	}
 
 	if !oneOf(c.Tracing.Sampler, "", "always", "never", "parent", "ratio") {
@@ -564,6 +569,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("sentry.enabled", false)
 	v.SetDefault("sentry.dsn", "")
 	v.SetDefault("sentry.env", "local")
+	v.SetDefault("sentry.sample_rate", 1.0)
 	v.SetDefault("tracing.endpoint", "")
 	v.SetDefault("tracing.insecure", false)
 	v.SetDefault("tracing.sampler", "parent")
@@ -664,6 +670,7 @@ func envKeys() []string {
 		"sentry.enabled",
 		"sentry.dsn",
 		"sentry.env",
+		"sentry.sample_rate",
 		"tracing.endpoint",
 		"tracing.insecure",
 		"tracing.sampler",

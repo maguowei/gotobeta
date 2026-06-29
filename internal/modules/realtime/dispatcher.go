@@ -4,6 +4,9 @@ import (
 	"context"
 	"log/slog"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+
 	"github.com/maguowei/gotobeta/internal/modules/realtime/adapter/ws"
 	"github.com/maguowei/gotobeta/internal/modules/realtime/infra/hub"
 	"github.com/maguowei/gotobeta/internal/pkg/event"
@@ -11,6 +14,9 @@ import (
 	"github.com/maguowei/gotobeta/internal/pkg/imrt"
 	loggerx "github.com/maguowei/gotobeta/internal/pkg/logger"
 )
+
+// dispatchTracer 是推送链路的 tracer；全局 provider 未配置时为 noop。
+var dispatchTracer = otel.Tracer("realtime")
 
 // PushMetrics 是实时推送计数端口（由 infra/metrics.Collectors 实现），可为 nil（不埋点）。
 type PushMetrics interface {
@@ -43,6 +49,13 @@ func (d *Dispatcher) OnMessageCreated(ctx context.Context, e event.Event) error 
 	if !ok {
 		return nil
 	}
+	// 进程内事件总线同步传递 ctx，从中起子 span 串联“发消息→推送”链路。
+	ctx, span := dispatchTracer.Start(ctx, "realtime.dispatch")
+	defer span.End()
+	span.SetAttributes(
+		attribute.Int64("conversation_id", evt.ConversationID),
+		attribute.Int64("seq", evt.Seq),
+	)
 	userIDs, err := d.members.ConversationUserIDs(ctx, evt.ConversationID)
 	if err != nil {
 		d.incPush("error")

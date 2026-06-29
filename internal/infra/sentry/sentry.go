@@ -20,9 +20,14 @@ func Init(cfg *config.SentryConfig) error {
 		return errors.New("sentry DSN is required when enabled")
 	}
 
+	sampleRate := cfg.SampleRate
+	if sampleRate <= 0 || sampleRate > 1 {
+		sampleRate = 1.0
+	}
 	if err := sentrysdk.Init(sentrysdk.ClientOptions{
 		Dsn:         cfg.DSN,
 		Environment: cfg.Env,
+		SampleRate:  sampleRate,
 	}); err != nil {
 		return fmt.Errorf("initialize sentry: %w", err)
 	}

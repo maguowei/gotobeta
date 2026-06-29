@@ -7,6 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+
 	"github.com/maguowei/gotobeta/internal/modules/realtime/infra/hub"
 	"github.com/maguowei/gotobeta/internal/pkg/imevent"
 )
@@ -67,5 +71,29 @@ func TestDispatcherPushesSignalToOnlineMembers(t *testing.T) {
 	}
 	if int64(f["cid"].(float64)) != 100 || int64(f["seq"].(float64)) != 5 {
 		t.Fatalf("signal 内容错误: %v", f)
+	}
+}
+
+func TestDispatcherStartsSpanOnMessageCreated(t *testing.T) {
+	// 用 SpanRecorder 注入全局 TracerProvider，断言 OnMessageCreated 创建 realtime.dispatch span。
+	rec := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(rec))
+	prev := otel.GetTracerProvider()
+	otel.SetTracerProvider(tp)
+	t.Cleanup(func() { otel.SetTracerProvider(prev) })
+	// dispatchTracer 在包初始化时已绑定，重设 provider 后需重新取一次。
+	dispatchTracer = tp.Tracer("realtime")
+	t.Cleanup(func() { dispatchTracer = otel.Tracer("realtime") })
+
+	h := hub.New(0, 0)
+	d := NewDispatcher(h, stubMembers{ids: []int64{1}}, slog.Default(), nil)
+	evt := imevent.NewMessageCreatedEvent(7, 100, 8001, 5, 1, 9, 1, time.Now())
+	if err := d.OnMessageCreated(context.Background(), evt); err != nil {
+		t.Fatalf("分发失败: %v", err)
+	}
+
+	spans := rec.Ended()
+	if len(spans) != 1 || spans[0].Name() != "realtime.dispatch" {
+		t.Fatalf("应创建 1 个 realtime.dispatch span，得 %+v", spans)
 	}
 }
