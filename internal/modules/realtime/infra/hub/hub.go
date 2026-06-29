@@ -26,6 +26,7 @@ type Hub struct {
 	maxTotal   int
 	maxPerUser int
 	gauge      ConnGauge
+	shutting   bool // 优雅关闭进行中：拒绝新连接，保证排空可收敛
 }
 
 // SetConnGauge 注入活跃连接数观测端口（组合根装配时调用）。
@@ -50,6 +51,9 @@ func (h *Hub) Register(userID int64, c imrt.Connection) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
+	if h.shutting {
+		return false
+	}
 	if h.maxTotal > 0 && h.total >= h.maxTotal {
 		return false
 	}
@@ -134,14 +138,16 @@ func (h *Hub) UserConnectionCount(userID int64) int {
 // GracefulShutdown 主动关闭全部连接（触发 close 帧下发），并轮询等待连接排空，
 // 直到 ConnectionCount 归零或 ctx 取消/超时。连接断开后由各自的读循环负责 Unregister。
 func (h *Hub) GracefulShutdown(ctx context.Context) error {
-	h.mu.RLock()
+	// 先置关闭标记并快照现有连接：标记后 Register 拒绝新连接，避免排空过程被新连接拖住。
+	h.mu.Lock()
+	h.shutting = true
 	conns := make([]imrt.Connection, 0, h.total)
 	for _, set := range h.conns {
 		for c := range set {
 			conns = append(conns, c)
 		}
 	}
-	h.mu.RUnlock()
+	h.mu.Unlock()
 
 	for _, c := range conns {
 		c.Close()

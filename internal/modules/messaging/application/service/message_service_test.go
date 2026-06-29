@@ -10,6 +10,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/conversation"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/message"
 	"github.com/maguowei/gotobeta/internal/pkg/event"
+	"github.com/maguowei/gotobeta/internal/pkg/requestctx"
 )
 
 // memMsgRepo 是内存版消息仓储。
@@ -126,6 +127,20 @@ func textCmd(convID, sender int64, cid, text string) messagingcmd.SendMessageCom
 	return messagingcmd.SendMessageCommand{
 		WorkspaceID: 1, ConversationID: convID, SenderUserID: sender,
 		ClientMsgID: cid, ContentType: 1, Content: map[string]any{"text": text},
+	}
+}
+
+func TestSendMessageRejectsWorkspaceMismatch(t *testing.T) {
+	convRepo := newMemConvRepo()
+	msgRepo := newMemMsgRepo()
+	seedActiveMember(convRepo, 100, 9)
+	svc := newMsgService(convRepo, msgRepo, &capturePublisher{})
+
+	// ctx 注入受信工作区 2，命令携带工作区 1 → 越权，应被纵深防御第二层拒绝。
+	ctx := requestctx.WithWorkspaceID(context.Background(), 2)
+	cmd := textCmd(100, 9, "c1", "hi") // WorkspaceID=1
+	if _, err := svc.SendMessage(ctx, cmd); err == nil {
+		t.Fatal("ctx 工作区与命令工作区不一致应被拒绝")
 	}
 }
 

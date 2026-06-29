@@ -19,6 +19,9 @@ import (
 // SendMessage 发送消息：成员校验 → 幂等 → 事务内分配 seq 落库并更新会话游标 → 发布事件。
 func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendMessageCommand) (*messagingresult.MessageResult, error) {
 	start := time.Now()
+	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+		return nil, err
+	}
 	if cmd.ClientMsgID == "" {
 		return nil, apperr.InvalidParam("client_msg_id 不能为空")
 	}
@@ -106,6 +109,9 @@ func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendM
 
 // RecallMessage 撤回消息：本人在窗口内或具 message.recall 权限可撤回，并写入系统撤回条目。
 func (s *MessageService) RecallMessage(ctx context.Context, cmd messagingcmd.RecallMessageCommand) error {
+	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+		return err
+	}
 	msg, err := s.messages.FindByID(ctx, cmd.MessageID)
 	if err != nil {
 		if stderrors.Is(err, message.ErrNotFound) {

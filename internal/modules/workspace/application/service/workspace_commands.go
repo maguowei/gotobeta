@@ -102,6 +102,9 @@ func (s *WorkspaceService) seedWorkspaceRoles(ctx context.Context, wsID int64) (
 
 // InviteMember 邀请用户加入工作区并赋予角色。
 func (s *WorkspaceService) InviteMember(ctx context.Context, cmd workspacecmd.InviteMemberCommand) (*workspaceresult.MemberResult, error) {
+	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+		return nil, err
+	}
 	if err := s.checker.Check(ctx, authz.Request{
 		WorkspaceID: cmd.WorkspaceID,
 		Subject:     authz.Subject{UserID: cmd.OperatorUserID},
@@ -165,6 +168,9 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, cmd workspacecmd.In
 
 // AssignRole 给工作区成员分配角色。
 func (s *WorkspaceService) AssignRole(ctx context.Context, cmd workspacecmd.AssignRoleCommand) error {
+	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+		return err
+	}
 	if err := s.checker.Check(ctx, authz.Request{
 		WorkspaceID: cmd.WorkspaceID,
 		Subject:     authz.Subject{UserID: cmd.OperatorUserID},

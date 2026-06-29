@@ -13,28 +13,40 @@ import (
 // 用于权限变更后精准失效缓存键 perm:user:{ws}:{uid}:v{version}。
 func (r *RBACRepository) BumpUserVersion(ctx context.Context, workspaceID, userID int64) (int64, error) {
 	client := entdb.ClientFromCtx(ctx, r.client)
-	affected, err := client.RbacPermissionVersion.Update().
-		Where(
-			entver.WorkspaceID(workspaceID),
-			entver.SubjectType(rbac.SubjectTypeUser),
-			entver.SubjectID(userID),
-		).
-		AddVersion(1).
-		Save(ctx)
+	bump := func() (int, error) {
+		return client.RbacPermissionVersion.Update().
+			Where(
+				entver.WorkspaceID(workspaceID),
+				entver.SubjectType(rbac.SubjectTypeUser),
+				entver.SubjectID(userID),
+			).
+			AddVersion(1).
+			Save(ctx)
+	}
+
+	affected, err := bump()
 	if err != nil {
 		return 0, err
 	}
 	if affected == 0 {
-		// 首次：创建版本记录，初始为 1。
-		if err := client.RbacPermissionVersion.Create().
+		// 首次：创建版本记录，初始为 1。并发首次创建会触发唯一约束冲突，
+		// 此时记录已被另一事务创建，退回递增分支保证版本单调，避免命令整体回滚。
+		err := client.RbacPermissionVersion.Create().
 			SetWorkspaceID(workspaceID).
 			SetSubjectType(rbac.SubjectTypeUser).
 			SetSubjectID(userID).
 			SetVersion(1).
-			Exec(ctx); err != nil {
+			Exec(ctx)
+		switch {
+		case err == nil:
+			return 1, nil
+		case ent.IsConstraintError(err):
+			if _, err := bump(); err != nil {
+				return 0, err
+			}
+		default:
 			return 0, err
 		}
-		return 1, nil
 	}
 	return r.GetUserVersion(ctx, workspaceID, userID)
 }

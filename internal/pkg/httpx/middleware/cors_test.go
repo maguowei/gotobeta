@@ -40,6 +40,22 @@ func TestCORSRejectsUnknownOrigin(t *testing.T) {
 	}
 }
 
+func TestCORSPreflightRejectsUnknownOrigin(t *testing.T) {
+	r := corsRouter([]string{"https://app.example.com"})
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodOptions, "/", nil)
+	req.Header.Set("Origin", "https://evil.example.com")
+	req.Header.Set("Access-Control-Request-Method", "POST")
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("非白名单 Origin 预检应返回 403，得 %d", w.Code)
+	}
+	if got := w.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Fatalf("非白名单预检不应返回 ACAO，得 %q", got)
+	}
+}
+
 func TestCORSPreflightReturns204(t *testing.T) {
 	r := corsRouter([]string{"https://app.example.com"})
 	w := httptest.NewRecorder()

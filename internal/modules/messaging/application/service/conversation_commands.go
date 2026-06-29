@@ -15,6 +15,9 @@ import (
 
 // CreateConversation 创建会话/频道；单聊按 dm_key 幂等去重，命中已有则直接返回。
 func (s *ConversationService) CreateConversation(ctx context.Context, cmd messagingcmd.CreateConversationCommand) (*messagingresult.ConversationResult, error) {
+	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+		return nil, err
+	}
 	switch conversation.Type(cmd.Type) {
 	case conversation.TypeDM:
 		return s.createDM(ctx, cmd)
@@ -128,6 +131,9 @@ func (s *ConversationService) addUserMember(ctx context.Context, convID, userID 
 
 // AddMember 向群聊/频道加入成员；需操作者为会话 owner/admin。
 func (s *ConversationService) AddMember(ctx context.Context, cmd messagingcmd.AddMemberCommand) (*messagingresult.ConversationMemberResult, error) {
+	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+		return nil, err
+	}
 	conv, err := s.conversations.FindByID(ctx, cmd.ConversationID)
 	if err != nil {
 		if stderrors.Is(err, conversation.ErrNotFound) {
@@ -185,6 +191,9 @@ func (s *ConversationService) AddMember(ctx context.Context, cmd messagingcmd.Ad
 
 // RemoveMember 从群聊/频道移除成员；操作者需为 owner/admin 或移除自己。
 func (s *ConversationService) RemoveMember(ctx context.Context, cmd messagingcmd.RemoveMemberCommand) error {
+	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+		return err
+	}
 	conv, err := s.conversations.FindByID(ctx, cmd.ConversationID)
 	if err != nil {
 		if stderrors.Is(err, conversation.ErrNotFound) {

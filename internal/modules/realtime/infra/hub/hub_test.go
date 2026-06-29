@@ -157,6 +157,20 @@ func TestGracefulShutdownTimesOutWhenStuck(t *testing.T) {
 	}
 }
 
+func TestRegisterRejectedAfterShutdown(t *testing.T) {
+	t.Parallel()
+	h := New(0, 0)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	// 空 Hub 立即排空完成，但 shutting 标记保持，后续 Register 必须被拒绝。
+	if err := h.GracefulShutdown(ctx); err != nil {
+		t.Fatalf("空 Hub 应立即排空，得 %v", err)
+	}
+	if h.Register(1, &fakeConn{}) {
+		t.Fatal("优雅关闭后不应再接受新连接")
+	}
+}
+
 type countGauge struct{ last float64 }
 
 func (g *countGauge) SetWSConnections(n float64) { g.last = n }

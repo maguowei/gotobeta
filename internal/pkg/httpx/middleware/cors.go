@@ -22,28 +22,33 @@ func CORS(allowedOrigins []string) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		if origin != "" {
-			_, ok := set[origin]
-			if allowAll || ok {
-				if allowAll {
-					// 通配放行时按规范不能携带凭证，回显 *。
-					c.Header("Access-Control-Allow-Origin", "*")
-				} else {
-					c.Header("Access-Control-Allow-Origin", origin)
-					c.Header("Access-Control-Allow-Credentials", "true")
-				}
-				c.Header("Vary", "Origin")
-				c.Header("Access-Control-Allow-Methods", strings.Join([]string{
-					http.MethodGet, http.MethodPost, http.MethodPut,
-					http.MethodPatch, http.MethodDelete, http.MethodOptions,
-				}, ", "))
-				c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-Id")
-				c.Header("Access-Control-Max-Age", "600")
+		_, ok := set[origin]
+		allowed := origin != "" && (allowAll || ok)
+
+		if allowed {
+			if allowAll {
+				// 通配放行时按规范不能携带凭证，回显 *。
+				c.Header("Access-Control-Allow-Origin", "*")
+			} else {
+				c.Header("Access-Control-Allow-Origin", origin)
+				c.Header("Access-Control-Allow-Credentials", "true")
 			}
+			c.Header("Vary", "Origin")
+			c.Header("Access-Control-Allow-Methods", strings.Join([]string{
+				http.MethodGet, http.MethodPost, http.MethodPut,
+				http.MethodPatch, http.MethodDelete, http.MethodOptions,
+			}, ", "))
+			c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-Id")
+			c.Header("Access-Control-Max-Age", "600")
 		}
 
+		// 预检：白名单内回 204 结束；非白名单 Origin 的预检直接 403，不泄露端点存在性。
 		if c.Request.Method == http.MethodOptions {
-			c.AbortWithStatus(http.StatusNoContent)
+			if allowed {
+				c.AbortWithStatus(http.StatusNoContent)
+			} else {
+				c.AbortWithStatus(http.StatusForbidden)
+			}
 			return
 		}
 		c.Next()
