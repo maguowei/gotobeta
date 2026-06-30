@@ -106,9 +106,74 @@ func TestRecallDeletedStatus(t *testing.T) {
 	t.Parallel()
 	now := time.Now()
 	m := UnmarshalFromDB(1, 1, 1, SenderUser, 9, nil, ContentText, map[string]any{"text": "x"}, 0,
-		StatusDeleted, now, nil, now, now)
+		StatusDeleted, now, nil, nil, now, now)
 	if err := m.Recall(now, time.Minute); !errors.Is(err, ErrNotRecallable) {
 		t.Fatalf("已删除消息撤回应返回 ErrNotRecallable, got %v", err)
+	}
+}
+
+// TestEditSuccess 校验文本消息在窗口内可原地编辑并记录 editedAt。
+func TestEditSuccess(t *testing.T) {
+	t.Parallel()
+	m, _ := New(1, 1, 1, SenderUser, 9, "c1", ContentText, map[string]any{"text": "old"}, 0)
+	now := m.ServerTime().Add(time.Second)
+	if err := m.Edit(map[string]any{"text": "new"}, now, time.Minute); err != nil {
+		t.Fatalf("编辑应成功: %v", err)
+	}
+	if m.Content()["text"] != "new" {
+		t.Fatalf("内容应更新为 new, got %v", m.Content()["text"])
+	}
+	if m.EditedAt() == nil || !m.EditedAt().Equal(now) {
+		t.Fatalf("editedAt 应为 %v, got %v", now, m.EditedAt())
+	}
+	if !m.UpdatedAt().Equal(now) {
+		t.Fatal("updatedAt 应同步为编辑时间")
+	}
+}
+
+// TestEditRejects 表驱动覆盖编辑的各拒绝分支。
+func TestEditRejects(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	cases := []struct {
+		name    string
+		msg     *Message
+		content map[string]any
+		window  time.Duration
+		wantErr error
+	}{
+		{
+			"非文本不可编辑",
+			UnmarshalFromDB(1, 1, 1, SenderUser, 9, nil, ContentImage, map[string]any{"url": "x"}, 0, StatusNormal, now, nil, nil, now, now),
+			map[string]any{"text": "new"}, time.Minute, ErrNotEditable,
+		},
+		{
+			"已撤回不可编辑",
+			UnmarshalFromDB(1, 1, 1, SenderUser, 9, nil, ContentText, map[string]any{"text": "x"}, 0, StatusRecalled, now, nil, nil, now, now),
+			map[string]any{"text": "new"}, time.Minute, ErrNotEditable,
+		},
+		{
+			"超窗不可编辑",
+			UnmarshalFromDB(1, 1, 1, SenderUser, 9, nil, ContentText, map[string]any{"text": "x"}, 0, StatusNormal, now.Add(-time.Hour), nil, nil, now, now),
+			map[string]any{"text": "new"}, time.Minute, ErrEditWindowExpired,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if err := tc.msg.Edit(tc.content, now, tc.window); !errors.Is(err, tc.wantErr) {
+				t.Fatalf("应返回 %v, got %v", tc.wantErr, err)
+			}
+		})
+	}
+}
+
+// TestEditEmptyTextRejected 校验编辑后文本为空被拒绝。
+func TestEditEmptyTextRejected(t *testing.T) {
+	t.Parallel()
+	m, _ := New(1, 1, 1, SenderUser, 9, "c1", ContentText, map[string]any{"text": "old"}, 0)
+	if err := m.Edit(map[string]any{"text": ""}, m.ServerTime(), time.Minute); err == nil {
+		t.Fatal("空文本编辑应被拒绝")
 	}
 }
 
@@ -117,7 +182,7 @@ func TestDigestAllTypes(t *testing.T) {
 	t.Parallel()
 	now := time.Now()
 	build := func(ct ContentType, status Status, content map[string]any) *Message {
-		return UnmarshalFromDB(1, 1, 1, SenderUser, 9, nil, ct, content, 0, status, now, nil, now, now)
+		return UnmarshalFromDB(1, 1, 1, SenderUser, 9, nil, ct, content, 0, status, now, nil, nil, now, now)
 	}
 	cases := []struct {
 		name string
@@ -149,7 +214,7 @@ func TestDigestTruncateBoundary(t *testing.T) {
 	now := time.Now()
 	exact := strings.Repeat("字", 60)
 	m := UnmarshalFromDB(1, 1, 1, SenderUser, 9, nil, ContentText, map[string]any{"text": exact}, 0,
-		StatusNormal, now, nil, now, now)
+		StatusNormal, now, nil, nil, now, now)
 	if got := m.Digest(); len([]rune(got)) != 60 {
 		t.Fatalf("恰好 60 runes 不应截断, got %d", len([]rune(got)))
 	}
@@ -165,7 +230,7 @@ func TestUnmarshalFromDB(t *testing.T) {
 	meta := map[string]any{"k": "v"}
 
 	m := UnmarshalFromDB(11, 22, 3, SenderBot, 100, &client, ContentText, content, 99,
-		StatusRecalled, server, meta, now, now)
+		StatusRecalled, server, nil, meta, now, now)
 	if m.ID() != 11 || m.ConversationID() != 22 || m.Seq() != 3 {
 		t.Fatalf("重建基础字段错误: %+v", m)
 	}
@@ -193,7 +258,7 @@ func TestUnmarshalFromDB(t *testing.T) {
 
 	// nil content / metadata 应兜底为空 map。
 	m2 := UnmarshalFromDB(1, 1, 1, SenderUser, 9, nil, ContentText, nil, 0,
-		StatusNormal, now, nil, now, now)
+		StatusNormal, now, nil, nil, now, now)
 	if m2.Content() == nil || m2.Metadata() == nil {
 		t.Fatal("nil content/metadata 应兜底为空 map")
 	}

@@ -100,3 +100,20 @@ func (d *Dispatcher) OnReactionUpdated(ctx context.Context, e event.Event) error
 	d.incPush("success")
 	return nil
 }
+
+// OnMessageEdited 处理消息编辑事件：向会话在线成员推 edit 帧，携带新内容原地替换。
+func (d *Dispatcher) OnMessageEdited(ctx context.Context, e event.Event) error {
+	evt, ok := e.(imevent.MessageEditedEvent)
+	if !ok {
+		return nil
+	}
+	userIDs, err := d.members.ConversationUserIDs(ctx, evt.ConversationID)
+	if err != nil {
+		d.incPush("error")
+		loggerx.WithError(ctx, d.logger, "dispatch lookup members failed", err, slog.Int64("conversationId", evt.ConversationID))
+		return err
+	}
+	d.hub.Broadcast(userIDs, ws.EditFrame(evt.ConversationID, evt.MessageID, evt.Content))
+	d.incPush("success")
+	return nil
+}

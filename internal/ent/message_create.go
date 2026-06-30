@@ -162,6 +162,20 @@ func (_c *MessageCreate) SetNillableServerTime(v *time.Time) *MessageCreate {
 	return _c
 }
 
+// SetEditedAt sets the "edited_at" field.
+func (_c *MessageCreate) SetEditedAt(v time.Time) *MessageCreate {
+	_c.mutation.SetEditedAt(v)
+	return _c
+}
+
+// SetNillableEditedAt sets the "edited_at" field if the given value is not nil.
+func (_c *MessageCreate) SetNillableEditedAt(v *time.Time) *MessageCreate {
+	if v != nil {
+		_c.SetEditedAt(*v)
+	}
+	return _c
+}
+
 // SetMetadata sets the "metadata" field.
 func (_c *MessageCreate) SetMetadata(v map[string]interface{}) *MessageCreate {
 	_c.mutation.SetMetadata(v)
@@ -350,6 +364,10 @@ func (_c *MessageCreate) createSpec() (*Message, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.ServerTime(); ok {
 		_spec.SetField(message.FieldServerTime, field.TypeTime, value)
 		_node.ServerTime = value
+	}
+	if value, ok := _c.mutation.EditedAt(); ok {
+		_spec.SetField(message.FieldEditedAt, field.TypeTime, value)
+		_node.EditedAt = &value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(message.FieldMetadata, field.TypeJSON, value)

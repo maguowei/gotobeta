@@ -14,4 +14,5 @@ type MessageResult struct {
 	ReplyToMsgID   int64          `json:"replyToMsgId"`
 	Status         int8           `json:"status"`
 	ServerTime     time.Time      `json:"serverTime"`
+	EditedAt       *time.Time     `json:"editedAt,omitempty"`
 }

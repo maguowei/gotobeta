@@ -45,6 +45,9 @@ func (u errUC) PullMessages(_ context.Context, _ messagingquery.PullMessagesQuer
 func (u errUC) RecallMessage(_ context.Context, _ messagingcmd.RecallMessageCommand) error {
 	return u.err
 }
+func (u errUC) EditMessage(_ context.Context, _ messagingcmd.EditMessageCommand) (*messagingresult.MessageResult, error) {
+	return nil, u.err
+}
 func (u errUC) ReportRead(_ context.Context, _ messagingcmd.ReportReadCommand) error { return u.err }
 func (u errUC) AddReaction(_ context.Context, _ messagingcmd.AddReactionCommand) error {
 	return u.err
@@ -111,6 +114,7 @@ func TestMessagingUseCaseErrors(t *testing.T) {
 		{"send", "POST", "/api/v1/workspaces/1/conversations/100/messages", `{"clientMsgId":"c1","contentType":1,"content":{"text":"hi"}}`},
 		{"pull", "GET", "/api/v1/workspaces/1/conversations/100/messages?afterSeq=0&limit=10", ""},
 		{"recall", "POST", "/api/v1/workspaces/1/conversations/100/messages/8001/recall", ""},
+		{"edit", "PATCH", "/api/v1/workspaces/1/conversations/100/messages/8001", `{"content":{"text":"new"}}`},
 		{"reportRead", "POST", "/api/v1/workspaces/1/conversations/100/read", `{"readSeq":5}`},
 		{"addReaction", "POST", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions", `{"emoji":"👍"}`},
 		{"removeReaction", "DELETE", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions?emoji=👍", ""},
@@ -150,6 +154,7 @@ func TestMessagingMissingClaims(t *testing.T) {
 		{"POST", "/api/v1/workspaces/1/conversations/100/messages", `{"clientMsgId":"c1","contentType":1,"content":{"text":"hi"}}`},
 		{"GET", "/api/v1/workspaces/1/conversations/100/messages?afterSeq=0&limit=10", ""},
 		{"POST", "/api/v1/workspaces/1/conversations/100/messages/8001/recall", ""},
+		{"PATCH", "/api/v1/workspaces/1/conversations/100/messages/8001", `{"content":{"text":"new"}}`},
 		{"POST", "/api/v1/workspaces/1/conversations/100/read", `{"readSeq":5}`},
 		{"POST", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions", `{"emoji":"👍"}`},
 		{"DELETE", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions?emoji=👍", ""},

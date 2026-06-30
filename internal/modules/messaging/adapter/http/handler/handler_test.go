@@ -39,8 +39,11 @@ func (fakeUC) PullMessages(_ context.Context, _ messagingquery.PullMessagesQuery
 	return []*messagingresult.MessageResult{{MessageID: 8001, Seq: 1}}, nil
 }
 func (fakeUC) RecallMessage(_ context.Context, _ messagingcmd.RecallMessageCommand) error { return nil }
-func (fakeUC) ReportRead(_ context.Context, _ messagingcmd.ReportReadCommand) error       { return nil }
-func (fakeUC) AddReaction(_ context.Context, _ messagingcmd.AddReactionCommand) error     { return nil }
+func (fakeUC) EditMessage(_ context.Context, _ messagingcmd.EditMessageCommand) (*messagingresult.MessageResult, error) {
+	return &messagingresult.MessageResult{MessageID: 8001, Seq: 1, ContentType: 1, Content: map[string]any{"text": "edited"}}, nil
+}
+func (fakeUC) ReportRead(_ context.Context, _ messagingcmd.ReportReadCommand) error   { return nil }
+func (fakeUC) AddReaction(_ context.Context, _ messagingcmd.AddReactionCommand) error { return nil }
 func (fakeUC) RemoveReaction(_ context.Context, _ messagingcmd.RemoveReactionCommand) error {
 	return nil
 }

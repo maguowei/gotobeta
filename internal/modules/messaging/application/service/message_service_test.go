@@ -93,7 +93,11 @@ func seedActiveMember(repo *memConvRepo, convID, userID int64) {
 }
 
 func newMsgService(convRepo *memConvRepo, msgRepo *memMsgRepo, pub *capturePublisher) *MessageService {
-	return NewMessageService(msgRepo, convRepo, newMemReactionRepo(), &memSeqAlloc{}, allowChecker{}, pub, &fakeIDGen{}, directTxRunner{}, 2*time.Minute, 50, slog.Default(), nil)
+	return newMsgServiceWithWindow(convRepo, msgRepo, pub, 2*time.Minute)
+}
+
+func newMsgServiceWithWindow(convRepo *memConvRepo, msgRepo *memMsgRepo, pub *capturePublisher, window time.Duration) *MessageService {
+	return NewMessageService(msgRepo, convRepo, newMemReactionRepo(), &memSeqAlloc{}, allowChecker{}, pub, &fakeIDGen{}, directTxRunner{}, window, 50, slog.Default(), nil)
 }
 
 // fakeMetrics 记录埋点调用次数，断言 SendMessage 触发观测。

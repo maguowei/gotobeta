@@ -45,6 +45,7 @@ func RegisterRoutes(group *gin.RouterGroup, h *handler.ConversationHandler, mh *
 
 	group.GET("/workspaces/:ws/conversations/:cid/messages", mh.PullMessages)
 	group.POST("/workspaces/:ws/conversations/:cid/messages/:mid/recall", mh.RecallMessage)
+	group.PATCH("/workspaces/:ws/conversations/:cid/messages/:mid", mh.EditMessage)
 	group.POST("/workspaces/:ws/conversations/:cid/read", mh.ReportRead)
 
 	// 表情回应：增 / 删（emoji 经 query）/ 列举。

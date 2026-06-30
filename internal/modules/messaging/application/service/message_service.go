@@ -85,6 +85,7 @@ func toMessageResult(m *message.Message) *messagingresult.MessageResult {
 		ReplyToMsgID:   m.ReplyToMsgID(),
 		Status:         int8(m.Status()),
 		ServerTime:     m.ServerTime(),
+		EditedAt:       m.EditedAt(),
 	}
 }
 

@@ -31,6 +31,9 @@ func TestFrameConstructors(t *testing.T) {
 	if f := check(ReactionFrame(100, 8001, 7, "👍", 1), TypeReaction); f.CID != 100 || f.MsgID != 8001 || f.UID != 7 || f.Emoji != "👍" || f.Action != 1 {
 		t.Fatalf("reaction 内容错误: %+v", f)
 	}
+	if f := check(EditFrame(100, 8001, map[string]any{"text": "new"}), TypeEdit); f.CID != 100 || f.MsgID != 8001 || f.Content["text"] != "new" {
+		t.Fatalf("edit 内容错误: %+v", f)
+	}
 	check(pongFrame(), TypePong)
 }
 

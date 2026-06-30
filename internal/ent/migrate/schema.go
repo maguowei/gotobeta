@@ -233,6 +233,7 @@ var (
 		{Name: "reply_to_msg_id", Type: field.TypeInt64, Default: 0},
 		{Name: "status", Type: field.TypeInt8, Default: 1},
 		{Name: "server_time", Type: field.TypeTime},
+		{Name: "edited_at", Type: field.TypeTime, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
 	}
 	// MessagesTable holds the schema information for the "messages" table.

@@ -26,6 +26,10 @@ func TestMessageRequestToCommand(t *testing.T) {
 	if r.ConversationID != 100 || r.UserID != 9 || r.ReadSeq != 5 {
 		t.Fatalf("ReportRead 映射错误: %+v", r)
 	}
+	e := EditMessageRequest{Content: map[string]any{"text": "new"}}.ToCommand(1, 100, 8001, 9)
+	if e.WorkspaceID != 1 || e.ConversationID != 100 || e.MessageID != 8001 || e.OperatorUserID != 9 || e.Content["text"] != "new" {
+		t.Fatalf("EditMessage 映射错误: %+v", e)
+	}
 }
 
 func TestAddReactionRequestToCommand(t *testing.T) {

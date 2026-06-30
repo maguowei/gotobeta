@@ -67,6 +67,7 @@ type Message struct {
 	replyToMsgID   int64
 	status         Status
 	serverTime     time.Time
+	editedAt       *time.Time
 	metadata       map[string]any
 	createdAt      time.Time
 	updatedAt      time.Time
@@ -83,6 +84,7 @@ func (m *Message) Content() map[string]any  { return m.content }
 func (m *Message) ReplyToMsgID() int64      { return m.replyToMsgID }
 func (m *Message) Status() Status           { return m.status }
 func (m *Message) ServerTime() time.Time    { return m.serverTime }
+func (m *Message) EditedAt() *time.Time     { return m.editedAt }
 func (m *Message) Metadata() map[string]any { return m.metadata }
 func (m *Message) CreatedAt() time.Time     { return m.createdAt }
 func (m *Message) UpdatedAt() time.Time     { return m.updatedAt }
@@ -153,6 +155,23 @@ func (m *Message) Recall(now time.Time, window time.Duration) error {
 	return nil
 }
 
+// Edit 在编辑窗口内原地更新文本消息内容；仅文本、状态正常且未超窗可编辑（本人校验由应用层负责）。
+func (m *Message) Edit(content map[string]any, now time.Time, window time.Duration) error {
+	if m.status != StatusNormal || m.contentType != ContentText {
+		return ErrNotEditable
+	}
+	if now.Sub(m.serverTime) > window {
+		return ErrEditWindowExpired
+	}
+	if text, _ := content["text"].(string); text == "" {
+		return apperr.InvalidParam("文本消息内容不能为空")
+	}
+	m.content = content
+	m.editedAt = &now
+	m.updatedAt = now
+	return nil
+}
+
 // Digest 生成会话列表用的末条消息摘要。
 func (m *Message) Digest() string {
 	if m.status == StatusRecalled {
@@ -184,7 +203,7 @@ func truncate(s string, max int) string {
 }
 
 // UnmarshalFromDB 从数据库重建消息聚合。
-func UnmarshalFromDB(id, conversationID, seq int64, senderType SenderType, senderID int64, clientMsgID *string, contentType ContentType, content map[string]any, replyToMsgID int64, status Status, serverTime time.Time, metadata map[string]any, createdAt, updatedAt time.Time) *Message {
+func UnmarshalFromDB(id, conversationID, seq int64, senderType SenderType, senderID int64, clientMsgID *string, contentType ContentType, content map[string]any, replyToMsgID int64, status Status, serverTime time.Time, editedAt *time.Time, metadata map[string]any, createdAt, updatedAt time.Time) *Message {
 	if content == nil {
 		content = map[string]any{}
 	}
@@ -195,7 +214,7 @@ func UnmarshalFromDB(id, conversationID, seq int64, senderType SenderType, sende
 		id: id, conversationID: conversationID, seq: seq,
 		senderType: senderType, senderID: senderID, clientMsgID: clientMsgID,
 		contentType: contentType, content: content, replyToMsgID: replyToMsgID,
-		status: status, serverTime: serverTime, metadata: metadata,
+		status: status, serverTime: serverTime, editedAt: editedAt, metadata: metadata,
 		createdAt: createdAt, updatedAt: updatedAt,
 	}
 }

@@ -35,6 +35,8 @@ func (Message) Fields() []ent.Field {
 		// status: 1-正常 2-已撤回 3-已删除
 		field.Int8("status").Default(1),
 		field.Time("server_time").Default(time.Now),
+		// edited_at: 末次原地编辑时间；NULL 表示从未编辑（供客户端显示「已编辑」标记）
+		field.Time("edited_at").Optional().Nillable(),
 		// metadata: AI 打标/情绪/摘要扩展位 ← AI 缝
 		field.JSON("metadata", map[string]any{}).Optional(),
 	}

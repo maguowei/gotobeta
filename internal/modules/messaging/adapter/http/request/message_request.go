@@ -12,6 +12,23 @@ type SendMessageRequest struct {
 	ReplyToMsgID int64          `json:"replyToMsgId,string" binding:"min=0"`
 }
 
+// EditMessageRequest 编辑消息请求（原地更新文本内容）。
+type EditMessageRequest struct {
+	// Content 为编辑后的 content blocks 结构化消息体（非空）。
+	Content map[string]any `json:"content" binding:"required,min=1"`
+}
+
+// ToCommand 转换为命令。
+func (r EditMessageRequest) ToCommand(workspaceID, conversationID, messageID, operatorUserID int64) messagingcmd.EditMessageCommand {
+	return messagingcmd.EditMessageCommand{
+		WorkspaceID:    workspaceID,
+		ConversationID: conversationID,
+		OperatorUserID: operatorUserID,
+		MessageID:      messageID,
+		Content:        r.Content,
+	}
+}
+
 // ReportReadRequest 已读上报请求。
 type ReportReadRequest struct {
 	ReadSeq int64 `json:"readSeq" binding:"required"`

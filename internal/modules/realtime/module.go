@@ -82,6 +82,7 @@ func New(cfg *config.Config, kv *cache.RedisKV, members imrt.MemberLookup, reade
 	bus.Subscribe(imevent.MessageCreated, dispatcher.OnMessageCreated)
 	bus.Subscribe(imevent.ReadUpdated, dispatcher.OnReadUpdated)
 	bus.Subscribe(imevent.ReactionUpdated, dispatcher.OnReactionUpdated)
+	bus.Subscribe(imevent.MessageEdited, dispatcher.OnMessageEdited)
 
 	handshakeRate := cfg.IM.WSHandshakeRatePerMinute
 	if handshakeRate <= 0 {

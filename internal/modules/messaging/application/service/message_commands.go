@@ -190,6 +190,54 @@ func (s *MessageService) RecallMessage(ctx context.Context, cmd messagingcmd.Rec
 	return nil
 }
 
+// EditMessage 编辑消息：仅本人在编辑窗口内可原地更新文本内容，并发布编辑事件供在线端同步。
+func (s *MessageService) EditMessage(ctx context.Context, cmd messagingcmd.EditMessageCommand) (*messagingresult.MessageResult, error) {
+	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+		return nil, err
+	}
+	msg, err := s.messages.FindByID(ctx, cmd.MessageID)
+	if err != nil {
+		if stderrors.Is(err, message.ErrNotFound) {
+			return nil, apperr.NotFound("消息不存在")
+		}
+		return nil, wrapInfrastructureError("查询消息失败", err)
+	}
+	if msg.ConversationID() != cmd.ConversationID {
+		return nil, apperr.InvalidParam("消息不属于该会话")
+	}
+	if _, err := s.requireActiveMember(ctx, cmd.ConversationID, cmd.OperatorUserID); err != nil {
+		return nil, err
+	}
+
+	// 仅消息发送者本人可编辑。
+	isSelf := msg.SenderType() == message.SenderUser && msg.SenderID() == cmd.OperatorUserID
+	if !isSelf {
+		return nil, apperr.Forbidden("只能编辑自己的消息")
+	}
+
+	if err := msg.Edit(cmd.Content, time.Now(), s.recallWindow); err != nil {
+		if stderrors.Is(err, message.ErrEditWindowExpired) {
+			return nil, apperr.InvalidParam("已超过编辑时间窗口")
+		}
+		if stderrors.Is(err, message.ErrNotEditable) {
+			return nil, apperr.InvalidParam("该消息不可编辑")
+		}
+		return nil, err
+	}
+
+	if err := s.messages.Save(ctx, msg); err != nil {
+		return nil, wrapInfrastructureError("保存编辑内容失败", err)
+	}
+
+	workspaceID := cmd.WorkspaceID
+	evt := imevent.NewMessageEditedEvent(workspaceID, msg.ConversationID(), msg.ID(), msg.Content(), *msg.EditedAt())
+	if err := s.publisher.Publish(ctx, evt); err != nil {
+		loggerx.WithError(ctx, s.logger, "publish message edited event failed", err, slog.Int64("messageId", msg.ID()))
+	}
+	s.logger.InfoContext(ctx, "message edited", slog.Int64("conversationId", cmd.ConversationID), slog.Int64("messageId", cmd.MessageID))
+	return toMessageResult(msg), nil
+}
+
 // ReportRead 上报已读水位（单调推进 read_seq），并发布已读更新事件供多端对齐。
 func (s *MessageService) ReportRead(ctx context.Context, cmd messagingcmd.ReportReadCommand) error {
 	mem, err := s.requireActiveMember(ctx, cmd.ConversationID, cmd.UserID)

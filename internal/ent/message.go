@@ -44,6 +44,8 @@ type Message struct {
 	Status int8 `json:"status,omitempty"`
 	// ServerTime holds the value of the "server_time" field.
 	ServerTime time.Time `json:"server_time,omitempty"`
+	// EditedAt holds the value of the "edited_at" field.
+	EditedAt *time.Time `json:"edited_at,omitempty"`
 	// Metadata holds the value of the "metadata" field.
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 	selectValues sql.SelectValues
@@ -60,7 +62,7 @@ func (*Message) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case message.FieldClientMsgID:
 			values[i] = new(sql.NullString)
-		case message.FieldCreatedAt, message.FieldUpdatedAt, message.FieldServerTime:
+		case message.FieldCreatedAt, message.FieldUpdatedAt, message.FieldServerTime, message.FieldEditedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -164,6 +166,13 @@ func (_m *Message) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.ServerTime = value.Time
 			}
+		case message.FieldEditedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field edited_at", values[i])
+			} else if value.Valid {
+				_m.EditedAt = new(time.Time)
+				*_m.EditedAt = value.Time
+			}
 		case message.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
@@ -248,6 +257,11 @@ func (_m *Message) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("server_time=")
 	builder.WriteString(_m.ServerTime.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.EditedAt; v != nil {
+		builder.WriteString("edited_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))

@@ -121,6 +121,45 @@ func TestDispatcherOnReactionUpdatedLookupError(t *testing.T) {
 	}
 }
 
+func TestDispatcherOnMessageEditedPushesEditFrame(t *testing.T) {
+	h := hub.New(0, 0)
+	member := &recvConn{}
+	h.Register(1, member)
+
+	d := NewDispatcher(h, stubMembers{ids: []int64{1}}, slog.Default(), nil)
+	evt := imevent.NewMessageEditedEvent(7, 100, 8001, map[string]any{"text": "new"}, time.Now())
+	if err := d.OnMessageEdited(context.Background(), evt); err != nil {
+		t.Fatalf("分发失败: %v", err)
+	}
+
+	if len(member.frames) != 1 {
+		t.Fatalf("成员应收到 1 帧, got %d", len(member.frames))
+	}
+	var f ws.Frame
+	if err := json.Unmarshal(member.frames[0], &f); err != nil {
+		t.Fatalf("帧解析失败: %v", err)
+	}
+	if f.T != ws.TypeEdit || f.CID != 100 || f.MsgID != 8001 || f.Content["text"] != "new" {
+		t.Fatalf("edit 帧错误: %+v", f)
+	}
+}
+
+func TestDispatcherOnMessageEditedIgnoresUnrelatedEvent(t *testing.T) {
+	d := NewDispatcher(hub.New(0, 0), stubMembers{}, slog.Default(), nil)
+	if err := d.OnMessageEdited(context.Background(), imevent.ReadUpdatedEvent{}); err != nil {
+		t.Fatalf("无关事件应被忽略, got %v", err)
+	}
+}
+
+func TestDispatcherOnMessageEditedLookupError(t *testing.T) {
+	boom := errors.New("lookup boom")
+	d := NewDispatcher(hub.New(0, 0), errMembers{err: boom}, slog.Default(), nil)
+	evt := imevent.NewMessageEditedEvent(7, 100, 8001, map[string]any{"text": "new"}, time.Now())
+	if err := d.OnMessageEdited(context.Background(), evt); !errors.Is(err, boom) {
+		t.Fatalf("查询失败应透传, got %v", err)
+	}
+}
+
 func TestTypingLookupErrorIsSwallowed(t *testing.T) {
 	h := hub.New(0, 0)
 	peer := &recvConn{}

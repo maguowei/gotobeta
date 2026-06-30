@@ -227,6 +227,26 @@ func (_u *MessageUpdate) SetNillableServerTime(v *time.Time) *MessageUpdate {
 	return _u
 }
 
+// SetEditedAt sets the "edited_at" field.
+func (_u *MessageUpdate) SetEditedAt(v time.Time) *MessageUpdate {
+	_u.mutation.SetEditedAt(v)
+	return _u
+}
+
+// SetNillableEditedAt sets the "edited_at" field if the given value is not nil.
+func (_u *MessageUpdate) SetNillableEditedAt(v *time.Time) *MessageUpdate {
+	if v != nil {
+		_u.SetEditedAt(*v)
+	}
+	return _u
+}
+
+// ClearEditedAt clears the value of the "edited_at" field.
+func (_u *MessageUpdate) ClearEditedAt() *MessageUpdate {
+	_u.mutation.ClearEditedAt()
+	return _u
+}
+
 // SetMetadata sets the "metadata" field.
 func (_u *MessageUpdate) SetMetadata(v map[string]interface{}) *MessageUpdate {
 	_u.mutation.SetMetadata(v)
@@ -361,6 +381,12 @@ func (_u *MessageUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.ServerTime(); ok {
 		_spec.SetField(message.FieldServerTime, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.EditedAt(); ok {
+		_spec.SetField(message.FieldEditedAt, field.TypeTime, value)
+	}
+	if _u.mutation.EditedAtCleared() {
+		_spec.ClearField(message.FieldEditedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(message.FieldMetadata, field.TypeJSON, value)
@@ -587,6 +613,26 @@ func (_u *MessageUpdateOne) SetNillableServerTime(v *time.Time) *MessageUpdateOn
 	return _u
 }
 
+// SetEditedAt sets the "edited_at" field.
+func (_u *MessageUpdateOne) SetEditedAt(v time.Time) *MessageUpdateOne {
+	_u.mutation.SetEditedAt(v)
+	return _u
+}
+
+// SetNillableEditedAt sets the "edited_at" field if the given value is not nil.
+func (_u *MessageUpdateOne) SetNillableEditedAt(v *time.Time) *MessageUpdateOne {
+	if v != nil {
+		_u.SetEditedAt(*v)
+	}
+	return _u
+}
+
+// ClearEditedAt clears the value of the "edited_at" field.
+func (_u *MessageUpdateOne) ClearEditedAt() *MessageUpdateOne {
+	_u.mutation.ClearEditedAt()
+	return _u
+}
+
 // SetMetadata sets the "metadata" field.
 func (_u *MessageUpdateOne) SetMetadata(v map[string]interface{}) *MessageUpdateOne {
 	_u.mutation.SetMetadata(v)
@@ -751,6 +797,12 @@ func (_u *MessageUpdateOne) sqlSave(ctx context.Context) (_node *Message, err er
 	}
 	if value, ok := _u.mutation.ServerTime(); ok {
 		_spec.SetField(message.FieldServerTime, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.EditedAt(); ok {
+		_spec.SetField(message.FieldEditedAt, field.TypeTime, value)
+	}
+	if _u.mutation.EditedAtCleared() {
+		_spec.ClearField(message.FieldEditedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(message.FieldMetadata, field.TypeJSON, value)

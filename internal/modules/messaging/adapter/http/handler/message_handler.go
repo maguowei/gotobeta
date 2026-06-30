@@ -20,6 +20,7 @@ type MessageUseCase interface {
 	SendMessage(ctx context.Context, cmd messagingcmd.SendMessageCommand) (*messagingresult.MessageResult, error)
 	PullMessages(ctx context.Context, q messagingquery.PullMessagesQuery) ([]*messagingresult.MessageResult, error)
 	RecallMessage(ctx context.Context, cmd messagingcmd.RecallMessageCommand) error
+	EditMessage(ctx context.Context, cmd messagingcmd.EditMessageCommand) (*messagingresult.MessageResult, error)
 	ReportRead(ctx context.Context, cmd messagingcmd.ReportReadCommand) error
 }
 
@@ -109,6 +110,29 @@ func (h *MessageHandler) RecallMessage(c *gin.Context) {
 		return
 	}
 	httpresponse.Success(c, nil)
+}
+
+// EditMessage 编辑消息内容。
+func (h *MessageHandler) EditMessage(c *gin.Context) {
+	claims, ok := httpmiddleware.RequireClaims(c)
+	if !ok {
+		return
+	}
+	wsID, cid, mid, ok := parseWsConvMsg(c)
+	if !ok {
+		return
+	}
+	var req messagingreq.EditMessageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "请求参数格式错误")
+		return
+	}
+	out, err := h.usecase.EditMessage(c.Request.Context(), req.ToCommand(wsID, cid, mid, claims.UserID))
+	if err != nil {
+		httpresponse.Error(c, err)
+		return
+	}
+	httpresponse.Success(c, messagingresp.ToMessageResponse(out))
 }
 
 // ReportRead 上报已读水位。

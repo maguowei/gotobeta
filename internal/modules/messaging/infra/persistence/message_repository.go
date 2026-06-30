@@ -82,6 +82,7 @@ func (r *MessageRepository) Save(ctx context.Context, m *message.Message) error 
 		Where(entmsg.BizID(m.ID())).
 		SetStatus(int8(m.Status())).
 		SetContent(m.Content()).
+		SetNillableEditedAt(m.EditedAt()).
 		SetMetadata(m.Metadata()).
 		SetUpdatedAt(m.UpdatedAt()).
 		Save(ctx)
@@ -117,7 +118,7 @@ func messageToEntity(row *ent.Message) *message.Message {
 		row.BizID, row.ConversationID, row.Seq,
 		message.SenderType(row.SenderType), row.SenderID, row.ClientMsgID,
 		message.ContentType(row.ContentType), row.Content, row.ReplyToMsgID,
-		message.Status(row.Status), row.ServerTime, row.Metadata,
+		message.Status(row.Status), row.ServerTime, row.EditedAt, row.Metadata,
 		row.CreatedAt, row.UpdatedAt,
 	)
 }

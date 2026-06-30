@@ -114,6 +114,11 @@ func ServerTime(v time.Time) predicate.Message {
 	return predicate.Message(sql.FieldEQ(FieldServerTime, v))
 }
 
+// EditedAt applies equality check predicate on the "edited_at" field. It's identical to EditedAtEQ.
+func EditedAt(v time.Time) predicate.Message {
+	return predicate.Message(sql.FieldEQ(FieldEditedAt, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Message {
 	return predicate.Message(sql.FieldEQ(FieldCreatedAt, v))
@@ -637,6 +642,56 @@ func ServerTimeLT(v time.Time) predicate.Message {
 // ServerTimeLTE applies the LTE predicate on the "server_time" field.
 func ServerTimeLTE(v time.Time) predicate.Message {
 	return predicate.Message(sql.FieldLTE(FieldServerTime, v))
+}
+
+// EditedAtEQ applies the EQ predicate on the "edited_at" field.
+func EditedAtEQ(v time.Time) predicate.Message {
+	return predicate.Message(sql.FieldEQ(FieldEditedAt, v))
+}
+
+// EditedAtNEQ applies the NEQ predicate on the "edited_at" field.
+func EditedAtNEQ(v time.Time) predicate.Message {
+	return predicate.Message(sql.FieldNEQ(FieldEditedAt, v))
+}
+
+// EditedAtIn applies the In predicate on the "edited_at" field.
+func EditedAtIn(vs ...time.Time) predicate.Message {
+	return predicate.Message(sql.FieldIn(FieldEditedAt, vs...))
+}
+
+// EditedAtNotIn applies the NotIn predicate on the "edited_at" field.
+func EditedAtNotIn(vs ...time.Time) predicate.Message {
+	return predicate.Message(sql.FieldNotIn(FieldEditedAt, vs...))
+}
+
+// EditedAtGT applies the GT predicate on the "edited_at" field.
+func EditedAtGT(v time.Time) predicate.Message {
+	return predicate.Message(sql.FieldGT(FieldEditedAt, v))
+}
+
+// EditedAtGTE applies the GTE predicate on the "edited_at" field.
+func EditedAtGTE(v time.Time) predicate.Message {
+	return predicate.Message(sql.FieldGTE(FieldEditedAt, v))
+}
+
+// EditedAtLT applies the LT predicate on the "edited_at" field.
+func EditedAtLT(v time.Time) predicate.Message {
+	return predicate.Message(sql.FieldLT(FieldEditedAt, v))
+}
+
+// EditedAtLTE applies the LTE predicate on the "edited_at" field.
+func EditedAtLTE(v time.Time) predicate.Message {
+	return predicate.Message(sql.FieldLTE(FieldEditedAt, v))
+}
+
+// EditedAtIsNil applies the IsNil predicate on the "edited_at" field.
+func EditedAtIsNil() predicate.Message {
+	return predicate.Message(sql.FieldIsNull(FieldEditedAt))
+}
+
+// EditedAtNotNil applies the NotNil predicate on the "edited_at" field.
+func EditedAtNotNil() predicate.Message {
+	return predicate.Message(sql.FieldNotNull(FieldEditedAt))
 }
 
 // MetadataIsNil applies the IsNil predicate on the "metadata" field.

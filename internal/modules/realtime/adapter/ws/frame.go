@@ -16,6 +16,7 @@ const (
 	TypeSignal   = "signal"
 	TypePresence = "presence"
 	TypeReaction = "reaction"
+	TypeEdit     = "edit"
 )
 
 // 协议版本协商（spec 2.5）。第一期帧体为 JSON；版本协商是为未来无损切换
@@ -45,9 +46,11 @@ type Frame struct {
 	Online  *bool  `json:"online,omitempty"`
 	Ticket  string `json:"ticket,omitempty"`
 	PV      int    `json:"pv,omitempty"`     // auth_ok 下行携带服务端协议版本
-	MsgID   int64  `json:"msg_id,omitempty"` // reaction 帧携带目标消息 ID
+	MsgID   int64  `json:"msg_id,omitempty"` // reaction/edit 帧携带目标消息 ID
 	Emoji   string `json:"emoji,omitempty"`  // reaction 帧携带表情
 	Action  int8   `json:"action,omitempty"` // reaction 帧携带动作（1=add 2=remove）
+
+	Content map[string]any `json:"content,omitempty"` // edit 帧携带编辑后的新内容
 }
 
 // decodeFrame 解析上行帧。
@@ -85,6 +88,11 @@ func PresenceFrame(uid int64, online bool) []byte {
 // ReactionFrame 构造表情回应变更下行帧（action：1=add 2=remove）。
 func ReactionFrame(cid, msgID, uid int64, emoji string, action int8) []byte {
 	return mustEncode(Frame{T: TypeReaction, CID: cid, MsgID: msgID, UID: uid, Emoji: emoji, Action: action})
+}
+
+// EditFrame 构造消息编辑下行帧，携带编辑后的新内容供在线端原地替换。
+func EditFrame(cid, msgID int64, content map[string]any) []byte {
+	return mustEncode(Frame{T: TypeEdit, CID: cid, MsgID: msgID, Content: content})
 }
 
 func pongFrame() []byte { return mustEncode(Frame{T: TypePong}) }

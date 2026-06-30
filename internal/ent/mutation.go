@@ -7076,6 +7076,7 @@ type MessageMutation struct {
 	status             *int8
 	addstatus          *int8
 	server_time        *time.Time
+	edited_at          *time.Time
 	metadata           *map[string]interface{}
 	clearedFields      map[string]struct{}
 	done               bool
@@ -7835,6 +7836,55 @@ func (m *MessageMutation) ResetServerTime() {
 	m.server_time = nil
 }
 
+// SetEditedAt sets the "edited_at" field.
+func (m *MessageMutation) SetEditedAt(t time.Time) {
+	m.edited_at = &t
+}
+
+// EditedAt returns the value of the "edited_at" field in the mutation.
+func (m *MessageMutation) EditedAt() (r time.Time, exists bool) {
+	v := m.edited_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEditedAt returns the old "edited_at" field's value of the Message entity.
+// If the Message object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MessageMutation) OldEditedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEditedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEditedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEditedAt: %w", err)
+	}
+	return oldValue.EditedAt, nil
+}
+
+// ClearEditedAt clears the value of the "edited_at" field.
+func (m *MessageMutation) ClearEditedAt() {
+	m.edited_at = nil
+	m.clearedFields[message.FieldEditedAt] = struct{}{}
+}
+
+// EditedAtCleared returns if the "edited_at" field was cleared in this mutation.
+func (m *MessageMutation) EditedAtCleared() bool {
+	_, ok := m.clearedFields[message.FieldEditedAt]
+	return ok
+}
+
+// ResetEditedAt resets all changes to the "edited_at" field.
+func (m *MessageMutation) ResetEditedAt() {
+	m.edited_at = nil
+	delete(m.clearedFields, message.FieldEditedAt)
+}
+
 // SetMetadata sets the "metadata" field.
 func (m *MessageMutation) SetMetadata(value map[string]interface{}) {
 	m.metadata = &value
@@ -7918,7 +7968,7 @@ func (m *MessageMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *MessageMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 15)
 	if m.created_at != nil {
 		fields = append(fields, message.FieldCreatedAt)
 	}
@@ -7958,6 +8008,9 @@ func (m *MessageMutation) Fields() []string {
 	if m.server_time != nil {
 		fields = append(fields, message.FieldServerTime)
 	}
+	if m.edited_at != nil {
+		fields = append(fields, message.FieldEditedAt)
+	}
 	if m.metadata != nil {
 		fields = append(fields, message.FieldMetadata)
 	}
@@ -7995,6 +8048,8 @@ func (m *MessageMutation) Field(name string) (ent.Value, bool) {
 		return m.Status()
 	case message.FieldServerTime:
 		return m.ServerTime()
+	case message.FieldEditedAt:
+		return m.EditedAt()
 	case message.FieldMetadata:
 		return m.Metadata()
 	}
@@ -8032,6 +8087,8 @@ func (m *MessageMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldStatus(ctx)
 	case message.FieldServerTime:
 		return m.OldServerTime(ctx)
+	case message.FieldEditedAt:
+		return m.OldEditedAt(ctx)
 	case message.FieldMetadata:
 		return m.OldMetadata(ctx)
 	}
@@ -8133,6 +8190,13 @@ func (m *MessageMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetServerTime(v)
+		return nil
+	case message.FieldEditedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEditedAt(v)
 		return nil
 	case message.FieldMetadata:
 		v, ok := value.(map[string]interface{})
@@ -8276,6 +8340,9 @@ func (m *MessageMutation) ClearedFields() []string {
 	if m.FieldCleared(message.FieldContent) {
 		fields = append(fields, message.FieldContent)
 	}
+	if m.FieldCleared(message.FieldEditedAt) {
+		fields = append(fields, message.FieldEditedAt)
+	}
 	if m.FieldCleared(message.FieldMetadata) {
 		fields = append(fields, message.FieldMetadata)
 	}
@@ -8298,6 +8365,9 @@ func (m *MessageMutation) ClearField(name string) error {
 		return nil
 	case message.FieldContent:
 		m.ClearContent()
+		return nil
+	case message.FieldEditedAt:
+		m.ClearEditedAt()
 		return nil
 	case message.FieldMetadata:
 		m.ClearMetadata()
@@ -8348,6 +8418,9 @@ func (m *MessageMutation) ResetField(name string) error {
 		return nil
 	case message.FieldServerTime:
 		m.ResetServerTime()
+		return nil
+	case message.FieldEditedAt:
+		m.ResetEditedAt()
 		return nil
 	case message.FieldMetadata:
 		m.ResetMetadata()

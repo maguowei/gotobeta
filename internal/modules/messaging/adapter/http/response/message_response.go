@@ -18,6 +18,7 @@ type MessageResponse struct {
 	ReplyToMsgID   int64          `json:"replyToMsgId,string"`
 	Status         int8           `json:"status"`
 	ServerTime     string         `json:"serverTime"`
+	EditedAt       string         `json:"editedAt,omitempty"`
 }
 
 // ToMessageResponse 转换消息结果。
@@ -33,7 +34,16 @@ func ToMessageResponse(out *messagingresult.MessageResult) MessageResponse {
 		ReplyToMsgID:   out.ReplyToMsgID,
 		Status:         out.Status,
 		ServerTime:     out.ServerTime.Format(time.DateTime),
+		EditedAt:       formatEditedAt(out.EditedAt),
 	}
+}
+
+// formatEditedAt 把可空编辑时间格式化为字符串；未编辑时返回空串（响应省略该字段）。
+func formatEditedAt(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format(time.DateTime)
 }
 
 // ToMessageListResponse 批量转换消息。

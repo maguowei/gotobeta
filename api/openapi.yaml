@@ -1155,6 +1155,61 @@ paths:
                 data: null
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/workspaces/{ws}/conversations/{cid}/messages/{mid}:
+    patch:
+      operationId: editMessage
+      summary: 编辑消息
+      description: 原地编辑文本消息内容；仅消息发送者本人在编辑窗口内可操作，编辑后经实时事件向在线端同步新内容。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+        - $ref: '#/components/parameters/ConversationID'
+        - $ref: '#/components/parameters/MessageID'
+      requestBody:
+        required: true
+        description: 编辑消息请求体
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditMessageRequest'
+      responses:
+        '200':
+          description: 编辑成功，返回更新后的消息
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  messageId: "8001"
+                  content:
+                    text: 你好（已编辑）
+                  editedAt: "2026-06-29 10:05:00"
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: 超过编辑窗口或不可编辑
+          content:
+            application/json:
+              example:
+                code: 40001
+                message: 已超过编辑时间窗口
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 非消息发送者本人
+          content:
+            application/json:
+              example:
+                code: 40300
+                message: 只能编辑自己的消息
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/workspaces/{ws}/conversations/{cid}/messages/{mid}/reactions:
     post:
       operationId: addReaction
@@ -2477,6 +2532,18 @@ components:
           type: string
           description: 被引用消息 ID（同会话内存在），0 表示不引用
           example: "0"
+    EditMessageRequest:
+      description: 编辑消息请求（原地更新文本内容）
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: object
+          description: 编辑后的 content blocks 结构化消息体（非空）
+          minProperties: 1
+          example:
+            text: 你好（已编辑）
     MessageItem:
       description: 消息
       type: object
@@ -2512,6 +2579,10 @@ components:
         serverTime:
           type: string
           example: "2026-06-29 10:00:00"
+        editedAt:
+          type: string
+          description: 末次编辑时间；未编辑时省略该字段
+          example: "2026-06-29 10:05:00"
     MessageResponse:
       description: 单条消息响应
       type: object

@@ -39,6 +39,15 @@ func TestMemberAndMessageResponses(t *testing.T) {
 	if msg.MessageID != 8001 || msg.Seq != 1 {
 		t.Fatalf("消息响应映射错误: %+v", msg)
 	}
+	// 未编辑时 editedAt 省略。
+	if msg.EditedAt != "" {
+		t.Fatalf("未编辑消息 editedAt 应为空: %q", msg.EditedAt)
+	}
+	// 已编辑时 editedAt 格式化。
+	edited := ToMessageResponse(&messagingresult.MessageResult{MessageID: 8001, ServerTime: at, EditedAt: &at})
+	if edited.EditedAt == "" {
+		t.Fatal("已编辑消息 editedAt 应被格式化")
+	}
 	msl := ToMessageListResponse([]*messagingresult.MessageResult{{MessageID: 8001, ServerTime: at}})
 	if len(msl) != 1 {
 		t.Fatalf("消息列表错误: %d", len(msl))

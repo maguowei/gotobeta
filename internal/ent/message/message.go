@@ -39,6 +39,8 @@ const (
 	FieldStatus = "status"
 	// FieldServerTime holds the string denoting the server_time field in the database.
 	FieldServerTime = "server_time"
+	// FieldEditedAt holds the string denoting the edited_at field in the database.
+	FieldEditedAt = "edited_at"
 	// FieldMetadata holds the string denoting the metadata field in the database.
 	FieldMetadata = "metadata"
 	// Table holds the table name of the message in the database.
@@ -61,6 +63,7 @@ var Columns = []string{
 	FieldReplyToMsgID,
 	FieldStatus,
 	FieldServerTime,
+	FieldEditedAt,
 	FieldMetadata,
 }
 
@@ -161,4 +164,9 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 // ByServerTime orders the results by the server_time field.
 func ByServerTime(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldServerTime, opts...).ToFunc()
+}
+
+// ByEditedAt orders the results by the edited_at field.
+func ByEditedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEditedAt, opts...).ToFunc()
 }
