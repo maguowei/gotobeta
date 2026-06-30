@@ -54,7 +54,7 @@ esac
 
 if [[ "$rel_path" == "api/openapi.yaml" ]]; then
   if go_tool_available vacuum; then
-    (cd "$project_dir" && go tool vacuum lint -d --fail-severity warn -r vacuum-ruleset.yaml api/openapi.yaml) || status=1
+    (cd "$project_dir" && go tool vacuum lint -d --no-banner --fail-severity warn -r vacuum-ruleset.yaml api/openapi.yaml) || status=1
   else
     echo "go tool vacuum not available; skip api/openapi.yaml lint" >&2
   fi

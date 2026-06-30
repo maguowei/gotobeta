@@ -101,7 +101,7 @@ lint-go: tools-download ## 运行 golangci-lint
 	GOCACHE=$(GO_TOOL_GOCACHE) GOMODCACHE=$(GO_TOOL_GOMODCACHE) GOLANGCI_LINT_CACHE=$(GOLANGCI_LINT_CACHE) $(GOLANGCI_LINT) run --allow-parallel-runners ./...
 
 lint-openapi: tools-download ## 校验 OpenAPI 契约
-	GOCACHE=$(GO_TOOL_GOCACHE) GOMODCACHE=$(GO_TOOL_GOMODCACHE) $(VACUUM) lint -d --no-banner --no-style --fail-severity warn -r vacuum-ruleset.yaml api/openapi.yaml
+	GOCACHE=$(GO_TOOL_GOCACHE) GOMODCACHE=$(GO_TOOL_GOMODCACHE) $(VACUUM) lint -d --no-banner --fail-severity warn -r vacuum-ruleset.yaml api/openapi.yaml
 
 lint-secrets: tools-download ## 扫描硬编码密钥
 	GOCACHE=$(GO_TOOL_GOCACHE) GOMODCACHE=$(GO_TOOL_GOMODCACHE) $(GITLEAKS) dir --redact --no-banner .
