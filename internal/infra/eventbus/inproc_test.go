@@ -7,7 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
+
 	"github.com/maguowei/gotobeta/internal/infra/eventbus"
+	"github.com/maguowei/gotobeta/internal/infra/metrics"
 	"github.com/maguowei/gotobeta/internal/pkg/event"
 )
 
@@ -20,7 +24,7 @@ func newSample(name string) sampleEvent {
 }
 
 func newBus() *eventbus.InProc {
-	return eventbus.NewInProc(slog.New(slog.DiscardHandler))
+	return eventbus.NewInProc(slog.New(slog.DiscardHandler), nil)
 }
 
 func TestPublishInvokesSubscribers(t *testing.T) {
@@ -62,5 +66,29 @@ func TestPublishUnsubscribedNoPanic(t *testing.T) {
 	bus := newBus()
 	if err := bus.Publish(context.Background(), newSample("nobody.listening")); err != nil {
 		t.Fatalf("Publish error: %v", err)
+	}
+}
+
+func TestPublishReportsMetrics(t *testing.T) {
+	mc := metrics.NewCollectors(prometheus.NewRegistry(), "test")
+	bus := eventbus.NewInProc(slog.New(slog.DiscardHandler), mc)
+	bus.Subscribe("a.created", func(_ context.Context, _ event.Event) error {
+		return nil
+	})
+	bus.Subscribe("a.created", func(_ context.Context, _ event.Event) error {
+		return errors.New("boom")
+	})
+
+	if err := bus.Publish(context.Background(), newSample("a.created")); err != nil {
+		t.Fatalf("Publish error: %v", err)
+	}
+
+	processed := testutil.ToFloat64(mc.EventBusEventsTotal.WithLabelValues("eventbus_inproc", "a.created", "processed"))
+	if processed != 1 {
+		t.Fatalf("processed metric = %v, want 1", processed)
+	}
+	failed := testutil.ToFloat64(mc.EventBusEventsTotal.WithLabelValues("eventbus_inproc", "a.created", "error"))
+	if failed != 1 {
+		t.Fatalf("error metric = %v, want 1", failed)
 	}
 }

@@ -144,7 +144,7 @@ func RunHTTP(ctx context.Context, rt *bootstrap.Runtime) (err error) {
 	}
 	workspaceMod.Mount(apiV1, userMod.AuthMiddleware())
 
-	eventBus := eventbus.NewInProc(appLogger)
+	eventBus := eventbus.NewInProc(appLogger, mc)
 	messagingMod, err := messaging.New(client, appLogger, cfg, workspaceMod.Checker(), eventBus, mc)
 	if err != nil {
 		return err

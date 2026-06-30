@@ -9,9 +9,14 @@ import (
 	"context"
 	"log/slog"
 	"sync"
+	"time"
 
+	"github.com/maguowei/gotobeta/internal/infra/metrics"
 	"github.com/maguowei/gotobeta/internal/pkg/event"
 )
+
+// inprocComponent 是进程内总线在事件指标 component label 中的取值。
+const inprocComponent = "eventbus_inproc"
 
 // InProc 是进程内事件总线：订阅者按事件名注册，Publish 同步派发。
 // 推送是尽力而为——某个 handler 出错只记录日志，不影响其他订阅者，
@@ -20,13 +25,15 @@ type InProc struct {
 	mu       sync.RWMutex
 	handlers map[string][]event.Handler
 	logger   *slog.Logger
+	metrics  *metrics.Collectors
 }
 
-// NewInProc 创建进程内事件总线。
-func NewInProc(logger *slog.Logger) *InProc {
+// NewInProc 创建进程内事件总线。collectors 可为 nil（指标可选，nil 时静默跳过）。
+func NewInProc(logger *slog.Logger, collectors *metrics.Collectors) *InProc {
 	return &InProc{
 		handlers: make(map[string][]event.Handler),
 		logger:   logger,
+		metrics:  collectors,
 	}
 }
 
@@ -45,12 +52,17 @@ func (b *InProc) Publish(ctx context.Context, events ...event.Event) error {
 		b.mu.RUnlock()
 
 		for _, h := range handlers {
-			if err := h(ctx, e); err != nil {
+			start := time.Now()
+			err := h(ctx, e)
+			status := "processed"
+			if err != nil {
+				status = "error"
 				b.logger.WarnContext(ctx, "event handler failed",
 					slog.String("event", e.Name()),
 					slog.String("error", err.Error()),
 				)
 			}
+			b.metrics.ObserveEventBus(ctx, inprocComponent, e.Name(), status, time.Since(start))
 		}
 	}
 	return nil
