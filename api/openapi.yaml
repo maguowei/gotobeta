@@ -1263,8 +1263,10 @@ paths:
       summary: WebSocket 升级
       description: |
         用 ticket 建立 WebSocket 长连接（`GET /api/v1/ws?ticket=...`）。
-        升级成功后服务端先下发 `auth_ok` 帧；随后推送 `signal`/`presence`/`typing`/`read` 帧，
-        客户端可上行 `ping`/`typing`/`read` 帧。详见设计文档第 6 节帧协议。
+        升级成功后服务端先下发 `auth_ok` 帧（含 `pv` 服务端协议版本）；随后推送
+        `signal`/`presence`/`typing`/`read` 帧，客户端可上行 `ping`/`typing`/`read` 帧。
+        客户端可用 `v` 声明期望的协议版本，服务端版本不兼容时以应用区间 close 码（4000）
+        关闭连接而非建立。详见设计文档第 6 节帧协议。
       tags:
         - realtime
       parameters:
@@ -1274,6 +1276,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: v
+          in: query
+          description: 客户端期望的协议版本；缺省按 v1 处理，超出服务端支持范围则连接被 close 拒绝
+          required: false
+          schema:
+            type: integer
+            default: 1
       responses:
         '200':
           description: |

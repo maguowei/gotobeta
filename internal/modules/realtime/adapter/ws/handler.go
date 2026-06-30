@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -113,10 +114,34 @@ func (g *Gateway) Handle(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
+	// 协议版本协商（spec 2.5）：缺省视为 v1，便于未声明版本的老客户端兼容。
+	clientVersion := CurrentProtocolVersion
+	if v := c.Query("v"); v != "" {
+		parsed, perr := strconv.Atoi(v)
+		if perr != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		clientVersion = parsed
+	}
+
 	wsConn, err := g.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		// Upgrade 已写过响应头，这里只记日志。
 		loggerx.WithError(c.Request.Context(), g.logger, "ws upgrade failed", err)
+		return
+	}
+
+	// 升级后才能用 WS close 帧表达版本不兼容（HTTP 响应头已被 Upgrade 占用）。
+	if !VersionSupported(clientVersion) {
+		_ = wsConn.WriteControl(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(closeUnsupportedVersion, "unsupported protocol version"),
+			time.Now().Add(g.timeouts.writeWait),
+		)
+		_ = wsConn.Close()
+		g.logger.WarnContext(c.Request.Context(), "ws 协议版本不兼容，拒绝接入",
+			slog.Int64("userId", userID), slog.Int("clientVersion", clientVersion))
 		return
 	}
 
@@ -136,7 +161,7 @@ func (g *Gateway) Handle(c *gin.Context) {
 		g.logger.WarnContext(c.Request.Context(), "ws 连接达上限，拒绝接入", slog.Int64("userId", userID))
 		return
 	}
-	conn.Send(mustEncode(Frame{T: TypeAuthOK, UID: userID}))
+	conn.Send(mustEncode(Frame{T: TypeAuthOK, UID: userID, PV: CurrentProtocolVersion}))
 	if g.presence != nil {
 		g.presence.OnConnect(c.Request.Context(), userID)
 		if g.presenceRefresh > 0 {
