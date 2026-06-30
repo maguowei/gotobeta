@@ -47,7 +47,7 @@ paths:
         - system
       responses:
         '200':
-          description: 进程存活
+          description: 进程存活（healthz 探针）
           content:
             application/json:
               example:
@@ -591,7 +591,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/TodoResponse'
         '400':
-          description: 请求参数错误
+          description: 创建 Todo 请求参数错误
           content:
             application/json:
               example:
@@ -995,7 +995,7 @@ paths:
               $ref: '#/components/schemas/AddMemberRequest'
       responses:
         '200':
-          description: 加入后的成员
+          description: 加入会话后的成员信息
           content:
             application/json:
               example:
@@ -1227,7 +1227,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmptyResponse'
         '403':
-          description: 无会话管理权限
+          description: 当前用户无会话管理权限
           content:
             application/json:
               example:
