@@ -28,6 +28,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/rbacrole"
 	"github.com/maguowei/gotobeta/internal/ent/rbacrolepermission"
 	"github.com/maguowei/gotobeta/internal/ent/rbacuserrole"
+	"github.com/maguowei/gotobeta/internal/ent/reaction"
 	"github.com/maguowei/gotobeta/internal/ent/todo"
 	"github.com/maguowei/gotobeta/internal/ent/user"
 	"github.com/maguowei/gotobeta/internal/ent/useridentity"
@@ -109,6 +110,7 @@ func checkColumn(t, c string) error {
 			rbacrole.Table:                rbacrole.ValidColumn,
 			rbacrolepermission.Table:      rbacrolepermission.ValidColumn,
 			rbacuserrole.Table:            rbacuserrole.ValidColumn,
+			reaction.Table:                reaction.ValidColumn,
 			todo.Table:                    todo.ValidColumn,
 			user.Table:                    user.ValidColumn,
 			useridentity.Table:            useridentity.ValidColumn,

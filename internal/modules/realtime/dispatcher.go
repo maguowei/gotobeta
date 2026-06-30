@@ -83,3 +83,20 @@ func (d *Dispatcher) OnReadUpdated(ctx context.Context, e event.Event) error {
 	d.incPush("success")
 	return nil
 }
+
+// OnReactionUpdated 处理表情回应变更事件：向会话在线成员推 reaction 帧同步。
+func (d *Dispatcher) OnReactionUpdated(ctx context.Context, e event.Event) error {
+	evt, ok := e.(imevent.ReactionUpdatedEvent)
+	if !ok {
+		return nil
+	}
+	userIDs, err := d.members.ConversationUserIDs(ctx, evt.ConversationID)
+	if err != nil {
+		d.incPush("error")
+		loggerx.WithError(ctx, d.logger, "dispatch lookup members failed", err, slog.Int64("conversationId", evt.ConversationID))
+		return err
+	}
+	d.hub.Broadcast(userIDs, ws.ReactionFrame(evt.ConversationID, evt.MessageID, evt.UserID, evt.Emoji, evt.Action))
+	d.incPush("success")
+	return nil
+}

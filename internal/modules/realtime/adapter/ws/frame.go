@@ -15,6 +15,7 @@ const (
 	TypePong     = "pong"
 	TypeSignal   = "signal"
 	TypePresence = "presence"
+	TypeReaction = "reaction"
 )
 
 // 协议版本协商（spec 2.5）。第一期帧体为 JSON；版本协商是为未来无损切换
@@ -43,7 +44,10 @@ type Frame struct {
 	ReadSeq int64  `json:"read_seq,omitempty"`
 	Online  *bool  `json:"online,omitempty"`
 	Ticket  string `json:"ticket,omitempty"`
-	PV      int    `json:"pv,omitempty"` // auth_ok 下行携带服务端协议版本
+	PV      int    `json:"pv,omitempty"`     // auth_ok 下行携带服务端协议版本
+	MsgID   int64  `json:"msg_id,omitempty"` // reaction 帧携带目标消息 ID
+	Emoji   string `json:"emoji,omitempty"`  // reaction 帧携带表情
+	Action  int8   `json:"action,omitempty"` // reaction 帧携带动作（1=add 2=remove）
 }
 
 // decodeFrame 解析上行帧。
@@ -76,6 +80,11 @@ func ReadFrame(cid, uid, readSeq int64) []byte {
 // PresenceFrame 构造在线状态变更下行帧。
 func PresenceFrame(uid int64, online bool) []byte {
 	return mustEncode(Frame{T: TypePresence, UID: uid, Online: &online})
+}
+
+// ReactionFrame 构造表情回应变更下行帧（action：1=add 2=remove）。
+func ReactionFrame(cid, msgID, uid int64, emoji string, action int8) []byte {
+	return mustEncode(Frame{T: TypeReaction, CID: cid, MsgID: msgID, UID: uid, Emoji: emoji, Action: action})
 }
 
 func pongFrame() []byte { return mustEncode(Frame{T: TypePong}) }

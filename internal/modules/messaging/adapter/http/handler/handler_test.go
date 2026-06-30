@@ -40,6 +40,13 @@ func (fakeUC) PullMessages(_ context.Context, _ messagingquery.PullMessagesQuery
 }
 func (fakeUC) RecallMessage(_ context.Context, _ messagingcmd.RecallMessageCommand) error { return nil }
 func (fakeUC) ReportRead(_ context.Context, _ messagingcmd.ReportReadCommand) error       { return nil }
+func (fakeUC) AddReaction(_ context.Context, _ messagingcmd.AddReactionCommand) error     { return nil }
+func (fakeUC) RemoveReaction(_ context.Context, _ messagingcmd.RemoveReactionCommand) error {
+	return nil
+}
+func (fakeUC) ListReactions(_ context.Context, _ messagingquery.ListReactionsQuery) ([]*messagingresult.ReactionResult, error) {
+	return []*messagingresult.ReactionResult{{MessageID: 8001, UserID: 9, Emoji: "👍"}}, nil
+}
 
 func newRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
@@ -51,7 +58,8 @@ func newRouter() *gin.Engine {
 		c.Request = c.Request.WithContext(auth.WithClaims(c.Request.Context(), &auth.Claims{UserID: 9}))
 		c.Next()
 	}
-	messagingrouter.RegisterRoutes(e.Group("/api/v1"), convH, msgH, nil, authMW)
+	reactionH := messaginghandler.NewReactionHandler(uc)
+	messagingrouter.RegisterRoutes(e.Group("/api/v1"), convH, msgH, reactionH, nil, authMW)
 	return e
 }
 
@@ -83,6 +91,9 @@ func TestMessagingRoutes(t *testing.T) {
 		{"GET", "/api/v1/workspaces/1/conversations/100/messages?afterSeq=0&limit=10", ""},
 		{"POST", "/api/v1/workspaces/1/conversations/100/messages/8001/recall", ""},
 		{"POST", "/api/v1/workspaces/1/conversations/100/read", `{"readSeq":5}`},
+		{"POST", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions", `{"emoji":"👍"}`},
+		{"DELETE", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions?emoji=👍", ""},
+		{"GET", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions", ""},
 	}
 	for _, tc := range cases {
 		if code := do(t, e, tc.method, tc.path, tc.body); code != http.StatusOK {

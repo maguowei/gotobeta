@@ -25,6 +25,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/rbacrole"
 	"github.com/maguowei/gotobeta/internal/ent/rbacrolepermission"
 	"github.com/maguowei/gotobeta/internal/ent/rbacuserrole"
+	"github.com/maguowei/gotobeta/internal/ent/reaction"
 	"github.com/maguowei/gotobeta/internal/ent/todo"
 	"github.com/maguowei/gotobeta/internal/ent/user"
 	"github.com/maguowei/gotobeta/internal/ent/useridentity"
@@ -520,6 +521,33 @@ func (f TraverseRbacUserRole) Traverse(ctx context.Context, q ent.Query) error {
 	return fmt.Errorf("unexpected query type %T. expect *ent.RbacUserRoleQuery", q)
 }
 
+// The ReactionFunc type is an adapter to allow the use of ordinary function as a Querier.
+type ReactionFunc func(context.Context, *ent.ReactionQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f ReactionFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.ReactionQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.ReactionQuery", q)
+}
+
+// The TraverseReaction type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseReaction func(context.Context, *ent.ReactionQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseReaction) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseReaction) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.ReactionQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.ReactionQuery", q)
+}
+
 // The TodoFunc type is an adapter to allow the use of ordinary function as a Querier.
 type TodoFunc func(context.Context, *ent.TodoQuery) (ent.Value, error)
 
@@ -690,6 +718,8 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.RbacRolePermissionQuery, predicate.RbacRolePermission, rbacrolepermission.OrderOption]{typ: ent.TypeRbacRolePermission, tq: q}, nil
 	case *ent.RbacUserRoleQuery:
 		return &query[*ent.RbacUserRoleQuery, predicate.RbacUserRole, rbacuserrole.OrderOption]{typ: ent.TypeRbacUserRole, tq: q}, nil
+	case *ent.ReactionQuery:
+		return &query[*ent.ReactionQuery, predicate.Reaction, reaction.OrderOption]{typ: ent.TypeReaction, tq: q}, nil
 	case *ent.TodoQuery:
 		return &query[*ent.TodoQuery, predicate.Todo, todo.OrderOption]{typ: ent.TypeTodo, tq: q}, nil
 	case *ent.UserQuery:

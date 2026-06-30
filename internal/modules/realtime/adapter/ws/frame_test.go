@@ -28,6 +28,9 @@ func TestFrameConstructors(t *testing.T) {
 	if f := check(PresenceFrame(7, true), TypePresence); f.Online == nil || !*f.Online {
 		t.Fatalf("presence 内容错误: %+v", f)
 	}
+	if f := check(ReactionFrame(100, 8001, 7, "👍", 1), TypeReaction); f.CID != 100 || f.MsgID != 8001 || f.UID != 7 || f.Emoji != "👍" || f.Action != 1 {
+		t.Fatalf("reaction 内容错误: %+v", f)
+	}
 	check(pongFrame(), TypePong)
 }
 

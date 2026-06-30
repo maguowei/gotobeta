@@ -44,3 +44,13 @@ func TestMemberAndMessageResponses(t *testing.T) {
 		t.Fatalf("消息列表错误: %d", len(msl))
 	}
 }
+
+func TestReactionListResponse(t *testing.T) {
+	list := ToReactionListResponse([]*messagingresult.ReactionResult{{MessageID: 8001, UserID: 9, Emoji: "👍"}})
+	if len(list) != 1 {
+		t.Fatalf("表情回应列表错误: %d", len(list))
+	}
+	if list[0].MessageID != 8001 || list[0].UserID != 9 || list[0].Emoji != "👍" {
+		t.Fatalf("表情回应响应映射错误: %+v", list[0])
+	}
+}

@@ -21,6 +21,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/rbacrole"
 	"github.com/maguowei/gotobeta/internal/ent/rbacrolepermission"
 	"github.com/maguowei/gotobeta/internal/ent/rbacuserrole"
+	"github.com/maguowei/gotobeta/internal/ent/reaction"
 	"github.com/maguowei/gotobeta/internal/ent/schema"
 	"github.com/maguowei/gotobeta/internal/ent/todo"
 	"github.com/maguowei/gotobeta/internal/ent/user"
@@ -561,6 +562,25 @@ func init() {
 	rbacuserroleDescSourceType := rbacuserroleFields[3].Descriptor()
 	// rbacuserrole.DefaultSourceType holds the default value on creation for the source_type field.
 	rbacuserrole.DefaultSourceType = rbacuserroleDescSourceType.Default.(int8)
+	reactionMixin := schema.Reaction{}.Mixin()
+	reactionMixinFields0 := reactionMixin[0].Fields()
+	_ = reactionMixinFields0
+	reactionFields := schema.Reaction{}.Fields()
+	_ = reactionFields
+	// reactionDescCreatedAt is the schema descriptor for created_at field.
+	reactionDescCreatedAt := reactionMixinFields0[0].Descriptor()
+	// reaction.DefaultCreatedAt holds the default value on creation for the created_at field.
+	reaction.DefaultCreatedAt = reactionDescCreatedAt.Default.(func() time.Time)
+	// reactionDescUpdatedAt is the schema descriptor for updated_at field.
+	reactionDescUpdatedAt := reactionMixinFields0[1].Descriptor()
+	// reaction.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	reaction.DefaultUpdatedAt = reactionDescUpdatedAt.Default.(func() time.Time)
+	// reaction.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	reaction.UpdateDefaultUpdatedAt = reactionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// reactionDescEmoji is the schema descriptor for emoji field.
+	reactionDescEmoji := reactionFields[4].Descriptor()
+	// reaction.EmojiValidator is a validator for the "emoji" field. It is called by the builders before save.
+	reaction.EmojiValidator = reactionDescEmoji.Validators[0].(func(string) error)
 	todoMixin := schema.Todo{}.Mixin()
 	todoMixinFields0 := todoMixin[0].Fields()
 	_ = todoMixinFields0

@@ -36,6 +36,7 @@ const (
 	PermConversationRead = "conversation.read"
 	PermMessageSend      = "message.send"
 	PermMessageRecall    = "message.recall"
+	PermMessageReact     = "message.react"
 	PermBotManage        = "bot.manage"
 )
 
@@ -193,6 +194,7 @@ func DefaultPermissionTemplates() []struct{ Code, Name, ResourceType, ActionKey 
 		{PermConversationRead, "查看会话", "conversation", "read"},
 		{PermMessageSend, "发送消息", "message", "send"},
 		{PermMessageRecall, "撤回消息", "message", "recall"},
+		{PermMessageReact, "表情回应", "message", "react"},
 		{PermBotManage, "管理机器人", "bot", "manage"},
 	}
 }
@@ -203,15 +205,15 @@ func DefaultRolePermissions() map[string][]string {
 	all := []string{
 		PermWorkspaceManage, PermMemberInvite, PermMemberRemove, PermRoleManage,
 		PermChannelCreate, PermChannelArchive, PermConversationRead,
-		PermMessageSend, PermMessageRecall, PermBotManage,
+		PermMessageSend, PermMessageRecall, PermMessageReact, PermBotManage,
 	}
 	return map[string][]string{
 		RoleOwner: all,
 		RoleAdmin: {
 			PermMemberInvite, PermMemberRemove, PermChannelCreate, PermChannelArchive,
-			PermConversationRead, PermMessageSend, PermMessageRecall, PermBotManage,
+			PermConversationRead, PermMessageSend, PermMessageRecall, PermMessageReact, PermBotManage,
 		},
-		RoleMember: {PermChannelCreate, PermConversationRead, PermMessageSend, PermMessageRecall},
-		RoleGuest:  {PermConversationRead, PermMessageSend},
+		RoleMember: {PermChannelCreate, PermConversationRead, PermMessageSend, PermMessageRecall, PermMessageReact},
+		RoleGuest:  {PermConversationRead, PermMessageSend, PermMessageReact},
 	}
 }

@@ -44,6 +44,8 @@ type Tx struct {
 	RbacRolePermission *RbacRolePermissionClient
 	// RbacUserRole is the client for interacting with the RbacUserRole builders.
 	RbacUserRole *RbacUserRoleClient
+	// Reaction is the client for interacting with the Reaction builders.
+	Reaction *ReactionClient
 	// Todo is the client for interacting with the Todo builders.
 	Todo *TodoClient
 	// User is the client for interacting with the User builders.
@@ -201,6 +203,7 @@ func (tx *Tx) init() {
 	tx.RbacRole = NewRbacRoleClient(tx.config)
 	tx.RbacRolePermission = NewRbacRolePermissionClient(tx.config)
 	tx.RbacUserRole = NewRbacUserRoleClient(tx.config)
+	tx.Reaction = NewReactionClient(tx.config)
 	tx.Todo = NewTodoClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.UserIdentity = NewUserIdentityClient(tx.config)

@@ -46,6 +46,15 @@ func (u errUC) RecallMessage(_ context.Context, _ messagingcmd.RecallMessageComm
 	return u.err
 }
 func (u errUC) ReportRead(_ context.Context, _ messagingcmd.ReportReadCommand) error { return u.err }
+func (u errUC) AddReaction(_ context.Context, _ messagingcmd.AddReactionCommand) error {
+	return u.err
+}
+func (u errUC) RemoveReaction(_ context.Context, _ messagingcmd.RemoveReactionCommand) error {
+	return u.err
+}
+func (u errUC) ListReactions(_ context.Context, _ messagingquery.ListReactionsQuery) ([]*messagingresult.ReactionResult, error) {
+	return nil, u.err
+}
 
 // newErrRouter 构造一个注入 claims、但 usecase 固定返回 err 的路由。
 func newErrRouter(err error) *gin.Engine {
@@ -58,7 +67,7 @@ func newErrRouter(err error) *gin.Engine {
 		c.Request = c.Request.WithContext(auth.WithClaims(c.Request.Context(), &auth.Claims{UserID: 9}))
 		c.Next()
 	}
-	messagingrouter.RegisterRoutes(e.Group("/api/v1"), convH, msgH, nil, authMW)
+	messagingrouter.RegisterRoutes(e.Group("/api/v1"), convH, msgH, messaginghandler.NewReactionHandler(uc), nil, authMW)
 	return e
 }
 
@@ -70,7 +79,7 @@ func newNoAuthRouter() *gin.Engine {
 	msgH := messaginghandler.NewMessageHandler(uc)
 	e := gin.New()
 	passthrough := func(c *gin.Context) { c.Next() }
-	messagingrouter.RegisterRoutes(e.Group("/api/v1"), convH, msgH, nil, passthrough)
+	messagingrouter.RegisterRoutes(e.Group("/api/v1"), convH, msgH, messaginghandler.NewReactionHandler(uc), nil, passthrough)
 	return e
 }
 
@@ -103,6 +112,9 @@ func TestMessagingUseCaseErrors(t *testing.T) {
 		{"pull", "GET", "/api/v1/workspaces/1/conversations/100/messages?afterSeq=0&limit=10", ""},
 		{"recall", "POST", "/api/v1/workspaces/1/conversations/100/messages/8001/recall", ""},
 		{"reportRead", "POST", "/api/v1/workspaces/1/conversations/100/read", `{"readSeq":5}`},
+		{"addReaction", "POST", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions", `{"emoji":"👍"}`},
+		{"removeReaction", "DELETE", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions?emoji=👍", ""},
+		{"listReactions", "GET", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions", ""},
 	}
 	kinds := []struct {
 		name string
@@ -139,6 +151,9 @@ func TestMessagingMissingClaims(t *testing.T) {
 		{"GET", "/api/v1/workspaces/1/conversations/100/messages?afterSeq=0&limit=10", ""},
 		{"POST", "/api/v1/workspaces/1/conversations/100/messages/8001/recall", ""},
 		{"POST", "/api/v1/workspaces/1/conversations/100/read", `{"readSeq":5}`},
+		{"POST", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions", `{"emoji":"👍"}`},
+		{"DELETE", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions?emoji=👍", ""},
+		{"GET", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions", ""},
 	}
 	for _, ep := range endpoints {
 		if code := sendReq(t, e, ep.method, ep.path, ep.body); code != http.StatusUnauthorized {
@@ -161,6 +176,9 @@ func TestMessagingExtraInvalidParams(t *testing.T) {
 		{"create body 错误", "POST", "/api/v1/workspaces/1/conversations", `{`},
 		{"addMember body 错误", "POST", "/api/v1/workspaces/1/conversations/100/members", `{`},
 		{"reportRead body 错误", "POST", "/api/v1/workspaces/1/conversations/100/read", `{`},
+		{"addReaction body 错误", "POST", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions", `{`},
+		{"addReaction 非法消息 ID", "POST", "/api/v1/workspaces/1/conversations/100/messages/abc/reactions", `{"emoji":"👍"}`},
+		{"removeReaction 缺 emoji", "DELETE", "/api/v1/workspaces/1/conversations/100/messages/8001/reactions", ""},
 	}
 	for _, tc := range cases {
 		if code := sendReq(t, e, tc.method, tc.path, tc.body); code != http.StatusBadRequest {

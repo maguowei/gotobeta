@@ -1155,6 +1155,123 @@ paths:
                 data: null
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/workspaces/{ws}/conversations/{cid}/messages/{mid}/reactions:
+    post:
+      operationId: addReaction
+      summary: 添加表情回应
+      description: 对会话内某条消息添加 emoji 回应；需要是会话成员且具 message.react 权限，重复添加同 emoji 为幂等空操作。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+        - $ref: '#/components/parameters/ConversationID'
+        - $ref: '#/components/parameters/MessageID'
+      requestBody:
+        required: true
+        description: 表情回应请求体
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddReactionRequest'
+      responses:
+        '200':
+          description: 添加成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+        '403':
+          description: 非会话成员或无表情回应权限
+          content:
+            application/json:
+              example:
+                code: 40301
+                message: 不是该会话成员
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: removeReaction
+      summary: 取消表情回应
+      description: 取消本人对某条消息的某个 emoji 回应；emoji 经 query 传入，回应不存在为幂等空操作。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+        - $ref: '#/components/parameters/ConversationID'
+        - $ref: '#/components/parameters/MessageID'
+        - name: emoji
+          in: query
+          description: 要取消的表情
+          required: true
+          schema:
+            type: string
+            maxLength: 64
+      responses:
+        '200':
+          description: 取消成功
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data: null
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+        '403':
+          description: 取消表情回应时非会话成员
+          content:
+            application/json:
+              example:
+                code: 40301
+                message: 不是该会话成员
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      operationId: listReactions
+      summary: 列举表情回应
+      description: 列举某条消息的全部表情回应，按时间升序，用于首屏渲染；需要是会话成员。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+        - $ref: '#/components/parameters/ConversationID'
+        - $ref: '#/components/parameters/MessageID'
+      responses:
+        '200':
+          description: 表情回应列表
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  - messageId: "8001"
+                    userId: "9"
+                    emoji: 👍
+              schema:
+                $ref: '#/components/schemas/ReactionListResponse'
+        '403':
+          description: 列举表情回应时非会话成员
+          content:
+            application/json:
+              example:
+                code: 40301
+                message: 不是该会话成员
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/workspaces/{ws}/conversations/{cid}/read:
     post:
       operationId: reportRead
@@ -2434,3 +2551,49 @@ components:
                 text: 你好
           items:
             $ref: '#/components/schemas/MessageItem'
+    AddReactionRequest:
+      description: 添加表情回应请求
+      type: object
+      required:
+        - emoji
+      properties:
+        emoji:
+          type: string
+          description: 表情字符（最长 64 字节）
+          maxLength: 64
+          example: 👍
+    ReactionItem:
+      description: 表情回应
+      type: object
+      properties:
+        messageId:
+          type: string
+          example: "8001"
+        userId:
+          type: string
+          example: "9"
+        emoji:
+          type: string
+          example: 👍
+    ReactionListResponse:
+      description: 表情回应列表响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: array
+          example:
+            - messageId: "8001"
+              userId: "9"
+              emoji: 👍
+          items:
+            $ref: '#/components/schemas/ReactionItem'

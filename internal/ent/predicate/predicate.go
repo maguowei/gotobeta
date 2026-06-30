@@ -54,6 +54,9 @@ type RbacRolePermission func(*sql.Selector)
 // RbacUserRole is the predicate function for rbacuserrole builders.
 type RbacUserRole func(*sql.Selector)
 
+// Reaction is the predicate function for reaction builders.
+type Reaction func(*sql.Selector)
+
 // Todo is the predicate function for todo builders.
 type Todo func(*sql.Selector)
 

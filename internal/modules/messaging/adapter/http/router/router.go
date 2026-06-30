@@ -23,7 +23,7 @@ func UserRateKey(c *gin.Context) string {
 // RegisterRoutes 注册会话与消息路由。middlewares 通常为登录鉴权中间件。
 // sendRateLimit 为可选的发消息频控中间件（仅挂在发消息路由），nil 时不限流。
 // 所有路由带 :ws，统一挂 WorkspaceScope 把工作区 id 注入 context（DataScope 依据）。
-func RegisterRoutes(group *gin.RouterGroup, h *handler.ConversationHandler, mh *handler.MessageHandler, sendRateLimit gin.HandlerFunc, middlewares ...gin.HandlerFunc) {
+func RegisterRoutes(group *gin.RouterGroup, h *handler.ConversationHandler, mh *handler.MessageHandler, rh *handler.ReactionHandler, sendRateLimit gin.HandlerFunc, middlewares ...gin.HandlerFunc) {
 	if len(middlewares) > 0 {
 		group = group.Group("")
 		group.Use(middlewares...)
@@ -46,4 +46,9 @@ func RegisterRoutes(group *gin.RouterGroup, h *handler.ConversationHandler, mh *
 	group.GET("/workspaces/:ws/conversations/:cid/messages", mh.PullMessages)
 	group.POST("/workspaces/:ws/conversations/:cid/messages/:mid/recall", mh.RecallMessage)
 	group.POST("/workspaces/:ws/conversations/:cid/read", mh.ReportRead)
+
+	// 表情回应：增 / 删（emoji 经 query）/ 列举。
+	group.POST("/workspaces/:ws/conversations/:cid/messages/:mid/reactions", rh.AddReaction)
+	group.DELETE("/workspaces/:ws/conversations/:cid/messages/:mid/reactions", rh.RemoveReaction)
+	group.GET("/workspaces/:ws/conversations/:cid/messages/:mid/reactions", rh.ListReactions)
 }

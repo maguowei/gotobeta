@@ -10,6 +10,7 @@ import (
 	messagingresult "github.com/maguowei/gotobeta/internal/modules/messaging/application/result"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/conversation"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/message"
+	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/reaction"
 	"github.com/maguowei/gotobeta/internal/pkg/apperr"
 	"github.com/maguowei/gotobeta/internal/pkg/authz"
 	"github.com/maguowei/gotobeta/internal/pkg/event"
@@ -24,6 +25,7 @@ const actionMessageRecall = "message.recall"
 type MessageService struct {
 	messages      message.Repository
 	conversations conversation.Repository
+	reactions     reaction.Repository
 	seqAllocator  messagingport.SeqAllocator
 	checker       authz.Checker
 	publisher     event.Publisher
@@ -40,6 +42,7 @@ type MessageService struct {
 func NewMessageService(
 	messages message.Repository,
 	conversations conversation.Repository,
+	reactions reaction.Repository,
 	seqAllocator messagingport.SeqAllocator,
 	checker authz.Checker,
 	publisher event.Publisher,
@@ -56,6 +59,7 @@ func NewMessageService(
 	return &MessageService{
 		messages:      messages,
 		conversations: conversations,
+		reactions:     reactions,
 		seqAllocator:  seqAllocator,
 		checker:       checker,
 		publisher:     publisher,

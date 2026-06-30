@@ -30,6 +30,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/rbacrole"
 	"github.com/maguowei/gotobeta/internal/ent/rbacrolepermission"
 	"github.com/maguowei/gotobeta/internal/ent/rbacuserrole"
+	"github.com/maguowei/gotobeta/internal/ent/reaction"
 	"github.com/maguowei/gotobeta/internal/ent/todo"
 	"github.com/maguowei/gotobeta/internal/ent/user"
 	"github.com/maguowei/gotobeta/internal/ent/useridentity"
@@ -74,6 +75,8 @@ type Client struct {
 	RbacRolePermission *RbacRolePermissionClient
 	// RbacUserRole is the client for interacting with the RbacUserRole builders.
 	RbacUserRole *RbacUserRoleClient
+	// Reaction is the client for interacting with the Reaction builders.
+	Reaction *ReactionClient
 	// Todo is the client for interacting with the Todo builders.
 	Todo *TodoClient
 	// User is the client for interacting with the User builders.
@@ -111,6 +114,7 @@ func (c *Client) init() {
 	c.RbacRole = NewRbacRoleClient(c.config)
 	c.RbacRolePermission = NewRbacRolePermissionClient(c.config)
 	c.RbacUserRole = NewRbacUserRoleClient(c.config)
+	c.Reaction = NewReactionClient(c.config)
 	c.Todo = NewTodoClient(c.config)
 	c.User = NewUserClient(c.config)
 	c.UserIdentity = NewUserIdentityClient(c.config)
@@ -224,6 +228,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		RbacRole:                NewRbacRoleClient(cfg),
 		RbacRolePermission:      NewRbacRolePermissionClient(cfg),
 		RbacUserRole:            NewRbacUserRoleClient(cfg),
+		Reaction:                NewReactionClient(cfg),
 		Todo:                    NewTodoClient(cfg),
 		User:                    NewUserClient(cfg),
 		UserIdentity:            NewUserIdentityClient(cfg),
@@ -264,6 +269,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		RbacRole:                NewRbacRoleClient(cfg),
 		RbacRolePermission:      NewRbacRolePermissionClient(cfg),
 		RbacUserRole:            NewRbacUserRoleClient(cfg),
+		Reaction:                NewReactionClient(cfg),
 		Todo:                    NewTodoClient(cfg),
 		User:                    NewUserClient(cfg),
 		UserIdentity:            NewUserIdentityClient(cfg),
@@ -302,7 +308,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.Conversation, c.ConversationMember, c.Message, c.OAuthLoginState,
 		c.RbacAclEntry, c.RbacPermission, c.RbacPermissionChangeLog,
 		c.RbacPermissionVersion, c.RbacRole, c.RbacRolePermission, c.RbacUserRole,
-		c.Todo, c.User, c.UserIdentity, c.Workspace, c.WorkspaceMember,
+		c.Reaction, c.Todo, c.User, c.UserIdentity, c.Workspace, c.WorkspaceMember,
 	} {
 		n.Use(hooks...)
 	}
@@ -316,7 +322,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.Conversation, c.ConversationMember, c.Message, c.OAuthLoginState,
 		c.RbacAclEntry, c.RbacPermission, c.RbacPermissionChangeLog,
 		c.RbacPermissionVersion, c.RbacRole, c.RbacRolePermission, c.RbacUserRole,
-		c.Todo, c.User, c.UserIdentity, c.Workspace, c.WorkspaceMember,
+		c.Reaction, c.Todo, c.User, c.UserIdentity, c.Workspace, c.WorkspaceMember,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -357,6 +363,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.RbacRolePermission.mutate(ctx, m)
 	case *RbacUserRoleMutation:
 		return c.RbacUserRole.mutate(ctx, m)
+	case *ReactionMutation:
+		return c.Reaction.mutate(ctx, m)
 	case *TodoMutation:
 		return c.Todo.mutate(ctx, m)
 	case *UserMutation:
@@ -2500,6 +2508,139 @@ func (c *RbacUserRoleClient) mutate(ctx context.Context, m *RbacUserRoleMutation
 	}
 }
 
+// ReactionClient is a client for the Reaction schema.
+type ReactionClient struct {
+	config
+}
+
+// NewReactionClient returns a client for the Reaction from the given config.
+func NewReactionClient(c config) *ReactionClient {
+	return &ReactionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `reaction.Hooks(f(g(h())))`.
+func (c *ReactionClient) Use(hooks ...Hook) {
+	c.hooks.Reaction = append(c.hooks.Reaction, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `reaction.Intercept(f(g(h())))`.
+func (c *ReactionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Reaction = append(c.inters.Reaction, interceptors...)
+}
+
+// Create returns a builder for creating a Reaction entity.
+func (c *ReactionClient) Create() *ReactionCreate {
+	mutation := newReactionMutation(c.config, OpCreate)
+	return &ReactionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Reaction entities.
+func (c *ReactionClient) CreateBulk(builders ...*ReactionCreate) *ReactionCreateBulk {
+	return &ReactionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ReactionClient) MapCreateBulk(slice any, setFunc func(*ReactionCreate, int)) *ReactionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ReactionCreateBulk{err: fmt.Errorf("calling to ReactionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ReactionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ReactionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Reaction.
+func (c *ReactionClient) Update() *ReactionUpdate {
+	mutation := newReactionMutation(c.config, OpUpdate)
+	return &ReactionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ReactionClient) UpdateOne(_m *Reaction) *ReactionUpdateOne {
+	mutation := newReactionMutation(c.config, OpUpdateOne, withReaction(_m))
+	return &ReactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ReactionClient) UpdateOneID(id int) *ReactionUpdateOne {
+	mutation := newReactionMutation(c.config, OpUpdateOne, withReactionID(id))
+	return &ReactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Reaction.
+func (c *ReactionClient) Delete() *ReactionDelete {
+	mutation := newReactionMutation(c.config, OpDelete)
+	return &ReactionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ReactionClient) DeleteOne(_m *Reaction) *ReactionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ReactionClient) DeleteOneID(id int) *ReactionDeleteOne {
+	builder := c.Delete().Where(reaction.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ReactionDeleteOne{builder}
+}
+
+// Query returns a query builder for Reaction.
+func (c *ReactionClient) Query() *ReactionQuery {
+	return &ReactionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeReaction},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Reaction entity by its id.
+func (c *ReactionClient) Get(ctx context.Context, id int) (*Reaction, error) {
+	return c.Query().Where(reaction.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ReactionClient) GetX(ctx context.Context, id int) *Reaction {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ReactionClient) Hooks() []Hook {
+	return c.hooks.Reaction
+}
+
+// Interceptors returns the client interceptors.
+func (c *ReactionClient) Interceptors() []Interceptor {
+	return c.inters.Reaction
+}
+
+func (c *ReactionClient) mutate(ctx context.Context, m *ReactionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ReactionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ReactionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ReactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ReactionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Reaction mutation op: %q", m.Op())
+	}
+}
+
 // TodoClient is a client for the Todo schema.
 type TodoClient struct {
 	config
@@ -3171,13 +3312,14 @@ type (
 		AppSetting, Attachment, AuthActionToken, AuthRefreshToken, Bot, Conversation,
 		ConversationMember, Message, OAuthLoginState, RbacAclEntry, RbacPermission,
 		RbacPermissionChangeLog, RbacPermissionVersion, RbacRole, RbacRolePermission,
-		RbacUserRole, Todo, User, UserIdentity, Workspace, WorkspaceMember []ent.Hook
+		RbacUserRole, Reaction, Todo, User, UserIdentity, Workspace,
+		WorkspaceMember []ent.Hook
 	}
 	inters struct {
 		AppSetting, Attachment, AuthActionToken, AuthRefreshToken, Bot, Conversation,
 		ConversationMember, Message, OAuthLoginState, RbacAclEntry, RbacPermission,
 		RbacPermissionChangeLog, RbacPermissionVersion, RbacRole, RbacRolePermission,
-		RbacUserRole, Todo, User, UserIdentity, Workspace,
+		RbacUserRole, Reaction, Todo, User, UserIdentity, Workspace,
 		WorkspaceMember []ent.Interceptor
 	}
 )

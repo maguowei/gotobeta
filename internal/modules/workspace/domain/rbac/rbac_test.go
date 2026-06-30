@@ -140,11 +140,11 @@ func TestDefaultRoleTemplates(t *testing.T) {
 	}
 }
 
-// TestDefaultPermissionTemplates 校验平台模板权限集合：10 条且 resourceType/actionKey 自洽。
+// TestDefaultPermissionTemplates 校验平台模板权限集合：11 条且 resourceType/actionKey 自洽。
 func TestDefaultPermissionTemplates(t *testing.T) {
 	tpls := rbac.DefaultPermissionTemplates()
-	if len(tpls) != 10 {
-		t.Fatalf("len = %d, want 10", len(tpls))
+	if len(tpls) != 11 {
+		t.Fatalf("len = %d, want 11", len(tpls))
 	}
 	codes := map[string]bool{}
 	for _, tp := range tpls {
@@ -160,7 +160,7 @@ func TestDefaultPermissionTemplates(t *testing.T) {
 		rbac.PermWorkspaceManage, rbac.PermMemberInvite, rbac.PermMemberRemove,
 		rbac.PermRoleManage, rbac.PermChannelCreate, rbac.PermChannelArchive,
 		rbac.PermConversationRead, rbac.PermMessageSend, rbac.PermMessageRecall,
-		rbac.PermBotManage,
+		rbac.PermMessageReact, rbac.PermBotManage,
 	} {
 		if !codes[want] {
 			t.Fatalf("missing permission template: %s", want)
@@ -172,9 +172,9 @@ func TestDefaultPermissionTemplates(t *testing.T) {
 func TestDefaultRolePermissions(t *testing.T) {
 	rp := rbac.DefaultRolePermissions()
 
-	// owner 拥有全部 10 项权限。
-	if len(rp[rbac.RoleOwner]) != 10 {
-		t.Fatalf("owner perms = %d, want 10", len(rp[rbac.RoleOwner]))
+	// owner 拥有全部 11 项权限。
+	if len(rp[rbac.RoleOwner]) != 11 {
+		t.Fatalf("owner perms = %d, want 11", len(rp[rbac.RoleOwner]))
 	}
 
 	contains := func(list []string, code string) bool {
@@ -197,11 +197,13 @@ func TestDefaultRolePermissions(t *testing.T) {
 		t.Fatal("guest should not have channel.create")
 	}
 
-	// guest 仅可读与发消息。
-	if len(rp[rbac.RoleGuest]) != 2 {
-		t.Fatalf("guest perms = %d, want 2", len(rp[rbac.RoleGuest]))
+	// guest 仅可读、发消息与表情回应。
+	if len(rp[rbac.RoleGuest]) != 3 {
+		t.Fatalf("guest perms = %d, want 3", len(rp[rbac.RoleGuest]))
 	}
-	if !contains(rp[rbac.RoleGuest], rbac.PermConversationRead) || !contains(rp[rbac.RoleGuest], rbac.PermMessageSend) {
-		t.Fatalf("guest perms = %v, want [read, send]", rp[rbac.RoleGuest])
+	if !contains(rp[rbac.RoleGuest], rbac.PermConversationRead) ||
+		!contains(rp[rbac.RoleGuest], rbac.PermMessageSend) ||
+		!contains(rp[rbac.RoleGuest], rbac.PermMessageReact) {
+		t.Fatalf("guest perms = %v, want [read, send, react]", rp[rbac.RoleGuest])
 	}
 }

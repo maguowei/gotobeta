@@ -507,6 +507,35 @@ var (
 			},
 		},
 	}
+	// ReactionsColumns holds the columns for the "reactions" table.
+	ReactionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "biz_id", Type: field.TypeInt64, Unique: true},
+		{Name: "conversation_id", Type: field.TypeInt64},
+		{Name: "message_id", Type: field.TypeInt64},
+		{Name: "user_id", Type: field.TypeInt64},
+		{Name: "emoji", Type: field.TypeString, Size: 64},
+	}
+	// ReactionsTable holds the schema information for the "reactions" table.
+	ReactionsTable = &schema.Table{
+		Name:       "reactions",
+		Columns:    ReactionsColumns,
+		PrimaryKey: []*schema.Column{ReactionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "reaction_message_id_user_id_emoji",
+				Unique:  true,
+				Columns: []*schema.Column{ReactionsColumns[5], ReactionsColumns[6], ReactionsColumns[7]},
+			},
+			{
+				Name:    "reaction_message_id",
+				Unique:  false,
+				Columns: []*schema.Column{ReactionsColumns[5]},
+			},
+		},
+	}
 	// TodosColumns holds the columns for the "todos" table.
 	TodosColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -676,6 +705,7 @@ var (
 		RbacRolesTable,
 		RbacRolePermissionsTable,
 		RbacUserRolesTable,
+		ReactionsTable,
 		TodosTable,
 		UsersTable,
 		UserIdentitiesTable,

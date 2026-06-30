@@ -201,6 +201,18 @@ func (f RbacUserRoleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RbacUserRoleMutation", m)
 }
 
+// The ReactionFunc type is an adapter to allow the use of ordinary
+// function as Reaction mutator.
+type ReactionFunc func(context.Context, *ent.ReactionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ReactionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ReactionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReactionMutation", m)
+}
+
 // The TodoFunc type is an adapter to allow the use of ordinary
 // function as Todo mutator.
 type TodoFunc func(context.Context, *ent.TodoMutation) (ent.Value, error)

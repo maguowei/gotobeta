@@ -30,11 +30,12 @@ const defaultRecallWindow = 2 * time.Minute
 
 // Module 持有装配好的 messaging HTTP 入口。
 type Module struct {
-	convHandler   *messaginghandler.ConversationHandler
-	msgHandler    *messaginghandler.MessageHandler
-	convSvc       *messagingsvc.ConversationService
-	msgSvc        *messagingsvc.MessageService
-	sendRateLimit gin.HandlerFunc
+	convHandler     *messaginghandler.ConversationHandler
+	msgHandler      *messaginghandler.MessageHandler
+	reactionHandler *messaginghandler.ReactionHandler
+	convSvc         *messagingsvc.ConversationService
+	msgSvc          *messagingsvc.MessageService
+	sendRateLimit   gin.HandlerFunc
 }
 
 // New 完成 messaging 模块装配（repo -> service -> handler）。
@@ -44,24 +45,26 @@ type Module struct {
 func New(client *ent.Client, logger *slog.Logger, cfg *config.Config, checker authz.Checker, publisher event.Publisher, metrics messagingport.MessageMetrics) (*Module, error) {
 	convRepo := messagingpersist.NewConversationRepository(client, logger)
 	msgRepo := messagingpersist.NewMessageRepository(client, logger)
+	reactionRepo := messagingpersist.NewReactionRepository(client, logger)
 	seqAllocator := seqalloc.NewDBAllocator(client)
 	txRunner := entdb.NewEntTxRunner(client)
 	idGen := localid.New()
 
 	convSvc := messagingsvc.NewConversationService(convRepo, checker, idGen, txRunner, logger)
 	msgSvc := messagingsvc.NewMessageService(
-		msgRepo, convRepo, seqAllocator, checker, publisher, idGen, txRunner,
+		msgRepo, convRepo, reactionRepo, seqAllocator, checker, publisher, idGen, txRunner,
 		recallWindow(cfg), cfg.IM.MessagePageSize, logger, metrics,
 	)
 
 	sendLimiter := httpmiddleware.NewLimiter(cfg.IM.MessageRatePerMinute, cfg.IM.MessageRateBurst)
 
 	return &Module{
-		convHandler:   messaginghandler.NewConversationHandler(convSvc),
-		msgHandler:    messaginghandler.NewMessageHandler(msgSvc),
-		convSvc:       convSvc,
-		msgSvc:        msgSvc,
-		sendRateLimit: sendLimiter.Middleware(messagingrouter.UserRateKey),
+		convHandler:     messaginghandler.NewConversationHandler(convSvc),
+		msgHandler:      messaginghandler.NewMessageHandler(msgSvc),
+		reactionHandler: messaginghandler.NewReactionHandler(msgSvc),
+		convSvc:         convSvc,
+		msgSvc:          msgSvc,
+		sendRateLimit:   sendLimiter.Middleware(messagingrouter.UserRateKey),
 	}, nil
 }
 
@@ -90,7 +93,7 @@ func (r readReporter) ReportRead(ctx context.Context, conversationID, userID, re
 
 // Mount 把会话与消息路由挂到给定路由组。
 func (m *Module) Mount(rg *gin.RouterGroup, middlewares ...gin.HandlerFunc) {
-	messagingrouter.RegisterRoutes(rg, m.convHandler, m.msgHandler, m.sendRateLimit, middlewares...)
+	messagingrouter.RegisterRoutes(rg, m.convHandler, m.msgHandler, m.reactionHandler, m.sendRateLimit, middlewares...)
 }
 
 func recallWindow(cfg *config.Config) time.Duration {

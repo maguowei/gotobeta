@@ -27,3 +27,10 @@ func TestMessageRequestToCommand(t *testing.T) {
 		t.Fatalf("ReportRead 映射错误: %+v", r)
 	}
 }
+
+func TestAddReactionRequestToCommand(t *testing.T) {
+	c := AddReactionRequest{Emoji: "👍"}.ToCommand(1, 100, 8001, 9)
+	if c.WorkspaceID != 1 || c.ConversationID != 100 || c.MessageID != 8001 || c.OperatorUserID != 9 || c.Emoji != "👍" {
+		t.Fatalf("AddReaction 映射错误: %+v", c)
+	}
+}
