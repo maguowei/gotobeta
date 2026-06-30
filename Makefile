@@ -38,7 +38,11 @@ test-architecture: ## 校验 DDD 分层依赖边界
 	go test ./internal/architecture -count=1
 
 coverage-collect: ## 收集并过滤覆盖率数据
-	go test -coverprofile=coverage.out $(shell go list ./... | grep -v ./internal/integration)
+# 成功时静默（吞掉每个包的 coverage 行），失败时回显完整测试日志并非零退出，
+# 保证测试失败仍可见且不破坏 make verify 的失败语义。
+	@go test -coverprofile=coverage.out $(shell go list ./... | grep -v ./internal/integration) > coverage.test.log 2>&1 \
+		|| { cat coverage.test.log; rm -f coverage.test.log; exit 1; }
+	@rm -f coverage.test.log
 # 过滤掉两类不计入单测覆盖率的代码：ent 生成代码，以及进程入口/组合根装配代码
 # （cmd/* 主函数、server.RunHTTP/RunMigrate、datainit.Run、worker.Run）。
 # 这些只做依赖装配并接入真实 DB/Kafka，由 make smoke 编译验证、由集成测试覆盖运行时，
@@ -97,7 +101,7 @@ lint-go: tools-download ## 运行 golangci-lint
 	GOCACHE=$(GO_TOOL_GOCACHE) GOMODCACHE=$(GO_TOOL_GOMODCACHE) GOLANGCI_LINT_CACHE=$(GOLANGCI_LINT_CACHE) $(GOLANGCI_LINT) run --allow-parallel-runners ./...
 
 lint-openapi: tools-download ## 校验 OpenAPI 契约
-	GOCACHE=$(GO_TOOL_GOCACHE) GOMODCACHE=$(GO_TOOL_GOMODCACHE) $(VACUUM) lint -d --fail-severity warn -r vacuum-ruleset.yaml api/openapi.yaml
+	GOCACHE=$(GO_TOOL_GOCACHE) GOMODCACHE=$(GO_TOOL_GOMODCACHE) $(VACUUM) lint -d --no-banner --no-style --fail-severity warn -r vacuum-ruleset.yaml api/openapi.yaml
 
 lint-secrets: tools-download ## 扫描硬编码密钥
 	GOCACHE=$(GO_TOOL_GOCACHE) GOMODCACHE=$(GO_TOOL_GOMODCACHE) $(GITLEAKS) dir --redact --no-banner .
@@ -160,7 +164,7 @@ pre-push-verify: ## 运行带本地成功缓存的 pre-push 门禁
 
 clean: ## 清理构建产物
 	rm -rf bin/
-	rm -f coverage.out coverage.filtered.out coverage.html
+	rm -f coverage.out coverage.filtered.out coverage.html coverage.test.log
 
 lefthook-install: tools-download ## 安装 Lefthook Git hooks
 	GOCACHE=$(GO_TOOL_GOCACHE) GOMODCACHE=$(GO_TOOL_GOMODCACHE) $(LEFTHOOK) install
