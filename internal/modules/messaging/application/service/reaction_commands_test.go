@@ -68,7 +68,7 @@ func newReactionSvcWithMessage(t *testing.T, checker authz.Checker) (*MessageSer
 	reactionRepo := newMemReactionRepo()
 	pub := &capturePublisher{}
 	seedActiveMember(convRepo, 100, 9)
-	svc := NewMessageService(msgRepo, convRepo, reactionRepo, &memSeqAlloc{}, checker, pub, &fakeIDGen{}, directTxRunner{}, 2*time.Minute, 50, slog.Default(), nil)
+	svc := NewMessageService(msgRepo, convRepo, reactionRepo, newMemChangeRepo(), &memSeqAlloc{}, checker, pub, &fakeIDGen{}, directTxRunner{}, 2*time.Minute, 50, slog.Default(), nil)
 	sent, err := svc.SendMessage(context.Background(), textCmd(100, 9, "c1", "hi"))
 	if err != nil {
 		t.Fatalf("预置消息失败: %v", err)

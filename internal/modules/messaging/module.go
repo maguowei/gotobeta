@@ -46,13 +46,14 @@ func New(client *ent.Client, logger *slog.Logger, cfg *config.Config, checker au
 	convRepo := messagingpersist.NewConversationRepository(client, logger)
 	msgRepo := messagingpersist.NewMessageRepository(client, logger)
 	reactionRepo := messagingpersist.NewReactionRepository(client, logger)
+	changeRepo := messagingpersist.NewMessageChangeRepository(client, logger)
 	seqAllocator := seqalloc.NewDBAllocator(client)
 	txRunner := entdb.NewEntTxRunner(client)
 	idGen := localid.New()
 
 	convSvc := messagingsvc.NewConversationService(convRepo, checker, idGen, txRunner, logger)
 	msgSvc := messagingsvc.NewMessageService(
-		msgRepo, convRepo, reactionRepo, seqAllocator, checker, publisher, idGen, txRunner,
+		msgRepo, convRepo, reactionRepo, changeRepo, seqAllocator, checker, publisher, idGen, txRunner,
 		recallWindow(cfg), cfg.IM.MessagePageSize, logger, metrics,
 	)
 

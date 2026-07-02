@@ -10,6 +10,7 @@ import (
 	messagingresult "github.com/maguowei/gotobeta/internal/modules/messaging/application/result"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/conversation"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/message"
+	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/messagechange"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/reaction"
 	"github.com/maguowei/gotobeta/internal/pkg/apperr"
 	"github.com/maguowei/gotobeta/internal/pkg/authz"
@@ -26,6 +27,7 @@ type MessageService struct {
 	messages      message.Repository
 	conversations conversation.Repository
 	reactions     reaction.Repository
+	changes       messagechange.Repository
 	seqAllocator  messagingport.SeqAllocator
 	checker       authz.Checker
 	publisher     event.Publisher
@@ -43,6 +45,7 @@ func NewMessageService(
 	messages message.Repository,
 	conversations conversation.Repository,
 	reactions reaction.Repository,
+	changes messagechange.Repository,
 	seqAllocator messagingport.SeqAllocator,
 	checker authz.Checker,
 	publisher event.Publisher,
@@ -60,6 +63,7 @@ func NewMessageService(
 		messages:      messages,
 		conversations: conversations,
 		reactions:     reactions,
+		changes:       changes,
 		seqAllocator:  seqAllocator,
 		checker:       checker,
 		publisher:     publisher,

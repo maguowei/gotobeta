@@ -9,6 +9,7 @@ import (
 	messagingcmd "github.com/maguowei/gotobeta/internal/modules/messaging/application/command"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/conversation"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/message"
+	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/messagechange"
 	"github.com/maguowei/gotobeta/internal/pkg/event"
 	"github.com/maguowei/gotobeta/internal/pkg/requestctx"
 )
@@ -67,6 +68,29 @@ func (r *memMsgRepo) ListAfterSeq(_ context.Context, convID, afterSeq int64, lim
 	return out, nil
 }
 
+// memChangeRepo 是内存版变更流仓储。
+type memChangeRepo struct{ items []*messagechange.Change }
+
+func newMemChangeRepo() *memChangeRepo { return &memChangeRepo{} }
+
+func (r *memChangeRepo) Append(_ context.Context, c *messagechange.Change) error {
+	r.items = append(r.items, c)
+	return nil
+}
+
+func (r *memChangeRepo) ListAfter(_ context.Context, convID, afterSeq int64, limit int) ([]*messagechange.Change, error) {
+	var out []*messagechange.Change
+	for _, c := range r.items {
+		if c.ConversationID() == convID && c.ChangeSeq() > afterSeq {
+			out = append(out, c)
+			if len(out) >= limit {
+				break
+			}
+		}
+	}
+	return out, nil
+}
+
 // memSeqAlloc 内存 seq 分配器。
 type memSeqAlloc struct{ n map[int64]int64 }
 
@@ -97,7 +121,7 @@ func newMsgService(convRepo *memConvRepo, msgRepo *memMsgRepo, pub *capturePubli
 }
 
 func newMsgServiceWithWindow(convRepo *memConvRepo, msgRepo *memMsgRepo, pub *capturePublisher, window time.Duration) *MessageService {
-	return NewMessageService(msgRepo, convRepo, newMemReactionRepo(), &memSeqAlloc{}, allowChecker{}, pub, &fakeIDGen{}, directTxRunner{}, window, 50, slog.Default(), nil)
+	return NewMessageService(msgRepo, convRepo, newMemReactionRepo(), newMemChangeRepo(), &memSeqAlloc{}, allowChecker{}, pub, &fakeIDGen{}, directTxRunner{}, window, 50, slog.Default(), nil)
 }
 
 // fakeMetrics 记录埋点调用次数，断言 SendMessage 触发观测。
@@ -114,7 +138,7 @@ func TestSendMessageRecordsMetrics(t *testing.T) {
 	msgRepo := newMemMsgRepo()
 	seedActiveMember(convRepo, 100, 9)
 	mc := &fakeMetrics{}
-	svc := NewMessageService(msgRepo, convRepo, newMemReactionRepo(), &memSeqAlloc{}, allowChecker{}, &capturePublisher{}, &fakeIDGen{}, directTxRunner{}, 2*time.Minute, 50, slog.Default(), mc)
+	svc := NewMessageService(msgRepo, convRepo, newMemReactionRepo(), newMemChangeRepo(), &memSeqAlloc{}, allowChecker{}, &capturePublisher{}, &fakeIDGen{}, directTxRunner{}, 2*time.Minute, 50, slog.Default(), mc)
 
 	if _, err := svc.SendMessage(context.Background(), textCmd(100, 9, "c1", "hi")); err != nil {
 		t.Fatalf("发送失败: %v", err)
@@ -292,7 +316,7 @@ func TestRecallExpiredWindow(t *testing.T) {
 	msgRepo := newMemMsgRepo()
 	seedActiveMember(convRepo, 100, 9)
 	// 撤回窗口 0，必定超窗。
-	svc := NewMessageService(msgRepo, convRepo, newMemReactionRepo(), &memSeqAlloc{}, allowChecker{}, &capturePublisher{}, &fakeIDGen{}, directTxRunner{}, 0, 50, slog.Default(), nil)
+	svc := NewMessageService(msgRepo, convRepo, newMemReactionRepo(), newMemChangeRepo(), &memSeqAlloc{}, allowChecker{}, &capturePublisher{}, &fakeIDGen{}, directTxRunner{}, 0, 50, slog.Default(), nil)
 
 	sent, _ := svc.SendMessage(context.Background(), textCmd(100, 9, "c1", "hi"))
 	err := svc.RecallMessage(context.Background(), messagingcmd.RecallMessageCommand{
