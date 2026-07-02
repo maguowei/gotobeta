@@ -4,6 +4,7 @@ import (
 	"context"
 	stderrors "errors"
 	"log/slog"
+	"strconv"
 	"time"
 
 	messagingcmd "github.com/maguowei/gotobeta/internal/modules/messaging/application/command"
@@ -62,7 +63,8 @@ func (s *MessageService) AddReaction(ctx context.Context, cmd messagingcmd.AddRe
 			return wrapInfrastructureError("生成变更 ID 失败", err)
 		}
 		chg, err := messagechange.New(changeID, cmd.ConversationID, seq, messagechange.ChangeReactionAdd, cmd.MessageID, cmd.OperatorUserID, map[string]any{
-			"userId": cmd.OperatorUserID,
+			// userId 以字符串入 payload：避免大整数经 JSON number 在客户端丢精度。
+			"userId": strconv.FormatInt(cmd.OperatorUserID, 10),
 			"emoji":  cmd.Emoji,
 		})
 		if err != nil {
@@ -116,7 +118,8 @@ func (s *MessageService) RemoveReaction(ctx context.Context, cmd messagingcmd.Re
 			return wrapInfrastructureError("生成变更 ID 失败", err)
 		}
 		chg, err := messagechange.New(changeID, cmd.ConversationID, seq, messagechange.ChangeReactionRemove, cmd.MessageID, cmd.OperatorUserID, map[string]any{
-			"userId": cmd.OperatorUserID,
+			// userId 以字符串入 payload：避免大整数经 JSON number 在客户端丢精度。
+			"userId": strconv.FormatInt(cmd.OperatorUserID, 10),
 			"emoji":  cmd.Emoji,
 		})
 		if err != nil {

@@ -34,6 +34,10 @@ func (r *MessageChangeRepository) Append(ctx context.Context, c *messagechange.C
 		SetPayload(c.Payload()).
 		SetCreatedAt(c.CreatedAt()).
 		Save(ctx)
+	if ent.IsConstraintError(err) {
+		// (conversation_id, change_seq) 唯一索引兜底：转可诊断领域错误。
+		return messagechange.ErrDuplicateChangeSeq
+	}
 	return err
 }
 

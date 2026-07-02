@@ -145,4 +145,12 @@ func TestEditMessageWritesChange(t *testing.T) {
 	if edited.MessageID() != sent.MessageID || edited.Payload()["content"] == nil {
 		t.Fatalf("edited 变更字段错误: %+v", edited)
 	}
+	// changeSeq 应严格大于发送消息占用的 seq（编辑另占一个后继 seq）。
+	if edited.ChangeSeq() <= sent.Seq {
+		t.Fatalf("edited changeSeq 应大于发送 seq %d, got %d", sent.Seq, edited.ChangeSeq())
+	}
+	// actorID 应为编辑操作者。
+	if edited.ActorID() != 9 {
+		t.Fatalf("edited actorID 应为 9, got %d", edited.ActorID())
+	}
 }

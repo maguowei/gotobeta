@@ -1135,17 +1135,18 @@ paths:
         - $ref: '#/components/parameters/ConversationID'
         - name: afterChangeSeq
           in: query
-          description: 客户端游标，返回该值之后的变更；0 表示从头
+          description: 客户端游标，返回该值之后的变更；缺省从 0 开始
+          required: false
           schema:
             type: integer
             format: int64
-            default: 0
         - name: limit
           in: query
-          description: 单页最大条数（默认 50，上限 200）
+          description: 单页变更条数，缺省 50，上限 200
+          required: false
           schema:
             type: integer
-            default: 50
+            format: int32
       responses:
         '200':
           description: 变更流分页
@@ -2696,7 +2697,13 @@ components:
           example: "9"
         payload:
           type: object
-          example: {}
+          description: >-
+            胖日志 apply 数据，按 changeType 取不同键。created 为空对象 {}（正文走 pullMessages），
+            撤回系统条目 created 带 recalledMsgId；edited 带 content、editedAt；reaction_add/remove 带 userId、emoji。
+            其中 recalledMsgId、userId 为大整数 ID，序列化为字符串以避免精度丢失。
+          example:
+            userId: "9"
+            emoji: "👍"
     ChangesResponse:
       description: 变更流分页响应
       type: object

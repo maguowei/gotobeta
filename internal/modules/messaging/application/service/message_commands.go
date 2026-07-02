@@ -4,6 +4,7 @@ import (
 	"context"
 	stderrors "errors"
 	"log/slog"
+	"strconv"
 	"time"
 
 	messagingcmd "github.com/maguowei/gotobeta/internal/modules/messaging/application/command"
@@ -17,7 +18,7 @@ import (
 	loggerx "github.com/maguowei/gotobeta/internal/pkg/logger"
 )
 
-// SendMessage 发送消息：成员校验 → 幂等 → 事务内分配 seq 落库并更新会话游标 → 发布事件。
+// SendMessage 发送消息：成员校验 → 幂等 → 事务内分配 seq 落库、更新会话游标并追加 created 变更流 → 发布事件。
 func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendMessageCommand) (*messagingresult.MessageResult, error) {
 	start := time.Now()
 	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
@@ -194,7 +195,9 @@ func (s *MessageService) RecallMessage(ctx context.Context, cmd messagingcmd.Rec
 			return wrapInfrastructureError("生成变更 ID 失败", err)
 		}
 		chg, err := messagechange.New(changeID, cmd.ConversationID, seq, messagechange.ChangeCreated, sys.ID(), cmd.OperatorUserID, map[string]any{
-			"recalledMsgId": msg.ID(),
+			// ID 以字符串入 payload：payload 经 JSON 往返，大整数（Snowflake > 2^53）
+			// 作为 JSON number 会在客户端（及 ent 读回 float64）丢精度，字符串可无损。
+			"recalledMsgId": strconv.FormatInt(msg.ID(), 10),
 		})
 		if err != nil {
 			return err

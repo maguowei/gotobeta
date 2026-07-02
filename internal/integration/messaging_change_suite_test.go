@@ -5,6 +5,7 @@ package integration_test
 import (
 	"context"
 	"log/slog"
+	"strconv"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	messagingquery "github.com/maguowei/gotobeta/internal/modules/messaging/application/query"
 	messagingsvc "github.com/maguowei/gotobeta/internal/modules/messaging/application/service"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/conversation"
+	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/messagechange"
 	messagingpersist "github.com/maguowei/gotobeta/internal/modules/messaging/infra/persistence"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/infra/seqalloc"
 	workspacecmd "github.com/maguowei/gotobeta/internal/modules/workspace/application/command"
@@ -129,6 +131,8 @@ func (s *MessagingChangeSuite) TestChangeStreamCatchUp() {
 	s.Greater(page.Changes[2].ChangeSeq, page.Changes[1].ChangeSeq)
 	// edited payload 带新内容。
 	s.NotNil(page.Changes[1].Payload["content"])
+	// reaction_add payload 的 userId 以字符串承载（避免大整数丢精度）。
+	s.Equal(strconv.FormatInt(ownerID, 10), page.Changes[2].Payload["userId"])
 
 	// 增量续拉：从第 1 条之后拉，应剩 2 条。
 	page2, err := s.msgSvc.ListChanges(ctx, messagingquery.ListChangesQuery{
@@ -165,9 +169,25 @@ func (s *MessagingChangeSuite) TestRecallAppearsAsCreatedInStream() {
 	s.Require().Len(page.Changes, 2)
 	last := page.Changes[len(page.Changes)-1]
 	s.Equal(int8(1), last.ChangeType)
-	// payload 经 ent JSON 回读为 float64，用 EqualValues 跨类型比较，确认指向被撤回消息。
+	// recalledMsgId 以字符串承载（大整数经 JSON number 会丢精度），断言等于被撤回消息 ID 的十进制串。
 	s.Require().NotNil(last.Payload["recalledMsgId"])
-	s.EqualValues(msg.MessageID, last.Payload["recalledMsgId"])
+	s.Equal(strconv.FormatInt(msg.MessageID, 10), last.Payload["recalledMsgId"])
+}
+
+// TestAppendDuplicateChangeSeqRejected 验证 (conversation_id, change_seq) 唯一索引兜底转领域错误。
+func (s *MessagingChangeSuite) TestAppendDuplicateChangeSeqRejected() {
+	ctx := context.Background()
+	repo := messagingpersist.NewMessageChangeRepository(s.client, slog.New(slog.DiscardHandler))
+	const convID, seq int64 = 77001, 1
+
+	c1, err := messagechange.New(90001, convID, seq, messagechange.ChangeCreated, 8001, 9, map[string]any{})
+	s.Require().NoError(err)
+	s.Require().NoError(repo.Append(ctx, c1))
+
+	// 同一 (conversation_id, change_seq) 再插一条 → 撞唯一索引，应转 ErrDuplicateChangeSeq。
+	c2, err := messagechange.New(90002, convID, seq, messagechange.ChangeCreated, 8002, 9, map[string]any{})
+	s.Require().NoError(err)
+	s.Require().ErrorIs(repo.Append(ctx, c2), messagechange.ErrDuplicateChangeSeq)
 }
 
 func TestMessagingChangeSuite(t *testing.T) {
