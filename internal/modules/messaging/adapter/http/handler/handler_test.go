@@ -38,6 +38,9 @@ func (fakeUC) SendMessage(_ context.Context, _ messagingcmd.SendMessageCommand) 
 func (fakeUC) PullMessages(_ context.Context, _ messagingquery.PullMessagesQuery) ([]*messagingresult.MessageResult, error) {
 	return []*messagingresult.MessageResult{{MessageID: 8001, Seq: 1}}, nil
 }
+func (fakeUC) ListChanges(_ context.Context, _ messagingquery.ListChangesQuery) (*messagingresult.ChangesPage, error) {
+	return &messagingresult.ChangesPage{Changes: []*messagingresult.ChangeResult{{ChangeSeq: 1, ChangeType: 1, MessageID: 8001}}, NextCursor: 1, HasMore: false}, nil
+}
 func (fakeUC) RecallMessage(_ context.Context, _ messagingcmd.RecallMessageCommand) error { return nil }
 func (fakeUC) EditMessage(_ context.Context, _ messagingcmd.EditMessageCommand) (*messagingresult.MessageResult, error) {
 	return &messagingresult.MessageResult{MessageID: 8001, Seq: 1, ContentType: 1, Content: map[string]any{"text": "edited"}}, nil

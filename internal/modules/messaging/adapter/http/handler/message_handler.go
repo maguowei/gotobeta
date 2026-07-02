@@ -19,6 +19,7 @@ import (
 type MessageUseCase interface {
 	SendMessage(ctx context.Context, cmd messagingcmd.SendMessageCommand) (*messagingresult.MessageResult, error)
 	PullMessages(ctx context.Context, q messagingquery.PullMessagesQuery) ([]*messagingresult.MessageResult, error)
+	ListChanges(ctx context.Context, q messagingquery.ListChangesQuery) (*messagingresult.ChangesPage, error)
 	RecallMessage(ctx context.Context, cmd messagingcmd.RecallMessageCommand) error
 	EditMessage(ctx context.Context, cmd messagingcmd.EditMessageCommand) (*messagingresult.MessageResult, error)
 	ReportRead(ctx context.Context, cmd messagingcmd.ReportReadCommand) error
@@ -86,6 +87,37 @@ func (h *MessageHandler) PullMessages(c *gin.Context) {
 		return
 	}
 	httpresponse.Success(c, messagingresp.ToMessageListResponse(items))
+}
+
+// ListChanges 增量拉取会话变更流。
+func (h *MessageHandler) ListChanges(c *gin.Context) {
+	claims, ok := httpmiddleware.RequireClaims(c)
+	if !ok {
+		return
+	}
+	wsID, cid, ok := parseWsConv(c)
+	if !ok {
+		return
+	}
+	afterChangeSeq, err := parseNonNegativeQuery(c.Query("afterChangeSeq"))
+	if err != nil {
+		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的 afterChangeSeq")
+		return
+	}
+	limit, err := parseNonNegativeQuery(c.Query("limit"))
+	if err != nil {
+		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的 limit")
+		return
+	}
+	page, err := h.usecase.ListChanges(c.Request.Context(), messagingquery.ListChangesQuery{
+		WorkspaceID: wsID, OperatorUserID: claims.UserID, ConversationID: cid,
+		AfterChangeSeq: afterChangeSeq, Limit: int(limit),
+	})
+	if err != nil {
+		httpresponse.Error(c, err)
+		return
+	}
+	httpresponse.Success(c, messagingresp.ToChangesResponse(page))
 }
 
 // RecallMessage 撤回消息。

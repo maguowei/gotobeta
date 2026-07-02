@@ -44,6 +44,7 @@ func RegisterRoutes(group *gin.RouterGroup, h *handler.ConversationHandler, mh *
 	group.POST("/workspaces/:ws/conversations/:cid/messages", sendHandlers...)
 
 	group.GET("/workspaces/:ws/conversations/:cid/messages", mh.PullMessages)
+	group.GET("/workspaces/:ws/conversations/:cid/changes", mh.ListChanges)
 	group.POST("/workspaces/:ws/conversations/:cid/messages/:mid/recall", mh.RecallMessage)
 	group.PATCH("/workspaces/:ws/conversations/:cid/messages/:mid", mh.EditMessage)
 	group.POST("/workspaces/:ws/conversations/:cid/read", mh.ReportRead)

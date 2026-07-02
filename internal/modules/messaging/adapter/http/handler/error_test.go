@@ -42,6 +42,9 @@ func (u errUC) SendMessage(_ context.Context, _ messagingcmd.SendMessageCommand)
 func (u errUC) PullMessages(_ context.Context, _ messagingquery.PullMessagesQuery) ([]*messagingresult.MessageResult, error) {
 	return nil, u.err
 }
+func (u errUC) ListChanges(_ context.Context, _ messagingquery.ListChangesQuery) (*messagingresult.ChangesPage, error) {
+	return nil, u.err
+}
 func (u errUC) RecallMessage(_ context.Context, _ messagingcmd.RecallMessageCommand) error {
 	return u.err
 }
@@ -113,6 +116,7 @@ func TestMessagingUseCaseErrors(t *testing.T) {
 		{"listMembers", "GET", "/api/v1/workspaces/1/conversations/100/members", ""},
 		{"send", "POST", "/api/v1/workspaces/1/conversations/100/messages", `{"clientMsgId":"c1","contentType":1,"content":{"text":"hi"}}`},
 		{"pull", "GET", "/api/v1/workspaces/1/conversations/100/messages?afterSeq=0&limit=10", ""},
+		{"changes", "GET", "/api/v1/workspaces/1/conversations/100/changes?afterChangeSeq=0&limit=10", ""},
 		{"recall", "POST", "/api/v1/workspaces/1/conversations/100/messages/8001/recall", ""},
 		{"edit", "PATCH", "/api/v1/workspaces/1/conversations/100/messages/8001", `{"content":{"text":"new"}}`},
 		{"reportRead", "POST", "/api/v1/workspaces/1/conversations/100/read", `{"readSeq":5}`},
@@ -153,6 +157,7 @@ func TestMessagingMissingClaims(t *testing.T) {
 		{"GET", "/api/v1/workspaces/1/conversations/100/members", ""},
 		{"POST", "/api/v1/workspaces/1/conversations/100/messages", `{"clientMsgId":"c1","contentType":1,"content":{"text":"hi"}}`},
 		{"GET", "/api/v1/workspaces/1/conversations/100/messages?afterSeq=0&limit=10", ""},
+		{"GET", "/api/v1/workspaces/1/conversations/100/changes?afterChangeSeq=0&limit=10", ""},
 		{"POST", "/api/v1/workspaces/1/conversations/100/messages/8001/recall", ""},
 		{"PATCH", "/api/v1/workspaces/1/conversations/100/messages/8001", `{"content":{"text":"new"}}`},
 		{"POST", "/api/v1/workspaces/1/conversations/100/read", `{"readSeq":5}`},
