@@ -10,6 +10,7 @@ import (
 	messagingresult "github.com/maguowei/gotobeta/internal/modules/messaging/application/result"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/conversation"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/message"
+	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/messagechange"
 	"github.com/maguowei/gotobeta/internal/pkg/apperr"
 	"github.com/maguowei/gotobeta/internal/pkg/authz"
 	"github.com/maguowei/gotobeta/internal/pkg/imevent"
@@ -90,6 +91,17 @@ func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendM
 		conv.ApplyMessage(seq, msgID, m.Digest(), m.ServerTime())
 		if err := s.conversations.Save(txCtx, conv); err != nil {
 			return wrapInfrastructureError("更新会话游标失败", err)
+		}
+		changeID, err := s.idGenerator.NextID(txCtx)
+		if err != nil {
+			return wrapInfrastructureError("生成变更 ID 失败", err)
+		}
+		chg, err := messagechange.New(changeID, cmd.ConversationID, seq, messagechange.ChangeCreated, m.ID(), m.SenderID(), map[string]any{})
+		if err != nil {
+			return err
+		}
+		if err := s.changes.Append(txCtx, chg); err != nil {
+			return wrapInfrastructureError("追加变更流失败", err)
 		}
 		msg = m
 		return nil

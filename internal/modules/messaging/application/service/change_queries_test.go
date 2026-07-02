@@ -21,10 +21,6 @@ func TestListChangesNonMemberForbidden(t *testing.T) {
 }
 
 func TestListChangesReturnsAfterSeqAndHasMore(t *testing.T) {
-	// 依赖 SendMessage 写 changelog（Task 6 实现），本任务 memChangeRepo 尚为空，
-	// 待 Task 6 落地后删除本行即可让下方断言生效。
-	t.Skip("待 Task 6 实现 SendMessage 写 changelog 后启用")
-
 	convRepo := newMemConvRepo()
 	msgRepo := newMemMsgRepo()
 	pub := &capturePublisher{}
