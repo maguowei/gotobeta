@@ -30,6 +30,9 @@ type ConversationMember func(*sql.Selector)
 // Message is the predicate function for message builders.
 type Message func(*sql.Selector)
 
+// MessageChange is the predicate function for messagechange builders.
+type MessageChange func(*sql.Selector)
+
 // OAuthLoginState is the predicate function for oauthloginstate builders.
 type OAuthLoginState func(*sql.Selector)
 

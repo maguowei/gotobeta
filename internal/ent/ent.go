@@ -20,6 +20,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/conversation"
 	"github.com/maguowei/gotobeta/internal/ent/conversationmember"
 	"github.com/maguowei/gotobeta/internal/ent/message"
+	"github.com/maguowei/gotobeta/internal/ent/messagechange"
 	"github.com/maguowei/gotobeta/internal/ent/oauthloginstate"
 	"github.com/maguowei/gotobeta/internal/ent/rbacaclentry"
 	"github.com/maguowei/gotobeta/internal/ent/rbacpermission"
@@ -102,6 +103,7 @@ func checkColumn(t, c string) error {
 			conversation.Table:            conversation.ValidColumn,
 			conversationmember.Table:      conversationmember.ValidColumn,
 			message.Table:                 message.ValidColumn,
+			messagechange.Table:           messagechange.ValidColumn,
 			oauthloginstate.Table:         oauthloginstate.ValidColumn,
 			rbacaclentry.Table:            rbacaclentry.ValidColumn,
 			rbacpermission.Table:          rbacpermission.ValidColumn,

@@ -13,6 +13,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/conversation"
 	"github.com/maguowei/gotobeta/internal/ent/conversationmember"
 	"github.com/maguowei/gotobeta/internal/ent/message"
+	"github.com/maguowei/gotobeta/internal/ent/messagechange"
 	"github.com/maguowei/gotobeta/internal/ent/oauthloginstate"
 	"github.com/maguowei/gotobeta/internal/ent/rbacaclentry"
 	"github.com/maguowei/gotobeta/internal/ent/rbacpermission"
@@ -324,6 +325,21 @@ func init() {
 	messageDescServerTime := messageFields[10].Descriptor()
 	// message.DefaultServerTime holds the default value on creation for the server_time field.
 	message.DefaultServerTime = messageDescServerTime.Default.(func() time.Time)
+	messagechangeMixin := schema.MessageChange{}.Mixin()
+	messagechangeMixinFields0 := messagechangeMixin[0].Fields()
+	_ = messagechangeMixinFields0
+	messagechangeFields := schema.MessageChange{}.Fields()
+	_ = messagechangeFields
+	// messagechangeDescCreatedAt is the schema descriptor for created_at field.
+	messagechangeDescCreatedAt := messagechangeMixinFields0[0].Descriptor()
+	// messagechange.DefaultCreatedAt holds the default value on creation for the created_at field.
+	messagechange.DefaultCreatedAt = messagechangeDescCreatedAt.Default.(func() time.Time)
+	// messagechangeDescUpdatedAt is the schema descriptor for updated_at field.
+	messagechangeDescUpdatedAt := messagechangeMixinFields0[1].Descriptor()
+	// messagechange.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	messagechange.DefaultUpdatedAt = messagechangeDescUpdatedAt.Default.(func() time.Time)
+	// messagechange.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	messagechange.UpdateDefaultUpdatedAt = messagechangeDescUpdatedAt.UpdateDefault.(func() time.Time)
 	oauthloginstateMixin := schema.OAuthLoginState{}.Mixin()
 	oauthloginstateMixinFields0 := oauthloginstateMixin[0].Fields()
 	_ = oauthloginstateMixinFields0

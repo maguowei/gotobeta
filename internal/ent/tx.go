@@ -28,6 +28,8 @@ type Tx struct {
 	ConversationMember *ConversationMemberClient
 	// Message is the client for interacting with the Message builders.
 	Message *MessageClient
+	// MessageChange is the client for interacting with the MessageChange builders.
+	MessageChange *MessageChangeClient
 	// OAuthLoginState is the client for interacting with the OAuthLoginState builders.
 	OAuthLoginState *OAuthLoginStateClient
 	// RbacAclEntry is the client for interacting with the RbacAclEntry builders.
@@ -195,6 +197,7 @@ func (tx *Tx) init() {
 	tx.Conversation = NewConversationClient(tx.config)
 	tx.ConversationMember = NewConversationMemberClient(tx.config)
 	tx.Message = NewMessageClient(tx.config)
+	tx.MessageChange = NewMessageChangeClient(tx.config)
 	tx.OAuthLoginState = NewOAuthLoginStateClient(tx.config)
 	tx.RbacAclEntry = NewRbacAclEntryClient(tx.config)
 	tx.RbacPermission = NewRbacPermissionClient(tx.config)

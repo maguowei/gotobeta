@@ -259,6 +259,32 @@ var (
 			},
 		},
 	}
+	// MessageChangesColumns holds the columns for the "message_changes" table.
+	MessageChangesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"mysql": "datetime(3)"}},
+		{Name: "biz_id", Type: field.TypeInt64, Unique: true},
+		{Name: "conversation_id", Type: field.TypeInt64},
+		{Name: "change_seq", Type: field.TypeInt64},
+		{Name: "change_type", Type: field.TypeInt8},
+		{Name: "message_id", Type: field.TypeInt64},
+		{Name: "actor_id", Type: field.TypeInt64},
+		{Name: "payload", Type: field.TypeJSON, Nullable: true},
+	}
+	// MessageChangesTable holds the schema information for the "message_changes" table.
+	MessageChangesTable = &schema.Table{
+		Name:       "message_changes",
+		Columns:    MessageChangesColumns,
+		PrimaryKey: []*schema.Column{MessageChangesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "messagechange_conversation_id_change_seq",
+				Unique:  true,
+				Columns: []*schema.Column{MessageChangesColumns[4], MessageChangesColumns[5]},
+			},
+		},
+	}
 	// OauthLoginStatesColumns holds the columns for the "oauth_login_states" table.
 	OauthLoginStatesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -698,6 +724,7 @@ var (
 		ConversationsTable,
 		ConversationMembersTable,
 		MessagesTable,
+		MessageChangesTable,
 		OauthLoginStatesTable,
 		RbacACLEntriesTable,
 		RbacPermissionsTable,

@@ -16,6 +16,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/conversation"
 	"github.com/maguowei/gotobeta/internal/ent/conversationmember"
 	"github.com/maguowei/gotobeta/internal/ent/message"
+	"github.com/maguowei/gotobeta/internal/ent/messagechange"
 	"github.com/maguowei/gotobeta/internal/ent/oauthloginstate"
 	"github.com/maguowei/gotobeta/internal/ent/predicate"
 	"github.com/maguowei/gotobeta/internal/ent/rbacaclentry"
@@ -303,6 +304,33 @@ func (f TraverseMessage) Traverse(ctx context.Context, q ent.Query) error {
 		return f(ctx, q)
 	}
 	return fmt.Errorf("unexpected query type %T. expect *ent.MessageQuery", q)
+}
+
+// The MessageChangeFunc type is an adapter to allow the use of ordinary function as a Querier.
+type MessageChangeFunc func(context.Context, *ent.MessageChangeQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f MessageChangeFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.MessageChangeQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.MessageChangeQuery", q)
+}
+
+// The TraverseMessageChange type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseMessageChange func(context.Context, *ent.MessageChangeQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseMessageChange) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseMessageChange) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.MessageChangeQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.MessageChangeQuery", q)
 }
 
 // The OAuthLoginStateFunc type is an adapter to allow the use of ordinary function as a Querier.
@@ -702,6 +730,8 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.ConversationMemberQuery, predicate.ConversationMember, conversationmember.OrderOption]{typ: ent.TypeConversationMember, tq: q}, nil
 	case *ent.MessageQuery:
 		return &query[*ent.MessageQuery, predicate.Message, message.OrderOption]{typ: ent.TypeMessage, tq: q}, nil
+	case *ent.MessageChangeQuery:
+		return &query[*ent.MessageChangeQuery, predicate.MessageChange, messagechange.OrderOption]{typ: ent.TypeMessageChange, tq: q}, nil
 	case *ent.OAuthLoginStateQuery:
 		return &query[*ent.OAuthLoginStateQuery, predicate.OAuthLoginState, oauthloginstate.OrderOption]{typ: ent.TypeOAuthLoginState, tq: q}, nil
 	case *ent.RbacAclEntryQuery:

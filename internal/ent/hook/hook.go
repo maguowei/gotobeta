@@ -105,6 +105,18 @@ func (f MessageFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MessageMutation", m)
 }
 
+// The MessageChangeFunc type is an adapter to allow the use of ordinary
+// function as MessageChange mutator.
+type MessageChangeFunc func(context.Context, *ent.MessageChangeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MessageChangeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MessageChangeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MessageChangeMutation", m)
+}
+
 // The OAuthLoginStateFunc type is an adapter to allow the use of ordinary
 // function as OAuthLoginState mutator.
 type OAuthLoginStateFunc func(context.Context, *ent.OAuthLoginStateMutation) (ent.Value, error)

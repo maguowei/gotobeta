@@ -22,6 +22,7 @@ import (
 	"github.com/maguowei/gotobeta/internal/ent/conversation"
 	"github.com/maguowei/gotobeta/internal/ent/conversationmember"
 	"github.com/maguowei/gotobeta/internal/ent/message"
+	"github.com/maguowei/gotobeta/internal/ent/messagechange"
 	"github.com/maguowei/gotobeta/internal/ent/oauthloginstate"
 	"github.com/maguowei/gotobeta/internal/ent/rbacaclentry"
 	"github.com/maguowei/gotobeta/internal/ent/rbacpermission"
@@ -59,6 +60,8 @@ type Client struct {
 	ConversationMember *ConversationMemberClient
 	// Message is the client for interacting with the Message builders.
 	Message *MessageClient
+	// MessageChange is the client for interacting with the MessageChange builders.
+	MessageChange *MessageChangeClient
 	// OAuthLoginState is the client for interacting with the OAuthLoginState builders.
 	OAuthLoginState *OAuthLoginStateClient
 	// RbacAclEntry is the client for interacting with the RbacAclEntry builders.
@@ -106,6 +109,7 @@ func (c *Client) init() {
 	c.Conversation = NewConversationClient(c.config)
 	c.ConversationMember = NewConversationMemberClient(c.config)
 	c.Message = NewMessageClient(c.config)
+	c.MessageChange = NewMessageChangeClient(c.config)
 	c.OAuthLoginState = NewOAuthLoginStateClient(c.config)
 	c.RbacAclEntry = NewRbacAclEntryClient(c.config)
 	c.RbacPermission = NewRbacPermissionClient(c.config)
@@ -220,6 +224,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Conversation:            NewConversationClient(cfg),
 		ConversationMember:      NewConversationMemberClient(cfg),
 		Message:                 NewMessageClient(cfg),
+		MessageChange:           NewMessageChangeClient(cfg),
 		OAuthLoginState:         NewOAuthLoginStateClient(cfg),
 		RbacAclEntry:            NewRbacAclEntryClient(cfg),
 		RbacPermission:          NewRbacPermissionClient(cfg),
@@ -261,6 +266,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Conversation:            NewConversationClient(cfg),
 		ConversationMember:      NewConversationMemberClient(cfg),
 		Message:                 NewMessageClient(cfg),
+		MessageChange:           NewMessageChangeClient(cfg),
 		OAuthLoginState:         NewOAuthLoginStateClient(cfg),
 		RbacAclEntry:            NewRbacAclEntryClient(cfg),
 		RbacPermission:          NewRbacPermissionClient(cfg),
@@ -305,8 +311,8 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.AppSetting, c.Attachment, c.AuthActionToken, c.AuthRefreshToken, c.Bot,
-		c.Conversation, c.ConversationMember, c.Message, c.OAuthLoginState,
-		c.RbacAclEntry, c.RbacPermission, c.RbacPermissionChangeLog,
+		c.Conversation, c.ConversationMember, c.Message, c.MessageChange,
+		c.OAuthLoginState, c.RbacAclEntry, c.RbacPermission, c.RbacPermissionChangeLog,
 		c.RbacPermissionVersion, c.RbacRole, c.RbacRolePermission, c.RbacUserRole,
 		c.Reaction, c.Todo, c.User, c.UserIdentity, c.Workspace, c.WorkspaceMember,
 	} {
@@ -319,8 +325,8 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.AppSetting, c.Attachment, c.AuthActionToken, c.AuthRefreshToken, c.Bot,
-		c.Conversation, c.ConversationMember, c.Message, c.OAuthLoginState,
-		c.RbacAclEntry, c.RbacPermission, c.RbacPermissionChangeLog,
+		c.Conversation, c.ConversationMember, c.Message, c.MessageChange,
+		c.OAuthLoginState, c.RbacAclEntry, c.RbacPermission, c.RbacPermissionChangeLog,
 		c.RbacPermissionVersion, c.RbacRole, c.RbacRolePermission, c.RbacUserRole,
 		c.Reaction, c.Todo, c.User, c.UserIdentity, c.Workspace, c.WorkspaceMember,
 	} {
@@ -347,6 +353,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ConversationMember.mutate(ctx, m)
 	case *MessageMutation:
 		return c.Message.mutate(ctx, m)
+	case *MessageChangeMutation:
+		return c.MessageChange.mutate(ctx, m)
 	case *OAuthLoginStateMutation:
 		return c.OAuthLoginState.mutate(ctx, m)
 	case *RbacAclEntryMutation:
@@ -1441,6 +1449,139 @@ func (c *MessageClient) mutate(ctx context.Context, m *MessageMutation) (Value, 
 		return (&MessageDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Message mutation op: %q", m.Op())
+	}
+}
+
+// MessageChangeClient is a client for the MessageChange schema.
+type MessageChangeClient struct {
+	config
+}
+
+// NewMessageChangeClient returns a client for the MessageChange from the given config.
+func NewMessageChangeClient(c config) *MessageChangeClient {
+	return &MessageChangeClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `messagechange.Hooks(f(g(h())))`.
+func (c *MessageChangeClient) Use(hooks ...Hook) {
+	c.hooks.MessageChange = append(c.hooks.MessageChange, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `messagechange.Intercept(f(g(h())))`.
+func (c *MessageChangeClient) Intercept(interceptors ...Interceptor) {
+	c.inters.MessageChange = append(c.inters.MessageChange, interceptors...)
+}
+
+// Create returns a builder for creating a MessageChange entity.
+func (c *MessageChangeClient) Create() *MessageChangeCreate {
+	mutation := newMessageChangeMutation(c.config, OpCreate)
+	return &MessageChangeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of MessageChange entities.
+func (c *MessageChangeClient) CreateBulk(builders ...*MessageChangeCreate) *MessageChangeCreateBulk {
+	return &MessageChangeCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *MessageChangeClient) MapCreateBulk(slice any, setFunc func(*MessageChangeCreate, int)) *MessageChangeCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &MessageChangeCreateBulk{err: fmt.Errorf("calling to MessageChangeClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*MessageChangeCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &MessageChangeCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for MessageChange.
+func (c *MessageChangeClient) Update() *MessageChangeUpdate {
+	mutation := newMessageChangeMutation(c.config, OpUpdate)
+	return &MessageChangeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MessageChangeClient) UpdateOne(_m *MessageChange) *MessageChangeUpdateOne {
+	mutation := newMessageChangeMutation(c.config, OpUpdateOne, withMessageChange(_m))
+	return &MessageChangeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MessageChangeClient) UpdateOneID(id int) *MessageChangeUpdateOne {
+	mutation := newMessageChangeMutation(c.config, OpUpdateOne, withMessageChangeID(id))
+	return &MessageChangeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for MessageChange.
+func (c *MessageChangeClient) Delete() *MessageChangeDelete {
+	mutation := newMessageChangeMutation(c.config, OpDelete)
+	return &MessageChangeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MessageChangeClient) DeleteOne(_m *MessageChange) *MessageChangeDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MessageChangeClient) DeleteOneID(id int) *MessageChangeDeleteOne {
+	builder := c.Delete().Where(messagechange.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MessageChangeDeleteOne{builder}
+}
+
+// Query returns a query builder for MessageChange.
+func (c *MessageChangeClient) Query() *MessageChangeQuery {
+	return &MessageChangeQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMessageChange},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a MessageChange entity by its id.
+func (c *MessageChangeClient) Get(ctx context.Context, id int) (*MessageChange, error) {
+	return c.Query().Where(messagechange.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MessageChangeClient) GetX(ctx context.Context, id int) *MessageChange {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *MessageChangeClient) Hooks() []Hook {
+	return c.hooks.MessageChange
+}
+
+// Interceptors returns the client interceptors.
+func (c *MessageChangeClient) Interceptors() []Interceptor {
+	return c.inters.MessageChange
+}
+
+func (c *MessageChangeClient) mutate(ctx context.Context, m *MessageChangeMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MessageChangeCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MessageChangeUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MessageChangeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MessageChangeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown MessageChange mutation op: %q", m.Op())
 	}
 }
 
@@ -3310,16 +3451,16 @@ func (c *WorkspaceMemberClient) mutate(ctx context.Context, m *WorkspaceMemberMu
 type (
 	hooks struct {
 		AppSetting, Attachment, AuthActionToken, AuthRefreshToken, Bot, Conversation,
-		ConversationMember, Message, OAuthLoginState, RbacAclEntry, RbacPermission,
-		RbacPermissionChangeLog, RbacPermissionVersion, RbacRole, RbacRolePermission,
-		RbacUserRole, Reaction, Todo, User, UserIdentity, Workspace,
-		WorkspaceMember []ent.Hook
+		ConversationMember, Message, MessageChange, OAuthLoginState, RbacAclEntry,
+		RbacPermission, RbacPermissionChangeLog, RbacPermissionVersion, RbacRole,
+		RbacRolePermission, RbacUserRole, Reaction, Todo, User, UserIdentity,
+		Workspace, WorkspaceMember []ent.Hook
 	}
 	inters struct {
 		AppSetting, Attachment, AuthActionToken, AuthRefreshToken, Bot, Conversation,
-		ConversationMember, Message, OAuthLoginState, RbacAclEntry, RbacPermission,
-		RbacPermissionChangeLog, RbacPermissionVersion, RbacRole, RbacRolePermission,
-		RbacUserRole, Reaction, Todo, User, UserIdentity, Workspace,
-		WorkspaceMember []ent.Interceptor
+		ConversationMember, Message, MessageChange, OAuthLoginState, RbacAclEntry,
+		RbacPermission, RbacPermissionChangeLog, RbacPermissionVersion, RbacRole,
+		RbacRolePermission, RbacUserRole, Reaction, Todo, User, UserIdentity,
+		Workspace, WorkspaceMember []ent.Interceptor
 	}
 )
