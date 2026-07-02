@@ -1121,6 +1121,60 @@ paths:
                 data: null
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/workspaces/{ws}/conversations/{cid}/changes:
+    get:
+      operationId: listChanges
+      summary: 拉取会话变更流
+      description: 增量拉取会话内变更（新消息/编辑/撤回/表情回应），客户端带 afterChangeSeq 游标离线追平；需为会话活跃成员。
+      tags:
+        - messaging
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceID'
+        - $ref: '#/components/parameters/ConversationID'
+        - name: afterChangeSeq
+          in: query
+          description: 客户端游标，返回该值之后的变更；0 表示从头
+          schema:
+            type: integer
+            format: int64
+            default: 0
+        - name: limit
+          in: query
+          description: 单页最大条数（默认 50，上限 200）
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: 变更流分页
+          content:
+            application/json:
+              example:
+                code: 0
+                message: success
+                data:
+                  changes:
+                    - changeSeq: 1
+                      changeType: 1
+                      messageId: "8001"
+                      actorId: "9"
+                      payload: {}
+                  nextCursor: 1
+                  hasMore: false
+              schema:
+                $ref: '#/components/schemas/ChangesResponse'
+        '403':
+          description: 拉取变更流时非会话成员
+          content:
+            application/json:
+              example:
+                code: 40301
+                message: 不是该会话成员
+                data: null
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/workspaces/{ws}/conversations/{cid}/messages/{mid}/recall:
     post:
       operationId: recallMessage
@@ -2622,6 +2676,61 @@ components:
                 text: 你好
           items:
             $ref: '#/components/schemas/MessageItem'
+    ChangeItem:
+      description: 单条会话变更
+      type: object
+      properties:
+        changeSeq:
+          type: integer
+          format: int64
+          example: 1
+        changeType:
+          type: integer
+          description: 1-新消息 2-编辑 3-表情添加 4-表情取消
+          example: 1
+        messageId:
+          type: string
+          example: "8001"
+        actorId:
+          type: string
+          example: "9"
+        payload:
+          type: object
+          example: {}
+    ChangesResponse:
+      description: 变更流分页响应
+      type: object
+      required:
+        - code
+        - message
+        - data
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            changes:
+              type: array
+              example:
+                - changeSeq: 1
+                  changeType: 1
+                  messageId: "8001"
+                  actorId: "9"
+                  payload: {}
+              items:
+                $ref: '#/components/schemas/ChangeItem'
+            nextCursor:
+              type: integer
+              format: int64
+              example: 1
+            hasMore:
+              type: boolean
+              example: false
     AddReactionRequest:
       description: 添加表情回应请求
       type: object
