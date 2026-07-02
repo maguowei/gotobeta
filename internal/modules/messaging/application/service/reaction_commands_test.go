@@ -9,6 +9,7 @@ import (
 
 	messagingcmd "github.com/maguowei/gotobeta/internal/modules/messaging/application/command"
 	messagingquery "github.com/maguowei/gotobeta/internal/modules/messaging/application/query"
+	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/messagechange"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/reaction"
 	"github.com/maguowei/gotobeta/internal/pkg/apperr"
 	"github.com/maguowei/gotobeta/internal/pkg/authz"
@@ -154,6 +155,70 @@ func TestAddReactionMessageNotInConversation(t *testing.T) {
 	// 消息属于会话 100，却声称属于会话 200。
 	if err := svc.AddReaction(context.Background(), addCmd(200, msgID, 9, "👍")); err == nil {
 		t.Fatal("消息不属于该会话应被拒绝")
+	}
+}
+
+func TestAddReactionWritesChange(t *testing.T) {
+	convRepo := newMemConvRepo()
+	msgRepo := newMemMsgRepo()
+	changeRepo := newMemChangeRepo()
+	seedActiveMember(convRepo, 100, 9)
+	svc := NewMessageService(msgRepo, convRepo, newMemReactionRepo(), changeRepo, &memSeqAlloc{}, allowChecker{}, &capturePublisher{}, &fakeIDGen{}, directTxRunner{}, 2*time.Minute, 50, slog.Default(), nil)
+
+	sent, _ := svc.SendMessage(context.Background(), textCmd(100, 9, "c1", "hi"))
+	if err := svc.AddReaction(context.Background(), messagingcmd.AddReactionCommand{
+		WorkspaceID: 1, ConversationID: 100, MessageID: sent.MessageID, OperatorUserID: 9, Emoji: "👍",
+	}); err != nil {
+		t.Fatalf("加 reaction 失败: %v", err)
+	}
+	// 重复添加（幂等）不应新增变更。
+	if err := svc.AddReaction(context.Background(), messagingcmd.AddReactionCommand{
+		WorkspaceID: 1, ConversationID: 100, MessageID: sent.MessageID, OperatorUserID: 9, Emoji: "👍",
+	}); err != nil {
+		t.Fatalf("幂等重复添加失败: %v", err)
+	}
+	var addCount int
+	for _, c := range changeRepo.items {
+		if c.Type() == messagechange.ChangeReactionAdd {
+			addCount++
+		}
+	}
+	if addCount != 1 {
+		t.Fatalf("幂等添加应只写 1 条 reaction_add 变更, got %d", addCount)
+	}
+}
+
+func TestRemoveReactionWritesChange(t *testing.T) {
+	convRepo := newMemConvRepo()
+	msgRepo := newMemMsgRepo()
+	changeRepo := newMemChangeRepo()
+	seedActiveMember(convRepo, 100, 9)
+	svc := NewMessageService(msgRepo, convRepo, newMemReactionRepo(), changeRepo, &memSeqAlloc{}, allowChecker{}, &capturePublisher{}, &fakeIDGen{}, directTxRunner{}, 2*time.Minute, 50, slog.Default(), nil)
+
+	sent, _ := svc.SendMessage(context.Background(), textCmd(100, 9, "c1", "hi"))
+	if err := svc.AddReaction(context.Background(), messagingcmd.AddReactionCommand{
+		WorkspaceID: 1, ConversationID: 100, MessageID: sent.MessageID, OperatorUserID: 9, Emoji: "👍",
+	}); err != nil {
+		t.Fatalf("加 reaction 失败: %v", err)
+	}
+	removeCmd := messagingcmd.RemoveReactionCommand{
+		WorkspaceID: 1, ConversationID: 100, MessageID: sent.MessageID, OperatorUserID: 9, Emoji: "👍",
+	}
+	if err := svc.RemoveReaction(context.Background(), removeCmd); err != nil {
+		t.Fatalf("取消 reaction 失败: %v", err)
+	}
+	// 重复取消（幂等）不应新增变更。
+	if err := svc.RemoveReaction(context.Background(), removeCmd); err != nil {
+		t.Fatalf("幂等重复取消失败: %v", err)
+	}
+	var removeCount int
+	for _, c := range changeRepo.items {
+		if c.Type() == messagechange.ChangeReactionRemove {
+			removeCount++
+		}
+	}
+	if removeCount != 1 {
+		t.Fatalf("幂等取消应只写 1 条 reaction_remove 变更, got %d", removeCount)
 	}
 }
 

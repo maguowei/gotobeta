@@ -8,6 +8,7 @@ import (
 
 	messagingcmd "github.com/maguowei/gotobeta/internal/modules/messaging/application/command"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/message"
+	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/messagechange"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/reaction"
 	"github.com/maguowei/gotobeta/internal/pkg/apperr"
 	"github.com/maguowei/gotobeta/internal/pkg/authz"
@@ -48,10 +49,30 @@ func (s *MessageService) AddReaction(ctx context.Context, cmd messagingcmd.AddRe
 	if err != nil {
 		return err
 	}
-	if err := s.reactions.Add(ctx, rc); err != nil {
+	err = s.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
+		if err := s.reactions.Add(txCtx, rc); err != nil {
+			return err // 含 reaction.ErrAlreadyExists，外层判定
+		}
+		seq, err := s.seqAllocator.Next(txCtx, cmd.ConversationID)
+		if err != nil {
+			return wrapInfrastructureError("分配 seq 失败", err)
+		}
+		changeID, err := s.idGenerator.NextID(txCtx)
+		if err != nil {
+			return wrapInfrastructureError("生成变更 ID 失败", err)
+		}
+		chg, err := messagechange.New(changeID, cmd.ConversationID, seq, messagechange.ChangeReactionAdd, cmd.MessageID, cmd.OperatorUserID, map[string]any{
+			"userId": cmd.OperatorUserID,
+			"emoji":  cmd.Emoji,
+		})
+		if err != nil {
+			return err
+		}
+		return s.changes.Append(txCtx, chg)
+	})
+	if err != nil {
 		if stderrors.Is(err, reaction.ErrAlreadyExists) {
-			// 幂等：已回应过同一 emoji，no-op 不发事件。
-			return nil
+			return nil // 幂等：已回应过，no-op 不发事件、不写变更（事务已回滚）
 		}
 		return wrapInfrastructureError("保存表情回应失败", err)
 	}
@@ -76,9 +97,35 @@ func (s *MessageService) RemoveReaction(ctx context.Context, cmd messagingcmd.Re
 		return err
 	}
 
-	removed, err := s.reactions.Remove(ctx, cmd.MessageID, cmd.OperatorUserID, cmd.Emoji)
+	var removed bool
+	err := s.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
+		var rerr error
+		removed, rerr = s.reactions.Remove(txCtx, cmd.MessageID, cmd.OperatorUserID, cmd.Emoji)
+		if rerr != nil {
+			return wrapInfrastructureError("删除表情回应失败", rerr)
+		}
+		if !removed {
+			return nil // 未回应过，幂等 no-op（不写变更）
+		}
+		seq, err := s.seqAllocator.Next(txCtx, cmd.ConversationID)
+		if err != nil {
+			return wrapInfrastructureError("分配 seq 失败", err)
+		}
+		changeID, err := s.idGenerator.NextID(txCtx)
+		if err != nil {
+			return wrapInfrastructureError("生成变更 ID 失败", err)
+		}
+		chg, err := messagechange.New(changeID, cmd.ConversationID, seq, messagechange.ChangeReactionRemove, cmd.MessageID, cmd.OperatorUserID, map[string]any{
+			"userId": cmd.OperatorUserID,
+			"emoji":  cmd.Emoji,
+		})
+		if err != nil {
+			return err
+		}
+		return s.changes.Append(txCtx, chg)
+	})
 	if err != nil {
-		return wrapInfrastructureError("删除表情回应失败", err)
+		return err
 	}
 	if !removed {
 		return nil
