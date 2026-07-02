@@ -105,7 +105,7 @@ GET /api/v1/workspaces/{ws}/conversations/{cid}/changes
     "changes": [
       {"changeSeq": 101, "changeType": 1, "messageId": "8001", "actorId": "9", "payload": {}},
       {"changeSeq": 102, "changeType": 2, "messageId": "8001", "actorId": "9",
-       "payload": {"content": {"text": "改后"}, "editedAt": "2026-06-30 10:05:00"}},
+       "payload": {"content": {"text": "改后"}, "editedAt": "2026-06-30T10:05:00Z"}},
       {"changeSeq": 103, "changeType": 3, "messageId": "8001", "actorId": "9",
        "payload": {"userId": "9", "emoji": "👍"}}
     ],
