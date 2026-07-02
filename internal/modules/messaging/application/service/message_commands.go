@@ -250,8 +250,33 @@ func (s *MessageService) EditMessage(ctx context.Context, cmd messagingcmd.EditM
 		return nil, err
 	}
 
-	if err := s.messages.Save(ctx, msg); err != nil {
-		return nil, wrapInfrastructureError("保存编辑内容失败", err)
+	err = s.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
+		seq, err := s.seqAllocator.Next(txCtx, cmd.ConversationID)
+		if err != nil {
+			return wrapInfrastructureError("分配 seq 失败", err)
+		}
+		if err := s.messages.Save(txCtx, msg); err != nil {
+			return wrapInfrastructureError("保存编辑内容失败", err)
+		}
+		changeID, err := s.idGenerator.NextID(txCtx)
+		if err != nil {
+			return wrapInfrastructureError("生成变更 ID 失败", err)
+		}
+		chg, err := messagechange.New(changeID, cmd.ConversationID, seq, messagechange.ChangeEdited, msg.ID(), cmd.OperatorUserID, map[string]any{
+			"content":  msg.Content(),
+			"editedAt": msg.EditedAt(),
+		})
+		if err != nil {
+			return err
+		}
+		if err := s.changes.Append(txCtx, chg); err != nil {
+			return wrapInfrastructureError("追加变更流失败", err)
+		}
+		return nil
+	})
+	if err != nil {
+		loggerx.WithError(ctx, s.logger, "edit message failed", err, slog.Int64("messageId", cmd.MessageID))
+		return nil, err
 	}
 
 	workspaceID := cmd.WorkspaceID

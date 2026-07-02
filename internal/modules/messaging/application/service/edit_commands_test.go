@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"testing"
+	"time"
 
 	messagingcmd "github.com/maguowei/gotobeta/internal/modules/messaging/application/command"
 	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/conversation"
+	"github.com/maguowei/gotobeta/internal/modules/messaging/domain/messagechange"
 	"github.com/maguowei/gotobeta/internal/pkg/imevent"
 )
 
@@ -114,5 +117,32 @@ func TestEditMessageExpiredWindow(t *testing.T) {
 	sent, _ := svc.SendMessage(context.Background(), textCmd(100, 9, "c1", "old"))
 	if _, err := svc.EditMessage(context.Background(), editCmd(100, 9, sent.MessageID, "new")); err == nil {
 		t.Fatal("超窗编辑应被拒绝")
+	}
+}
+
+func TestEditMessageWritesChange(t *testing.T) {
+	convRepo := newMemConvRepo()
+	msgRepo := newMemMsgRepo()
+	changeRepo := newMemChangeRepo()
+	pub := &capturePublisher{}
+	seedActiveMember(convRepo, 100, 9)
+	svc := NewMessageService(msgRepo, convRepo, newMemReactionRepo(), changeRepo, &memSeqAlloc{}, allowChecker{}, pub, &fakeIDGen{}, directTxRunner{}, 2*time.Minute, 50, slog.Default(), nil)
+
+	sent, _ := svc.SendMessage(context.Background(), textCmd(100, 9, "c1", "old"))
+	if _, err := svc.EditMessage(context.Background(), editCmd(100, 9, sent.MessageID, "new")); err != nil {
+		t.Fatalf("编辑失败: %v", err)
+	}
+	// 变更流应含 1 条 created + 1 条 edited。
+	var edited *messagechange.Change
+	for _, c := range changeRepo.items {
+		if c.Type() == messagechange.ChangeEdited {
+			edited = c
+		}
+	}
+	if edited == nil {
+		t.Fatal("应写入 edited 变更")
+	}
+	if edited.MessageID() != sent.MessageID || edited.Payload()["content"] == nil {
+		t.Fatalf("edited 变更字段错误: %+v", edited)
 	}
 }
