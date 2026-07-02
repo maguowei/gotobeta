@@ -81,6 +81,7 @@ func (s *MessagingReactionSuite) SetupSuite() {
 		messagingpersist.NewMessageRepository(client, logger),
 		convRepo,
 		messagingpersist.NewReactionRepository(client, logger),
+		messagingpersist.NewMessageChangeRepository(client, logger),
 		seqalloc.NewDBAllocator(client),
 		checker, reactionNoopPublisher{}, idGen, txRunner,
 		time.Minute, 50, logger, nil,

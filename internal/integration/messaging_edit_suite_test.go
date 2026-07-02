@@ -80,6 +80,7 @@ func (s *MessagingEditSuite) SetupSuite() {
 		messagingpersist.NewMessageRepository(client, logger),
 		convRepo,
 		messagingpersist.NewReactionRepository(client, logger),
+		messagingpersist.NewMessageChangeRepository(client, logger),
 		seqalloc.NewDBAllocator(client),
 		checker, editNoopPublisher{}, idGen, txRunner,
 		time.Minute, 50, logger, nil,
