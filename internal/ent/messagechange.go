@@ -32,7 +32,7 @@ type MessageChange struct {
 	ChangeType int8 `json:"change_type,omitempty"`
 	// 逻辑外键 → messages.biz_id
 	MessageID int64 `json:"message_id,omitempty"`
-	// 逻辑外键 → users.biz_id（系统为 0）
+	// 逻辑外键 → users.biz_id（触发者，撤回系统条目为真实操作者）
 	ActorID int64 `json:"actor_id,omitempty"`
 	// Payload holds the value of the "payload" field.
 	Payload      map[string]interface{} `json:"payload,omitempty"`

@@ -165,7 +165,9 @@ func (s *MessagingChangeSuite) TestRecallAppearsAsCreatedInStream() {
 	s.Require().Len(page.Changes, 2)
 	last := page.Changes[len(page.Changes)-1]
 	s.Equal(int8(1), last.ChangeType)
-	s.NotNil(last.Payload["recalledMsgId"])
+	// payload 经 ent JSON 回读为 float64，用 EqualValues 跨类型比较，确认指向被撤回消息。
+	s.Require().NotNil(last.Payload["recalledMsgId"])
+	s.EqualValues(msg.MessageID, last.Payload["recalledMsgId"])
 }
 
 func TestMessagingChangeSuite(t *testing.T) {

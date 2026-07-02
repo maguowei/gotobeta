@@ -25,8 +25,8 @@ func (MessageChange) Fields() []ent.Field {
 		field.Int8("change_type"),
 		// 逻辑外键 → messages.biz_id（变更目标消息）
 		field.Int64("message_id").Comment("逻辑外键 → messages.biz_id"),
-		// 逻辑外键 → users.biz_id（触发者，系统条目为 0）
-		field.Int64("actor_id").Comment("逻辑外键 → users.biz_id（系统为 0）"),
+		// 逻辑外键 → users.biz_id（触发者；撤回系统条目记真实操作者 operatorId，便于客户端展示谁撤回）
+		field.Int64("actor_id").Comment("逻辑外键 → users.biz_id（触发者，撤回系统条目为真实操作者）"),
 		// payload: 胖日志 apply 数据（与 WS 帧同构）
 		field.JSON("payload", map[string]any{}).Optional(),
 	}

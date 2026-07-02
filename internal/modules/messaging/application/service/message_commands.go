@@ -251,12 +251,15 @@ func (s *MessageService) EditMessage(ctx context.Context, cmd messagingcmd.EditM
 	}
 
 	err = s.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
+		// 锁序须与 RecallMessage 保持一致（先锁 message 行、再锁 conversation 行），
+		// 否则同一消息并发编辑+撤回会构成 ABBA 死锁。seq 分配持锁至 commit，
+		// 与事务内分配先后无关，零间隙不受影响。
+		if err := s.messages.Save(txCtx, msg); err != nil {
+			return wrapInfrastructureError("保存编辑内容失败", err)
+		}
 		seq, err := s.seqAllocator.Next(txCtx, cmd.ConversationID)
 		if err != nil {
 			return wrapInfrastructureError("分配 seq 失败", err)
-		}
-		if err := s.messages.Save(txCtx, msg); err != nil {
-			return wrapInfrastructureError("保存编辑内容失败", err)
 		}
 		changeID, err := s.idGenerator.NextID(txCtx)
 		if err != nil {
