@@ -43,6 +43,19 @@ func (d *Dispatcher) incPush(result string) {
 	}
 }
 
+// fanout 查会话成员并向在线成员广播帧，统一记录失败日志与推送计数。
+func (d *Dispatcher) fanout(ctx context.Context, conversationID int64, frame []byte) error {
+	userIDs, err := d.members.ConversationUserIDs(ctx, conversationID)
+	if err != nil {
+		d.incPush("error")
+		loggerx.WithError(ctx, d.logger, "dispatch lookup members failed", err, slog.Int64("conversationId", conversationID))
+		return err
+	}
+	d.hub.Broadcast(userIDs, frame)
+	d.incPush("success")
+	return nil
+}
+
 // OnMessageCreated 处理消息创建事件：查会话成员 → 向在线成员推 signal 帧。
 func (d *Dispatcher) OnMessageCreated(ctx context.Context, e event.Event) error {
 	evt, ok := e.(imevent.MessageCreatedEvent)
@@ -56,15 +69,7 @@ func (d *Dispatcher) OnMessageCreated(ctx context.Context, e event.Event) error 
 		attribute.Int64("conversation_id", evt.ConversationID),
 		attribute.Int64("seq", evt.Seq),
 	)
-	userIDs, err := d.members.ConversationUserIDs(ctx, evt.ConversationID)
-	if err != nil {
-		d.incPush("error")
-		loggerx.WithError(ctx, d.logger, "dispatch lookup members failed", err, slog.Int64("conversationId", evt.ConversationID))
-		return err
-	}
-	d.hub.Broadcast(userIDs, ws.SignalFrame(evt.ConversationID, evt.Seq))
-	d.incPush("success")
-	return nil
+	return d.fanout(ctx, evt.ConversationID, ws.SignalFrame(evt.ConversationID, evt.Seq))
 }
 
 // OnReadUpdated 处理已读水位更新事件：向会话成员（含本人其他端）推 read 帧对齐。
@@ -73,15 +78,7 @@ func (d *Dispatcher) OnReadUpdated(ctx context.Context, e event.Event) error {
 	if !ok {
 		return nil
 	}
-	userIDs, err := d.members.ConversationUserIDs(ctx, evt.ConversationID)
-	if err != nil {
-		d.incPush("error")
-		loggerx.WithError(ctx, d.logger, "dispatch lookup members failed", err, slog.Int64("conversationId", evt.ConversationID))
-		return err
-	}
-	d.hub.Broadcast(userIDs, ws.ReadFrame(evt.ConversationID, evt.UserID, evt.ReadSeq))
-	d.incPush("success")
-	return nil
+	return d.fanout(ctx, evt.ConversationID, ws.ReadFrame(evt.ConversationID, evt.UserID, evt.ReadSeq))
 }
 
 // OnReactionUpdated 处理表情回应变更事件：向会话在线成员推 reaction 帧同步。
@@ -90,15 +87,7 @@ func (d *Dispatcher) OnReactionUpdated(ctx context.Context, e event.Event) error
 	if !ok {
 		return nil
 	}
-	userIDs, err := d.members.ConversationUserIDs(ctx, evt.ConversationID)
-	if err != nil {
-		d.incPush("error")
-		loggerx.WithError(ctx, d.logger, "dispatch lookup members failed", err, slog.Int64("conversationId", evt.ConversationID))
-		return err
-	}
-	d.hub.Broadcast(userIDs, ws.ReactionFrame(evt.ConversationID, evt.MessageID, evt.UserID, evt.Emoji, evt.Action))
-	d.incPush("success")
-	return nil
+	return d.fanout(ctx, evt.ConversationID, ws.ReactionFrame(evt.ConversationID, evt.MessageID, evt.UserID, evt.Emoji, evt.Action))
 }
 
 // OnMessageEdited 处理消息编辑事件：向会话在线成员推 edit 帧，携带新内容原地替换。
@@ -107,13 +96,5 @@ func (d *Dispatcher) OnMessageEdited(ctx context.Context, e event.Event) error {
 	if !ok {
 		return nil
 	}
-	userIDs, err := d.members.ConversationUserIDs(ctx, evt.ConversationID)
-	if err != nil {
-		d.incPush("error")
-		loggerx.WithError(ctx, d.logger, "dispatch lookup members failed", err, slog.Int64("conversationId", evt.ConversationID))
-		return err
-	}
-	d.hub.Broadcast(userIDs, ws.EditFrame(evt.ConversationID, evt.MessageID, evt.Content))
-	d.incPush("success")
-	return nil
+	return d.fanout(ctx, evt.ConversationID, ws.EditFrame(evt.ConversationID, evt.MessageID, evt.Content))
 }

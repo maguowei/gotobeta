@@ -49,10 +49,7 @@ func (r *MembershipRepository) FindByWorkspaceUser(ctx context.Context, workspac
 		Where(entmember.WorkspaceID(workspaceID), entmember.UserID(userID)).
 		Only(ctx)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, membership.ErrNotFound
-		}
-		return nil, err
+		return nil, mapEntNotFound(err, membership.ErrNotFound)
 	}
 	return memberToEntity(row), nil
 }

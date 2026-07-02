@@ -18,7 +18,7 @@ func TraceContext(serviceName string) gin.HandlerFunc {
 		otelhttp.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			c.Request = r
 			if sc := traceapi.SpanContextFromContext(r.Context()); sc.IsValid() {
-				c.Writer.Header().Set("X-Trace-Id", sc.TraceID().String())
+				c.Writer.Header().Set(headerXTraceID, sc.TraceID().String())
 			}
 			c.Next()
 		}), serviceName).ServeHTTP(c.Writer, c.Request)

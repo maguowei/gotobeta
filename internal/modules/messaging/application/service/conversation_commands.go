@@ -15,7 +15,7 @@ import (
 
 // CreateConversation 创建会话/频道；单聊按 dm_key 幂等去重，命中已有则直接返回。
 func (s *ConversationService) CreateConversation(ctx context.Context, cmd messagingcmd.CreateConversationCommand) (*messagingresult.ConversationResult, error) {
-	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+	if err := authz.AssertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
 		return nil, err
 	}
 	switch conversation.Type(cmd.Type) {
@@ -36,7 +36,7 @@ func (s *ConversationService) createDM(ctx context.Context, cmd messagingcmd.Cre
 	if err := s.checker.Check(ctx, authz.Request{
 		WorkspaceID: cmd.WorkspaceID,
 		Subject:     authz.Subject{UserID: cmd.OperatorUserID},
-		Action:      actionConversationRead,
+		Action:      authz.PermConversationRead,
 	}); err != nil {
 		return nil, err
 	}
@@ -45,12 +45,12 @@ func (s *ConversationService) createDM(ctx context.Context, cmd messagingcmd.Cre
 	if existing, err := s.conversations.FindByDMKey(ctx, dmKey); err == nil {
 		return toConversationResult(existing), nil
 	} else if !stderrors.Is(err, conversation.ErrNotFound) {
-		return nil, wrapInfrastructureError("查询单聊失败", err)
+		return nil, apperr.WrapInternal("查询单聊失败", err)
 	}
 
 	convID, err := s.idGenerator.NextID(ctx)
 	if err != nil {
-		return nil, wrapInfrastructureError("生成会话 ID 失败", err)
+		return nil, apperr.WrapInternal("生成会话 ID 失败", err)
 	}
 	conv, err := conversation.NewDM(convID, cmd.WorkspaceID, cmd.OperatorUserID, cmd.PeerUserID, cmd.OperatorUserID)
 	if err != nil {
@@ -62,7 +62,7 @@ func (s *ConversationService) createDM(ctx context.Context, cmd messagingcmd.Cre
 			if stderrors.Is(err, conversation.ErrDMExists) {
 				return apperr.Conflict("单聊已存在")
 			}
-			return wrapInfrastructureError("保存会话失败", err)
+			return apperr.WrapInternal("保存会话失败", err)
 		}
 		for _, uid := range []int64{cmd.OperatorUserID, cmd.PeerUserID} {
 			if err := s.addUserMember(txCtx, convID, uid, conversation.RoleMember); err != nil {
@@ -83,14 +83,14 @@ func (s *ConversationService) createGroupOrChannel(ctx context.Context, cmd mess
 	if err := s.checker.Check(ctx, authz.Request{
 		WorkspaceID: cmd.WorkspaceID,
 		Subject:     authz.Subject{UserID: cmd.OperatorUserID},
-		Action:      actionChannelCreate,
+		Action:      authz.PermChannelCreate,
 	}); err != nil {
 		return nil, err
 	}
 
 	convID, err := s.idGenerator.NextID(ctx)
 	if err != nil {
-		return nil, wrapInfrastructureError("生成会话 ID 失败", err)
+		return nil, apperr.WrapInternal("生成会话 ID 失败", err)
 	}
 	var conv *conversation.Conversation
 	if conversation.Type(cmd.Type) == conversation.TypeGroup {
@@ -104,7 +104,7 @@ func (s *ConversationService) createGroupOrChannel(ctx context.Context, cmd mess
 
 	err = s.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
 		if err := s.conversations.Create(txCtx, conv); err != nil {
-			return wrapInfrastructureError("保存会话失败", err)
+			return apperr.WrapInternal("保存会话失败", err)
 		}
 		return s.addUserMember(txCtx, convID, cmd.OperatorUserID, conversation.RoleOwner)
 	})
@@ -120,18 +120,18 @@ func (s *ConversationService) createGroupOrChannel(ctx context.Context, cmd mess
 func (s *ConversationService) addUserMember(ctx context.Context, convID, userID int64, role conversation.Role) error {
 	memID, err := s.idGenerator.NextID(ctx)
 	if err != nil {
-		return wrapInfrastructureError("生成成员 ID 失败", err)
+		return apperr.WrapInternal("生成成员 ID 失败", err)
 	}
 	mem := conversation.NewMember(memID, convID, conversation.MemberUser, userID, role)
 	if err := s.conversations.AddMember(ctx, mem); err != nil {
-		return wrapInfrastructureError("加入会话成员失败", err)
+		return apperr.WrapInternal("加入会话成员失败", err)
 	}
 	return nil
 }
 
 // AddMember 向群聊/频道加入成员；需操作者为会话 owner/admin。
 func (s *ConversationService) AddMember(ctx context.Context, cmd messagingcmd.AddMemberCommand) (*messagingresult.ConversationMemberResult, error) {
-	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+	if err := authz.AssertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
 		return nil, err
 	}
 	conv, err := s.conversations.FindByID(ctx, cmd.ConversationID)
@@ -139,7 +139,7 @@ func (s *ConversationService) AddMember(ctx context.Context, cmd messagingcmd.Ad
 		if stderrors.Is(err, conversation.ErrNotFound) {
 			return nil, apperr.NotFound("会话不存在")
 		}
-		return nil, wrapInfrastructureError("查询会话失败", err)
+		return nil, apperr.WrapInternal("查询会话失败", err)
 	}
 	if conv.Type() == conversation.TypeDM {
 		return nil, apperr.InvalidParam("单聊不支持加人")
@@ -157,7 +157,7 @@ func (s *ConversationService) AddMember(ctx context.Context, cmd messagingcmd.Ad
 			return nil, apperr.Conflict("已是会话成员")
 		}
 	} else if !stderrors.Is(err, conversation.ErrMemberNotFound) {
-		return nil, wrapInfrastructureError("查询会话成员失败", err)
+		return nil, apperr.WrapInternal("查询会话成员失败", err)
 	}
 
 	role := conversation.Role(cmd.Role)
@@ -169,15 +169,15 @@ func (s *ConversationService) AddMember(ctx context.Context, cmd messagingcmd.Ad
 	err = s.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
 		memID, err := s.idGenerator.NextID(txCtx)
 		if err != nil {
-			return wrapInfrastructureError("生成成员 ID 失败", err)
+			return apperr.WrapInternal("生成成员 ID 失败", err)
 		}
 		m := conversation.NewMember(memID, cmd.ConversationID, memberType, cmd.MemberID, role)
 		if err := s.conversations.AddMember(txCtx, m); err != nil {
-			return wrapInfrastructureError("加入会话成员失败", err)
+			return apperr.WrapInternal("加入会话成员失败", err)
 		}
 		conv.IncrMemberCount(1)
 		if err := s.conversations.Save(txCtx, conv); err != nil {
-			return wrapInfrastructureError("更新会话失败", err)
+			return apperr.WrapInternal("更新会话失败", err)
 		}
 		mem = m
 		return nil
@@ -191,7 +191,7 @@ func (s *ConversationService) AddMember(ctx context.Context, cmd messagingcmd.Ad
 
 // RemoveMember 从群聊/频道移除成员；操作者需为 owner/admin 或移除自己。
 func (s *ConversationService) RemoveMember(ctx context.Context, cmd messagingcmd.RemoveMemberCommand) error {
-	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+	if err := authz.AssertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
 		return err
 	}
 	conv, err := s.conversations.FindByID(ctx, cmd.ConversationID)
@@ -199,7 +199,7 @@ func (s *ConversationService) RemoveMember(ctx context.Context, cmd messagingcmd
 		if stderrors.Is(err, conversation.ErrNotFound) {
 			return apperr.NotFound("会话不存在")
 		}
-		return wrapInfrastructureError("查询会话失败", err)
+		return apperr.WrapInternal("查询会话失败", err)
 	}
 	if conv.Type() == conversation.TypeDM {
 		return apperr.InvalidParam("单聊不支持移除成员")
@@ -218,7 +218,7 @@ func (s *ConversationService) RemoveMember(ctx context.Context, cmd messagingcmd
 		if stderrors.Is(err, conversation.ErrMemberNotFound) {
 			return apperr.NotFound("成员不存在")
 		}
-		return wrapInfrastructureError("查询会话成员失败", err)
+		return apperr.WrapInternal("查询会话成员失败", err)
 	}
 	if !target.Leave() {
 		return nil
@@ -226,11 +226,11 @@ func (s *ConversationService) RemoveMember(ctx context.Context, cmd messagingcmd
 
 	err = s.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
 		if err := s.conversations.SaveMember(txCtx, target); err != nil {
-			return wrapInfrastructureError("更新会话成员失败", err)
+			return apperr.WrapInternal("更新会话成员失败", err)
 		}
 		conv.IncrMemberCount(-1)
 		if err := s.conversations.Save(txCtx, conv); err != nil {
-			return wrapInfrastructureError("更新会话失败", err)
+			return apperr.WrapInternal("更新会话失败", err)
 		}
 		return nil
 	})

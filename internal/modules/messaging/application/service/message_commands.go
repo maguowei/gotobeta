@@ -21,7 +21,7 @@ import (
 // SendMessage 发送消息：成员校验 → 幂等 → 事务内分配 seq 落库、更新会话游标并追加 created 变更流 → 发布事件。
 func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendMessageCommand) (*messagingresult.MessageResult, error) {
 	start := time.Now()
-	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+	if err := authz.AssertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
 		return nil, err
 	}
 	if cmd.ClientMsgID == "" {
@@ -32,7 +32,7 @@ func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendM
 		if stderrors.Is(err, conversation.ErrNotFound) {
 			return nil, apperr.NotFound("会话不存在")
 		}
-		return nil, wrapInfrastructureError("查询会话失败", err)
+		return nil, apperr.WrapInternal("查询会话失败", err)
 	}
 	if conv.Status() != conversation.StatusActive {
 		return nil, apperr.InvalidParam("会话已归档或解散")
@@ -52,7 +52,7 @@ func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendM
 			if stderrors.Is(err, message.ErrNotFound) {
 				return nil, apperr.InvalidParam("被引用的消息不存在")
 			}
-			return nil, wrapInfrastructureError("查询被引用消息失败", err)
+			return nil, apperr.WrapInternal("查询被引用消息失败", err)
 		}
 		if replied.ConversationID() != cmd.ConversationID {
 			return nil, apperr.InvalidParam("被引用的消息不属于该会话")
@@ -63,12 +63,12 @@ func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendM
 	if existing, err := s.messages.FindByClientMsgID(ctx, cmd.ConversationID, cmd.ClientMsgID); err == nil {
 		return toMessageResult(existing), nil
 	} else if !stderrors.Is(err, message.ErrNotFound) {
-		return nil, wrapInfrastructureError("查询幂等消息失败", err)
+		return nil, apperr.WrapInternal("查询幂等消息失败", err)
 	}
 
 	msgID, err := s.idGenerator.NextID(ctx)
 	if err != nil {
-		return nil, wrapInfrastructureError("生成消息 ID 失败", err)
+		return nil, apperr.WrapInternal("生成消息 ID 失败", err)
 	}
 
 	var msg *message.Message
@@ -79,7 +79,7 @@ func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendM
 			s.metrics.ObserveSeqAlloc(txCtx, time.Since(seqStart))
 		}
 		if err != nil {
-			return wrapInfrastructureError("分配 seq 失败", err)
+			return apperr.WrapInternal("分配 seq 失败", err)
 		}
 		m, err := message.New(msgID, cmd.ConversationID, seq, message.SenderUser, cmd.SenderUserID,
 			cmd.ClientMsgID, message.ContentType(cmd.ContentType), cmd.Content, cmd.ReplyToMsgID)
@@ -87,22 +87,14 @@ func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendM
 			return err
 		}
 		if err := s.messages.Create(txCtx, m); err != nil {
-			return wrapInfrastructureError("保存消息失败", err)
+			return apperr.WrapInternal("保存消息失败", err)
 		}
 		conv.ApplyMessage(seq, msgID, m.Digest(), m.ServerTime())
 		if err := s.conversations.Save(txCtx, conv); err != nil {
-			return wrapInfrastructureError("更新会话游标失败", err)
+			return apperr.WrapInternal("更新会话游标失败", err)
 		}
-		changeID, err := s.idGenerator.NextID(txCtx)
-		if err != nil {
-			return wrapInfrastructureError("生成变更 ID 失败", err)
-		}
-		chg, err := messagechange.New(changeID, cmd.ConversationID, seq, messagechange.ChangeCreated, m.ID(), m.SenderID(), map[string]any{})
-		if err != nil {
+		if err := s.appendChange(txCtx, cmd.ConversationID, seq, messagechange.ChangeCreated, m.ID(), m.SenderID(), map[string]any{}); err != nil {
 			return err
-		}
-		if err := s.changes.Append(txCtx, chg); err != nil {
-			return wrapInfrastructureError("追加变更流失败", err)
 		}
 		msg = m
 		return nil
@@ -122,7 +114,7 @@ func (s *MessageService) SendMessage(ctx context.Context, cmd messagingcmd.SendM
 
 // RecallMessage 撤回消息：本人在窗口内或具 message.recall 权限可撤回，并写入系统撤回条目。
 func (s *MessageService) RecallMessage(ctx context.Context, cmd messagingcmd.RecallMessageCommand) error {
-	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+	if err := authz.AssertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
 		return err
 	}
 	msg, err := s.messages.FindByID(ctx, cmd.MessageID)
@@ -130,7 +122,7 @@ func (s *MessageService) RecallMessage(ctx context.Context, cmd messagingcmd.Rec
 		if stderrors.Is(err, message.ErrNotFound) {
 			return apperr.NotFound("消息不存在")
 		}
-		return wrapInfrastructureError("查询消息失败", err)
+		return apperr.WrapInternal("查询消息失败", err)
 	}
 	if msg.ConversationID() != cmd.ConversationID {
 		return apperr.InvalidParam("消息不属于该会话")
@@ -145,7 +137,7 @@ func (s *MessageService) RecallMessage(ctx context.Context, cmd messagingcmd.Rec
 		if err := s.checker.Check(ctx, authz.Request{
 			WorkspaceID: cmd.WorkspaceID,
 			Subject:     authz.Subject{UserID: cmd.OperatorUserID},
-			Action:      actionMessageRecall,
+			Action:      authz.PermMessageRecall,
 		}); err != nil {
 			return err
 		}
@@ -163,47 +155,39 @@ func (s *MessageService) RecallMessage(ctx context.Context, cmd messagingcmd.Rec
 
 	conv, err := s.conversations.FindByID(ctx, cmd.ConversationID)
 	if err != nil {
-		return wrapInfrastructureError("查询会话失败", err)
+		return apperr.WrapInternal("查询会话失败", err)
 	}
 	sysID, err := s.idGenerator.NextID(ctx)
 	if err != nil {
-		return wrapInfrastructureError("生成系统消息 ID 失败", err)
+		return apperr.WrapInternal("生成系统消息 ID 失败", err)
 	}
 
 	var sysMsg *message.Message
 	err = s.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
 		if err := s.messages.Save(txCtx, msg); err != nil {
-			return wrapInfrastructureError("更新消息状态失败", err)
+			return apperr.WrapInternal("更新消息状态失败", err)
 		}
 		seq, err := s.seqAllocator.Next(txCtx, cmd.ConversationID)
 		if err != nil {
-			return wrapInfrastructureError("分配 seq 失败", err)
+			return apperr.WrapInternal("分配 seq 失败", err)
 		}
 		sys := message.NewSystem(sysID, cmd.ConversationID, seq, message.ContentRecall, map[string]any{
 			"recalledMsgId": msg.ID(),
 			"operatorId":    cmd.OperatorUserID,
 		})
 		if err := s.messages.Create(txCtx, sys); err != nil {
-			return wrapInfrastructureError("保存撤回条目失败", err)
+			return apperr.WrapInternal("保存撤回条目失败", err)
 		}
 		conv.ApplyMessage(seq, sysID, sys.Digest(), sys.ServerTime())
 		if err := s.conversations.Save(txCtx, conv); err != nil {
-			return wrapInfrastructureError("更新会话游标失败", err)
+			return apperr.WrapInternal("更新会话游标失败", err)
 		}
-		changeID, err := s.idGenerator.NextID(txCtx)
-		if err != nil {
-			return wrapInfrastructureError("生成变更 ID 失败", err)
-		}
-		chg, err := messagechange.New(changeID, cmd.ConversationID, seq, messagechange.ChangeCreated, sys.ID(), cmd.OperatorUserID, map[string]any{
+		if err := s.appendChange(txCtx, cmd.ConversationID, seq, messagechange.ChangeCreated, sys.ID(), cmd.OperatorUserID, map[string]any{
 			// ID 以字符串入 payload：payload 经 JSON 往返，大整数（Snowflake > 2^53）
 			// 作为 JSON number 会在客户端（及 ent 读回 float64）丢精度，字符串可无损。
 			"recalledMsgId": strconv.FormatInt(msg.ID(), 10),
-		})
-		if err != nil {
+		}); err != nil {
 			return err
-		}
-		if err := s.changes.Append(txCtx, chg); err != nil {
-			return wrapInfrastructureError("追加变更流失败", err)
 		}
 		sysMsg = sys
 		return nil
@@ -220,7 +204,7 @@ func (s *MessageService) RecallMessage(ctx context.Context, cmd messagingcmd.Rec
 
 // EditMessage 编辑消息：仅本人在编辑窗口内可原地更新文本内容，并发布编辑事件供在线端同步。
 func (s *MessageService) EditMessage(ctx context.Context, cmd messagingcmd.EditMessageCommand) (*messagingresult.MessageResult, error) {
-	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+	if err := authz.AssertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
 		return nil, err
 	}
 	msg, err := s.messages.FindByID(ctx, cmd.MessageID)
@@ -228,7 +212,7 @@ func (s *MessageService) EditMessage(ctx context.Context, cmd messagingcmd.EditM
 		if stderrors.Is(err, message.ErrNotFound) {
 			return nil, apperr.NotFound("消息不存在")
 		}
-		return nil, wrapInfrastructureError("查询消息失败", err)
+		return nil, apperr.WrapInternal("查询消息失败", err)
 	}
 	if msg.ConversationID() != cmd.ConversationID {
 		return nil, apperr.InvalidParam("消息不属于该会话")
@@ -258,27 +242,16 @@ func (s *MessageService) EditMessage(ctx context.Context, cmd messagingcmd.EditM
 		// 否则同一消息并发编辑+撤回会构成 ABBA 死锁。seq 分配持锁至 commit，
 		// 与事务内分配先后无关，零间隙不受影响。
 		if err := s.messages.Save(txCtx, msg); err != nil {
-			return wrapInfrastructureError("保存编辑内容失败", err)
+			return apperr.WrapInternal("保存编辑内容失败", err)
 		}
 		seq, err := s.seqAllocator.Next(txCtx, cmd.ConversationID)
 		if err != nil {
-			return wrapInfrastructureError("分配 seq 失败", err)
+			return apperr.WrapInternal("分配 seq 失败", err)
 		}
-		changeID, err := s.idGenerator.NextID(txCtx)
-		if err != nil {
-			return wrapInfrastructureError("生成变更 ID 失败", err)
-		}
-		chg, err := messagechange.New(changeID, cmd.ConversationID, seq, messagechange.ChangeEdited, msg.ID(), cmd.OperatorUserID, map[string]any{
+		return s.appendChange(txCtx, cmd.ConversationID, seq, messagechange.ChangeEdited, msg.ID(), cmd.OperatorUserID, map[string]any{
 			"content":  msg.Content(),
 			"editedAt": msg.EditedAt(),
 		})
-		if err != nil {
-			return err
-		}
-		if err := s.changes.Append(txCtx, chg); err != nil {
-			return wrapInfrastructureError("追加变更流失败", err)
-		}
-		return nil
 	})
 	if err != nil {
 		loggerx.WithError(ctx, s.logger, "edit message failed", err, slog.Int64("messageId", cmd.MessageID))
@@ -305,7 +278,7 @@ func (s *MessageService) ReportRead(ctx context.Context, cmd messagingcmd.Report
 		return nil
 	}
 	if err := s.conversations.SaveMember(ctx, mem); err != nil {
-		return wrapInfrastructureError("更新已读水位失败", err)
+		return apperr.WrapInternal("更新已读水位失败", err)
 	}
 	workspaceID := int64(0)
 	if conv, err := s.conversations.FindByID(ctx, cmd.ConversationID); err == nil {

@@ -1,13 +1,10 @@
 package service
 
 import (
-	"context"
-	stderrors "errors"
 	"log/slog"
 
 	todoresult "github.com/maguowei/gotobeta/internal/modules/todo/application/result"
 	"github.com/maguowei/gotobeta/internal/modules/todo/domain/todo"
-	"github.com/maguowei/gotobeta/internal/pkg/apperr"
 	"github.com/maguowei/gotobeta/internal/pkg/idgen"
 	"github.com/maguowei/gotobeta/internal/pkg/persistence"
 )
@@ -43,11 +40,4 @@ func toResult(t *todo.Todo) *todoresult.TodoResult {
 		CreatedAt: t.CreatedAt(),
 		UpdatedAt: t.UpdatedAt(),
 	}
-}
-
-func wrapInfrastructureError(message string, err error) error {
-	if stderrors.Is(err, context.Canceled) || stderrors.Is(err, context.DeadlineExceeded) {
-		return err
-	}
-	return apperr.Internal(message, err)
 }

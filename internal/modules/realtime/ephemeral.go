@@ -30,13 +30,14 @@ func (e *Ephemeral) Typing(ctx context.Context, userID, conversationID int64) {
 		loggerx.WithError(ctx, e.logger, "typing lookup members failed", err, slog.Int64("conversationId", conversationID))
 		return
 	}
-	frame := ws.TypingFrame(conversationID, userID)
+	// 过滤掉发送者本人后一次广播，单次持锁完成扇出。
+	targets := make([]int64, 0, len(userIDs))
 	for _, uid := range userIDs {
-		if uid == userID {
-			continue
+		if uid != userID {
+			targets = append(targets, uid)
 		}
-		e.hub.Push(uid, frame)
 	}
+	e.hub.Broadcast(targets, ws.TypingFrame(conversationID, userID))
 }
 
 // Read 把 WS 上行 read 帧回流到 messaging 上报已读水位（再由事件驱动多端对齐）。

@@ -52,10 +52,7 @@ func (r *MessageRepository) FindByID(ctx context.Context, id int64) (*message.Me
 	client := entdb.ClientFromCtx(ctx, r.client)
 	row, err := client.Message.Query().Where(entmsg.BizID(id)).Only(ctx)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, message.ErrNotFound
-		}
-		return nil, err
+		return nil, mapEntNotFound(err, message.ErrNotFound)
 	}
 	return messageToEntity(row), nil
 }
@@ -67,10 +64,7 @@ func (r *MessageRepository) FindByClientMsgID(ctx context.Context, conversationI
 		Where(entmsg.ConversationID(conversationID), entmsg.ClientMsgID(clientMsgID)).
 		Only(ctx)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, message.ErrNotFound
-		}
-		return nil, err
+		return nil, mapEntNotFound(err, message.ErrNotFound)
 	}
 	return messageToEntity(row), nil
 }

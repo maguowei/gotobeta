@@ -12,13 +12,6 @@ import (
 	"github.com/maguowei/gotobeta/internal/pkg/authz"
 	"github.com/maguowei/gotobeta/internal/pkg/idgen"
 	"github.com/maguowei/gotobeta/internal/pkg/persistence"
-	"github.com/maguowei/gotobeta/internal/pkg/requestctx"
-)
-
-// 工作区级权限动作编码，必须与 workspace 平台权限 seed 保持一致。
-const (
-	actionChannelCreate    = "channel.create"
-	actionConversationRead = "conversation.read"
 )
 
 // ConversationService 编排会话相关用例。
@@ -88,27 +81,10 @@ func (s *ConversationService) requireActiveMembership(ctx context.Context, convI
 		if stderrors.Is(err, conversation.ErrMemberNotFound) {
 			return nil, apperr.Forbidden("不是该会话成员")
 		}
-		return nil, wrapInfrastructureError("查询会话成员失败", err)
+		return nil, apperr.WrapInternal("查询会话成员失败", err)
 	}
 	if mem.Status() != conversation.MemberActive {
 		return nil, apperr.Forbidden("不是该会话成员")
 	}
 	return mem, nil
-}
-
-func wrapInfrastructureError(message string, err error) error {
-	if stderrors.Is(err, context.Canceled) || stderrors.Is(err, context.DeadlineExceeded) {
-		return err
-	}
-	return apperr.Internal(message, err)
-}
-
-// assertWorkspaceScope 是 DataScope 纵深防御第二层：确认 ctx 中受信工作区
-// （由 WorkspaceScope 中间件从 path 注入）与命令携带的工作区一致，不一致即越权。
-// ctx 未注入工作区时（如内部调用/测试）跳过，由其它层兜底。
-func assertWorkspaceScope(ctx context.Context, cmdWorkspaceID int64) error {
-	if ctxWS, ok := requestctx.WorkspaceID(ctx); ok && ctxWS != cmdWorkspaceID {
-		return apperr.Forbidden("工作区不一致")
-	}
-	return nil
 }

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -11,6 +10,7 @@ import (
 	todocmd "github.com/maguowei/gotobeta/internal/modules/todo/application/command"
 	todoquery "github.com/maguowei/gotobeta/internal/modules/todo/application/query"
 	todoresult "github.com/maguowei/gotobeta/internal/modules/todo/application/result"
+	"github.com/maguowei/gotobeta/internal/pkg/httpx"
 	httpresponse "github.com/maguowei/gotobeta/internal/pkg/httpx/response"
 )
 
@@ -45,7 +45,7 @@ func (h *TodoHandler) ListTodos(c *gin.Context) {
 
 // GetTodo 查询单个待办。
 func (h *TodoHandler) GetTodo(c *gin.Context) {
-	id, err := parsePositiveID(c.Param("id"))
+	id, err := httpx.ParsePositiveID(c.Param("id"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的待办 ID")
 		return
@@ -75,7 +75,7 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 
 // CompleteTodo 完成待办。
 func (h *TodoHandler) CompleteTodo(c *gin.Context) {
-	id, err := parsePositiveID(c.Param("id"))
+	id, err := httpx.ParsePositiveID(c.Param("id"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的待办 ID")
 		return
@@ -90,7 +90,7 @@ func (h *TodoHandler) CompleteTodo(c *gin.Context) {
 
 // DeleteTodo 删除待办。
 func (h *TodoHandler) DeleteTodo(c *gin.Context) {
-	id, err := parsePositiveID(c.Param("id"))
+	id, err := httpx.ParsePositiveID(c.Param("id"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的待办 ID")
 		return
@@ -100,15 +100,4 @@ func (h *TodoHandler) DeleteTodo(c *gin.Context) {
 		return
 	}
 	httpresponse.Success(c, nil)
-}
-
-func parsePositiveID(raw string) (int64, error) {
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	if id <= 0 {
-		return 0, strconv.ErrSyntax
-	}
-	return id, nil
 }

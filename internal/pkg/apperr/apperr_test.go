@@ -1,6 +1,7 @@
 package apperr
 
 import (
+	"context"
 	stderrors "errors"
 	"testing"
 )
@@ -63,6 +64,38 @@ func TestDomainErrorErrorAndUnwrap(t *testing.T) {
 	}
 	if !stderrors.Is(err, cause) {
 		t.Fatalf("DomainError should unwrap root cause")
+	}
+}
+
+// TestWrapInternal 验证 context 取消/超时原样透传，其余错误包装为 Internal 并保留 cause。
+func TestWrapInternal(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name string
+		err  error
+	}{
+		{name: "canceled", err: context.Canceled},
+		{name: "deadline", err: context.DeadlineExceeded},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := WrapInternal("msg", tc.err); !stderrors.Is(got, tc.err) {
+				t.Fatalf("WrapInternal() = %v, want passthrough of %v", got, tc.err)
+			}
+		})
+	}
+
+	cause := stderrors.New("infra down")
+	wrapped := WrapInternal("查询失败", cause)
+	if wrapped == cause { //nolint:errorlint // 有意做指针相等判断而非 errors.Is
+		t.Fatalf("WrapInternal() returned raw infra error, want wrapped DomainError")
+	}
+	if !stderrors.Is(wrapped, cause) {
+		t.Fatalf("WrapInternal() lost original cause in error chain")
+	}
+	if wrapped.Error() != "查询失败" {
+		t.Fatalf("WrapInternal() message = %q, want 查询失败", wrapped.Error())
 	}
 }
 

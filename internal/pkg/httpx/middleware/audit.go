@@ -139,19 +139,25 @@ func extractBizCode(data []byte) int {
 		return -1
 	}
 
-	var body map[string]any
+	// 只解到顶层键，避免把整个响应体反序列化为 interface 树。
+	var body map[string]json.RawMessage
 	if err := json.Unmarshal(data, &body); err != nil {
 		return -1
 	}
 
-	if code, ok := body["code"].(float64); ok {
-		return int(code)
+	if raw, ok := body["code"]; ok {
+		var code int
+		if err := json.Unmarshal(raw, &code); err == nil {
+			return code
+		}
 	}
 
-	if status, ok := body["Status"].(string); ok {
-		value, err := strconv.Atoi(status)
-		if err == nil {
-			return value
+	if raw, ok := body["Status"]; ok {
+		var status string
+		if err := json.Unmarshal(raw, &status); err == nil {
+			if value, err := strconv.Atoi(status); err == nil {
+				return value
+			}
 		}
 	}
 

@@ -12,6 +12,7 @@ import (
 	messagingcmd "github.com/maguowei/gotobeta/internal/modules/messaging/application/command"
 	messagingquery "github.com/maguowei/gotobeta/internal/modules/messaging/application/query"
 	messagingresult "github.com/maguowei/gotobeta/internal/modules/messaging/application/result"
+	"github.com/maguowei/gotobeta/internal/pkg/httpx"
 	httpmiddleware "github.com/maguowei/gotobeta/internal/pkg/httpx/middleware"
 	httpresponse "github.com/maguowei/gotobeta/internal/pkg/httpx/response"
 )
@@ -41,7 +42,7 @@ func (h *ConversationHandler) CreateConversation(c *gin.Context) {
 	if !ok {
 		return
 	}
-	wsID, err := parsePositiveID(c.Param("ws"))
+	wsID, err := httpx.ParsePositiveID(c.Param("ws"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的工作区 ID")
 		return
@@ -65,7 +66,7 @@ func (h *ConversationHandler) ListConversations(c *gin.Context) {
 	if !ok {
 		return
 	}
-	wsID, err := parsePositiveID(c.Param("ws"))
+	wsID, err := httpx.ParsePositiveID(c.Param("ws"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的工作区 ID")
 		return
@@ -113,7 +114,7 @@ func (h *ConversationHandler) RemoveMember(c *gin.Context) {
 	if !ok {
 		return
 	}
-	mid, err := parsePositiveID(c.Param("mid"))
+	mid, err := httpx.ParsePositiveID(c.Param("mid"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的成员 ID")
 		return
@@ -154,15 +155,4 @@ func (h *ConversationHandler) ListMembers(c *gin.Context) {
 		return
 	}
 	httpresponse.Success(c, messagingresp.ToConversationMemberListResponse(items))
-}
-
-func parsePositiveID(raw string) (int64, error) {
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	if id <= 0 {
-		return 0, strconv.ErrSyntax
-	}
-	return id, nil
 }

@@ -62,10 +62,7 @@ func (r *ConversationRepository) FindByID(ctx context.Context, id int64) (*conve
 	client := entdb.ClientFromCtx(ctx, r.client)
 	row, err := client.Conversation.Query().Where(entconv.BizID(id)).Only(ctx)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, conversation.ErrNotFound
-		}
-		return nil, err
+		return nil, mapEntNotFound(err, conversation.ErrNotFound)
 	}
 	return conversationToEntity(row), nil
 }
@@ -75,10 +72,7 @@ func (r *ConversationRepository) FindByDMKey(ctx context.Context, dmKey string) 
 	client := entdb.ClientFromCtx(ctx, r.client)
 	row, err := client.Conversation.Query().Where(entconv.DmKey(dmKey)).Only(ctx)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, conversation.ErrNotFound
-		}
-		return nil, err
+		return nil, mapEntNotFound(err, conversation.ErrNotFound)
 	}
 	return conversationToEntity(row), nil
 }
@@ -146,10 +140,7 @@ func (r *ConversationRepository) FindMember(ctx context.Context, conversationID 
 			entconvmember.MemberID(memberID),
 		).Only(ctx)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, conversation.ErrMemberNotFound
-		}
-		return nil, err
+		return nil, mapEntNotFound(err, conversation.ErrMemberNotFound)
 	}
 	return memberToEntity(row), nil
 }
@@ -194,8 +185,8 @@ func (r *ConversationRepository) ListMembers(ctx context.Context, conversationID
 	return items, nil
 }
 
-// ListByMember 返回某主体加入的全部会话，按 last_msg_at 倒序。
-func (r *ConversationRepository) ListByMember(ctx context.Context, memberType conversation.MemberType, memberID int64) ([]*conversation.Conversation, error) {
+// ListByMember 返回某主体在指定工作区加入（活跃）的全部会话及其成员视图，按 last_msg_at 倒序。
+func (r *ConversationRepository) ListByMember(ctx context.Context, workspaceID int64, memberType conversation.MemberType, memberID int64) ([]conversation.WithMember, error) {
 	client := entdb.ClientFromCtx(ctx, r.client)
 	memberRows, err := client.ConversationMember.Query().
 		Where(
@@ -207,24 +198,70 @@ func (r *ConversationRepository) ListByMember(ctx context.Context, memberType co
 		return nil, err
 	}
 	if len(memberRows) == 0 {
-		return []*conversation.Conversation{}, nil
+		return []conversation.WithMember{}, nil
 	}
 	convIDs := make([]int64, 0, len(memberRows))
+	memberByConv := make(map[int64]*ent.ConversationMember, len(memberRows))
 	for _, m := range memberRows {
 		convIDs = append(convIDs, m.ConversationID)
+		memberByConv[m.ConversationID] = m
 	}
 	rows, err := client.Conversation.Query().
-		Where(entconv.BizIDIn(convIDs...)).
+		Where(entconv.BizIDIn(convIDs...), entconv.WorkspaceID(workspaceID)).
 		Order(ent.Desc(entconv.FieldLastMsgAt)).
 		All(ctx)
 	if err != nil {
 		return nil, err
 	}
-	items := make([]*conversation.Conversation, 0, len(rows))
+	items := make([]conversation.WithMember, 0, len(rows))
 	for _, row := range rows {
-		items = append(items, conversationToEntity(row))
+		items = append(items, conversation.WithMember{
+			Conversation: conversationToEntity(row),
+			Member:       memberToEntity(memberByConv[row.BizID]),
+		})
 	}
 	return items, nil
+}
+
+// ListActiveUserPeers 返回与该用户共享任一会话的其他活跃用户 ID 去重集（两次往返，避免逐会话 N+1）。
+func (r *ConversationRepository) ListActiveUserPeers(ctx context.Context, userID int64) ([]int64, error) {
+	client := entdb.ClientFromCtx(ctx, r.client)
+	memberRows, err := client.ConversationMember.Query().
+		Where(
+			entconvmember.MemberType(int8(conversation.MemberUser)),
+			entconvmember.MemberID(userID),
+			entconvmember.StatusEQ(int8(conversation.MemberActive)),
+		).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(memberRows) == 0 {
+		return []int64{}, nil
+	}
+	convIDs := make([]int64, 0, len(memberRows))
+	for _, m := range memberRows {
+		convIDs = append(convIDs, m.ConversationID)
+	}
+	peerRows, err := client.ConversationMember.Query().
+		Where(
+			entconvmember.ConversationIDIn(convIDs...),
+			entconvmember.MemberType(int8(conversation.MemberUser)),
+			entconvmember.MemberIDNEQ(userID),
+			entconvmember.StatusEQ(int8(conversation.MemberActive)),
+		).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	seen := make(map[int64]struct{}, len(peerRows))
+	ids := make([]int64, 0, len(peerRows))
+	for _, m := range peerRows {
+		if _, ok := seen[m.MemberID]; ok {
+			continue
+		}
+		seen[m.MemberID] = struct{}{}
+		ids = append(ids, m.MemberID)
+	}
+	return ids, nil
 }
 
 func conversationToEntity(row *ent.Conversation) *conversation.Conversation {

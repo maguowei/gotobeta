@@ -17,7 +17,7 @@ func (s *TodoService) GetTodo(ctx context.Context, q todoquery.GetTodoQuery) (*t
 		if stderrors.Is(err, todo.ErrNotFound) {
 			return nil, apperr.NotFound("待办不存在")
 		}
-		return nil, wrapInfrastructureError("查询待办失败", err)
+		return nil, apperr.WrapInternal("查询待办失败", err)
 	}
 	return toResult(item), nil
 }
@@ -27,7 +27,7 @@ func (s *TodoService) ListTodos(ctx context.Context, q todoquery.ListTodosQuery)
 	_ = q // ListTodosQuery 目前为空结构体，字段位预留给分页与过滤参数。
 	items, err := s.repository.List(ctx)
 	if err != nil {
-		return nil, wrapInfrastructureError("查询待办失败", err)
+		return nil, apperr.WrapInternal("查询待办失败", err)
 	}
 
 	results := make([]*todoresult.TodoResult, 0, len(items))

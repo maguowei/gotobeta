@@ -8,6 +8,8 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/maguowei/gotobeta/internal/pkg/authz"
 )
 
 var (
@@ -25,19 +27,20 @@ const (
 	RoleGuest  = "guest"
 )
 
-// 权限编码目录（动作授权）。
+// 权限编码目录（动作授权）：唯一真值源在共享内核 internal/pkg/authz，
+// 此处保留同名别名，供 workspace 模块内 seed 与策略引用。
 const (
-	PermWorkspaceManage  = "workspace.manage"
-	PermMemberInvite     = "member.invite"
-	PermMemberRemove     = "member.remove"
-	PermRoleManage       = "role.manage"
-	PermChannelCreate    = "channel.create"
-	PermChannelArchive   = "channel.archive"
-	PermConversationRead = "conversation.read"
-	PermMessageSend      = "message.send"
-	PermMessageRecall    = "message.recall"
-	PermMessageReact     = "message.react"
-	PermBotManage        = "bot.manage"
+	PermWorkspaceManage  = authz.PermWorkspaceManage
+	PermMemberInvite     = authz.PermMemberInvite
+	PermMemberRemove     = authz.PermMemberRemove
+	PermRoleManage       = authz.PermRoleManage
+	PermChannelCreate    = authz.PermChannelCreate
+	PermChannelArchive   = authz.PermChannelArchive
+	PermConversationRead = authz.PermConversationRead
+	PermMessageSend      = authz.PermMessageSend
+	PermMessageRecall    = authz.PermMessageRecall
+	PermMessageReact     = authz.PermMessageReact
+	PermBotManage        = authz.PermBotManage
 )
 
 // Role 是角色。

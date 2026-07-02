@@ -92,14 +92,46 @@ func (r *memConvRepo) ListMembers(_ context.Context, convID int64) ([]*conversat
 	return r.members[convID], nil
 }
 
-func (r *memConvRepo) ListByMember(_ context.Context, mt conversation.MemberType, mid int64) ([]*conversation.Conversation, error) {
-	var out []*conversation.Conversation
+func (r *memConvRepo) ListByMember(_ context.Context, workspaceID int64, mt conversation.MemberType, mid int64) ([]conversation.WithMember, error) {
+	var out []conversation.WithMember
 	for convID, members := range r.members {
+		c := r.convs[convID]
+		if c == nil || c.WorkspaceID() != workspaceID {
+			continue
+		}
 		for _, m := range members {
 			if m.MemberType() == mt && m.MemberID() == mid {
-				out = append(out, r.convs[convID])
+				out = append(out, conversation.WithMember{Conversation: c, Member: m})
 				break
 			}
+		}
+	}
+	return out, nil
+}
+
+func (r *memConvRepo) ListActiveUserPeers(_ context.Context, userID int64) ([]int64, error) {
+	seen := map[int64]struct{}{}
+	var out []int64
+	for _, members := range r.members {
+		mine := false
+		for _, m := range members {
+			if m.MemberType() == conversation.MemberUser && m.MemberID() == userID && m.Status() == conversation.MemberActive {
+				mine = true
+				break
+			}
+		}
+		if !mine {
+			continue
+		}
+		for _, m := range members {
+			if m.MemberType() != conversation.MemberUser || m.Status() != conversation.MemberActive || m.MemberID() == userID {
+				continue
+			}
+			if _, ok := seen[m.MemberID()]; ok {
+				continue
+			}
+			seen[m.MemberID()] = struct{}{}
+			out = append(out, m.MemberID())
 		}
 	}
 	return out, nil

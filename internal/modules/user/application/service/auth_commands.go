@@ -31,12 +31,12 @@ func (s *AuthService) Register(ctx context.Context, cmd usercmd.RegisterCommand)
 		if _, err := s.repos.Users.FindUserByEmail(txCtx, normalizedEmail); err == nil {
 			return apperr.Conflict("邮箱已注册")
 		} else if !stderrors.Is(err, userdomain.ErrNotFound) {
-			return wrapInfrastructureError("查询用户失败", err)
+			return apperr.WrapInternal("查询用户失败", err)
 		}
 
 		userID, err := s.idGenerator.NextID(txCtx)
 		if err != nil {
-			return wrapInfrastructureError("生成用户 ID 失败", err)
+			return apperr.WrapInternal("生成用户 ID 失败", err)
 		}
 		u, err := userdomain.New(userID, cmd.Email, cmd.DisplayName, now)
 		if err != nil {
@@ -44,13 +44,13 @@ func (s *AuthService) Register(ctx context.Context, cmd usercmd.RegisterCommand)
 		}
 		hash, alg, err := s.passwordHasher.Hash(cmd.Password)
 		if err != nil {
-			return wrapInfrastructureError("生成密码哈希失败", err)
+			return apperr.WrapInternal("生成密码哈希失败", err)
 		}
 		if err := u.SetPassword(hash, alg, now); err != nil {
 			return err
 		}
 		if err := s.repos.Users.CreateUser(txCtx, u); err != nil {
-			return wrapInfrastructureError("保存用户失败", err)
+			return apperr.WrapInternal("保存用户失败", err)
 		}
 		if _, err := s.createActionToken(txCtx, u.ID(), actiontoken.ActionEmailVerification, normalizedEmail, s.cfg.EmailTokenTTL); err != nil {
 			return err
@@ -81,7 +81,7 @@ func (s *AuthService) Login(ctx context.Context, cmd usercmd.LoginCommand) (*use
 		if stderrors.Is(err, userdomain.ErrNotFound) {
 			return nil, apperr.Unauthorized("邮箱或密码不正确")
 		}
-		return nil, wrapInfrastructureError("查询用户失败", err)
+		return nil, apperr.WrapInternal("查询用户失败", err)
 	}
 	if err := u.EnsureCanLogin(); err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (s *AuthService) Login(ctx context.Context, cmd usercmd.LoginCommand) (*use
 	err = s.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
 		u.TouchLogin(now)
 		if err := s.repos.Users.UpdateUserLastLogin(txCtx, u.ID(), now); err != nil {
-			return wrapInfrastructureError("更新登录时间失败", err)
+			return apperr.WrapInternal("更新登录时间失败", err)
 		}
 		tokens, err := s.issueSession(txCtx, u, now)
 		if err != nil {
@@ -122,7 +122,7 @@ func (s *AuthService) Refresh(ctx context.Context, cmd usercmd.RefreshTokenComma
 		}
 		u, err := s.repos.Users.FindUserByID(txCtx, oldToken.UserID)
 		if err != nil {
-			return wrapInfrastructureError("查询用户失败", err)
+			return apperr.WrapInternal("查询用户失败", err)
 		}
 		if err := u.EnsureCanLogin(); err != nil {
 			return err
@@ -135,7 +135,7 @@ func (s *AuthService) Refresh(ctx context.Context, cmd usercmd.RefreshTokenComma
 			if stderrors.Is(err, refreshtoken.ErrNotFound) {
 				return apperr.Unauthorized("refresh token 无效")
 			}
-			return wrapInfrastructureError("轮换 refresh token 失败", err)
+			return apperr.WrapInternal("轮换 refresh token 失败", err)
 		}
 		out = &userresult.AuthResult{User: toUserResult(u), Tokens: tokens}
 		return nil
@@ -153,7 +153,7 @@ func (s *AuthService) Logout(ctx context.Context, cmd usercmd.LogoutCommand) err
 	if s.tokenRevoker != nil && cmd.AccessTokenID != "" {
 		if ttl := cmd.AccessTokenExpiresAt.Sub(now); ttl > 0 {
 			if err := s.tokenRevoker.Revoke(ctx, cmd.AccessTokenID, ttl); err != nil {
-				return wrapInfrastructureError("吊销 access token 失败", err)
+				return apperr.WrapInternal("吊销 access token 失败", err)
 			}
 		}
 	}
@@ -173,7 +173,7 @@ func (s *AuthService) UpdateProfile(ctx context.Context, cmd usercmd.UpdateProfi
 	}
 	u.UpdateProfile(cmd.DisplayName, cmd.AvatarURL, now)
 	if err := s.repos.Users.SaveUser(ctx, u); err != nil {
-		return nil, wrapInfrastructureError("更新用户资料失败", err)
+		return nil, apperr.WrapInternal("更新用户资料失败", err)
 	}
 	return toUserResult(u), nil
 }
@@ -192,7 +192,7 @@ func (s *AuthService) ChangePassword(ctx context.Context, cmd usercmd.ChangePass
 	}
 	hash, alg, err := s.passwordHasher.Hash(cmd.NewPassword)
 	if err != nil {
-		return wrapInfrastructureError("生成密码哈希失败", err)
+		return apperr.WrapInternal("生成密码哈希失败", err)
 	}
 	if err := u.SetPassword(hash, alg, s.now()); err != nil {
 		return err
@@ -211,7 +211,7 @@ func (s *AuthService) ForgotPassword(ctx context.Context, cmd usercmd.ForgotPass
 		if stderrors.Is(err, userdomain.ErrNotFound) {
 			return nil
 		}
-		return wrapInfrastructureError("查询用户失败", err)
+		return apperr.WrapInternal("查询用户失败", err)
 	}
 	raw, err := s.createActionToken(ctx, u.ID(), actiontoken.ActionPasswordReset, normalizedEmail, s.cfg.PasswordResetTTL)
 	if err != nil {
@@ -237,7 +237,7 @@ func (s *AuthService) ResetPassword(ctx context.Context, cmd usercmd.ResetPasswo
 		}
 		hash, alg, err := s.passwordHasher.Hash(cmd.NewPassword)
 		if err != nil {
-			return wrapInfrastructureError("生成密码哈希失败", err)
+			return apperr.WrapInternal("生成密码哈希失败", err)
 		}
 		if err := u.SetPassword(hash, alg, now); err != nil {
 			return err
@@ -288,7 +288,7 @@ func (s *AuthService) StartOAuth(ctx context.Context, cmd usercmd.StartOAuthComm
 	}
 	state, err := s.secrets.NewToken()
 	if err != nil {
-		return nil, wrapInfrastructureError("生成 OAuth state 失败", err)
+		return nil, apperr.WrapInternal("生成 OAuth state 失败", err)
 	}
 	now := s.now()
 	if err := s.repos.OAuthStates.Create(ctx, &oauthstate.OAuthState{
@@ -299,7 +299,7 @@ func (s *AuthService) StartOAuth(ctx context.Context, cmd usercmd.StartOAuthComm
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}); err != nil {
-		return nil, wrapInfrastructureError("保存 OAuth state 失败", err)
+		return nil, apperr.WrapInternal("保存 OAuth state 失败", err)
 	}
 	return &userresult.OAuthStartResult{AuthURL: adapter.AuthCodeURL(state), State: state}, nil
 }
@@ -317,7 +317,7 @@ func (s *AuthService) HandleOAuthCallback(ctx context.Context, cmd usercmd.Handl
 	}
 	profile, err := adapter.Exchange(ctx, cmd.Code)
 	if err != nil {
-		return nil, wrapInfrastructureError("OAuth 换取用户资料失败", err)
+		return nil, apperr.WrapInternal("OAuth 换取用户资料失败", err)
 	}
 	u, err := s.loginOAuthProfile(ctx, profile, now)
 	if err != nil {
@@ -360,7 +360,7 @@ func (s *AuthService) ExchangeOAuthLoginCode(ctx context.Context, cmd usercmd.Ex
 func (s *AuthService) UnlinkIdentity(ctx context.Context, cmd usercmd.UnlinkIdentityCommand) error {
 	methods, err := s.repos.Users.CountLoginMethods(ctx, cmd.UserID)
 	if err != nil {
-		return wrapInfrastructureError("查询登录方式失败", err)
+		return apperr.WrapInternal("查询登录方式失败", err)
 	}
 	if methods <= 1 {
 		return apperr.Conflict("至少保留一种登录方式")

@@ -11,6 +11,7 @@ import (
 	messagingcmd "github.com/maguowei/gotobeta/internal/modules/messaging/application/command"
 	messagingquery "github.com/maguowei/gotobeta/internal/modules/messaging/application/query"
 	messagingresult "github.com/maguowei/gotobeta/internal/modules/messaging/application/result"
+	"github.com/maguowei/gotobeta/internal/pkg/httpx"
 	httpmiddleware "github.com/maguowei/gotobeta/internal/pkg/httpx/middleware"
 	httpresponse "github.com/maguowei/gotobeta/internal/pkg/httpx/response"
 )
@@ -130,7 +131,7 @@ func (h *MessageHandler) RecallMessage(c *gin.Context) {
 	if !ok {
 		return
 	}
-	mid, err := parsePositiveID(c.Param("mid"))
+	mid, err := httpx.ParsePositiveID(c.Param("mid"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的消息 ID")
 		return
@@ -191,12 +192,12 @@ func (h *MessageHandler) ReportRead(c *gin.Context) {
 
 // parseWsConv 解析路径中的 ws 与 cid，失败时已写入响应。
 func parseWsConv(c *gin.Context) (wsID, cid int64, ok bool) {
-	wsID, err := parsePositiveID(c.Param("ws"))
+	wsID, err := httpx.ParsePositiveID(c.Param("ws"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的工作区 ID")
 		return 0, 0, false
 	}
-	cid, err = parsePositiveID(c.Param("cid"))
+	cid, err = httpx.ParsePositiveID(c.Param("cid"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的会话 ID")
 		return 0, 0, false

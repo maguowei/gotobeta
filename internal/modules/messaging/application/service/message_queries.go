@@ -5,6 +5,7 @@ import (
 
 	messagingquery "github.com/maguowei/gotobeta/internal/modules/messaging/application/query"
 	messagingresult "github.com/maguowei/gotobeta/internal/modules/messaging/application/result"
+	"github.com/maguowei/gotobeta/internal/pkg/apperr"
 )
 
 // PullMessages 增量拉取会话内 (afterSeq, +∞) 区间消息，需为该会话活跃成员。
@@ -21,7 +22,7 @@ func (s *MessageService) PullMessages(ctx context.Context, q messagingquery.Pull
 	}
 	msgs, err := s.messages.ListAfterSeq(ctx, q.ConversationID, q.AfterSeq, limit)
 	if err != nil {
-		return nil, wrapInfrastructureError("拉取消息失败", err)
+		return nil, apperr.WrapInternal("拉取消息失败", err)
 	}
 	items := make([]*messagingresult.MessageResult, 0, len(msgs))
 	for _, m := range msgs {
@@ -44,7 +45,7 @@ func (s *MessageService) ListChanges(ctx context.Context, q messagingquery.ListC
 	}
 	changes, err := s.changes.ListAfter(ctx, q.ConversationID, q.AfterChangeSeq, limit)
 	if err != nil {
-		return nil, wrapInfrastructureError("拉取变更流失败", err)
+		return nil, apperr.WrapInternal("拉取变更流失败", err)
 	}
 	items := make([]*messagingresult.ChangeResult, 0, len(changes))
 	for _, c := range changes {

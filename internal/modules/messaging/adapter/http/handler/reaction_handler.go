@@ -10,6 +10,7 @@ import (
 	messagingcmd "github.com/maguowei/gotobeta/internal/modules/messaging/application/command"
 	messagingquery "github.com/maguowei/gotobeta/internal/modules/messaging/application/query"
 	messagingresult "github.com/maguowei/gotobeta/internal/modules/messaging/application/result"
+	"github.com/maguowei/gotobeta/internal/pkg/httpx"
 	httpmiddleware "github.com/maguowei/gotobeta/internal/pkg/httpx/middleware"
 	httpresponse "github.com/maguowei/gotobeta/internal/pkg/httpx/response"
 )
@@ -103,7 +104,7 @@ func parseWsConvMsg(c *gin.Context) (wsID, cid, mid int64, ok bool) {
 	if !ok {
 		return 0, 0, 0, false
 	}
-	mid, err := parsePositiveID(c.Param("mid"))
+	mid, err := httpx.ParsePositiveID(c.Param("mid"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的消息 ID")
 		return 0, 0, 0, false

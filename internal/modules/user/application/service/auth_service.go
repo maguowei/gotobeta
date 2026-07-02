@@ -104,7 +104,7 @@ func (s *AuthService) loginOAuthProfile(ctx context.Context, profile *oauthstate
 			if stderrors.Is(err, userdomain.ErrNotFound) {
 				userID, err := s.idGenerator.NextID(txCtx)
 				if err != nil {
-					return wrapInfrastructureError("生成用户 ID 失败", err)
+					return apperr.WrapInternal("生成用户 ID 失败", err)
 				}
 				u, err = userdomain.New(userID, profile.Email, profile.DisplayName, now)
 				if err != nil {
@@ -114,20 +114,20 @@ func (s *AuthService) loginOAuthProfile(ctx context.Context, profile *oauthstate
 					u.VerifyEmail(now)
 				}
 				if err := s.repos.Users.CreateUser(txCtx, u); err != nil {
-					return wrapInfrastructureError("保存 OAuth 用户失败", err)
+					return apperr.WrapInternal("保存 OAuth 用户失败", err)
 				}
 			} else if err != nil {
-				return wrapInfrastructureError("查询 OAuth 邮箱用户失败", err)
+				return apperr.WrapInternal("查询 OAuth 邮箱用户失败", err)
 			} else if !profile.EmailVerified {
 				return apperr.Unauthorized("OAuth provider 邮箱未验证，不能绑定已有账号")
 			}
 		} else {
-			return wrapInfrastructureError("查询第三方身份失败", err)
+			return apperr.WrapInternal("查询第三方身份失败", err)
 		}
 
 		identityID, err := s.idGenerator.NextID(txCtx)
 		if err != nil {
-			return wrapInfrastructureError("生成第三方身份 ID 失败", err)
+			return apperr.WrapInternal("生成第三方身份 ID 失败", err)
 		}
 		normalizedProviderEmail, _ := userdomain.NormalizeEmail(profile.Email)
 		if err := s.repos.Identities.Upsert(txCtx, &identity.Identity{
@@ -146,7 +146,7 @@ func (s *AuthService) loginOAuthProfile(ctx context.Context, profile *oauthstate
 			CreatedAt:               now,
 			UpdatedAt:               now,
 		}); err != nil {
-			return wrapInfrastructureError("保存第三方身份失败", err)
+			return apperr.WrapInternal("保存第三方身份失败", err)
 		}
 		u.TouchLogin(now)
 		return s.repos.Users.UpdateUserLastLogin(txCtx, u.ID(), now)
@@ -162,15 +162,15 @@ func (s *AuthService) issueSession(ctx context.Context, u *userdomain.User, now 
 func (s *AuthService) issueSessionWithID(ctx context.Context, u *userdomain.User, now time.Time) (userresult.TokenPair, string, error) {
 	access, accessExpiresAt, err := s.tokenIssuer.IssueAccessToken(u, now)
 	if err != nil {
-		return userresult.TokenPair{}, "", wrapInfrastructureError("签发 access token 失败", err)
+		return userresult.TokenPair{}, "", apperr.WrapInternal("签发 access token 失败", err)
 	}
 	refresh, err := s.secrets.NewToken()
 	if err != nil {
-		return userresult.TokenPair{}, "", wrapInfrastructureError("生成 refresh token 失败", err)
+		return userresult.TokenPair{}, "", apperr.WrapInternal("生成 refresh token 失败", err)
 	}
 	tokenID, err := s.secrets.NewToken()
 	if err != nil {
-		return userresult.TokenPair{}, "", wrapInfrastructureError("生成 refresh token ID 失败", err)
+		return userresult.TokenPair{}, "", apperr.WrapInternal("生成 refresh token ID 失败", err)
 	}
 	refreshExpiresAt := now.Add(s.cfg.RefreshTTL)
 	refreshToken, err := refreshtoken.New(tokenID, u.ID(), s.secrets.HashToken(refresh), refreshExpiresAt, now)
@@ -178,7 +178,7 @@ func (s *AuthService) issueSessionWithID(ctx context.Context, u *userdomain.User
 		return userresult.TokenPair{}, "", err
 	}
 	if err := s.repos.RefreshTokens.Create(ctx, refreshToken); err != nil {
-		return userresult.TokenPair{}, "", wrapInfrastructureError("保存 refresh token 失败", err)
+		return userresult.TokenPair{}, "", apperr.WrapInternal("保存 refresh token 失败", err)
 	}
 	return userresult.TokenPair{
 		AccessToken:           access,
@@ -191,11 +191,11 @@ func (s *AuthService) issueSessionWithID(ctx context.Context, u *userdomain.User
 func (s *AuthService) createActionToken(ctx context.Context, userID int64, purpose string, targetEmail string, ttl time.Duration) (string, error) {
 	raw, err := s.secrets.NewToken()
 	if err != nil {
-		return "", wrapInfrastructureError("生成动作 token 失败", err)
+		return "", apperr.WrapInternal("生成动作 token 失败", err)
 	}
 	tokenID, err := s.secrets.NewToken()
 	if err != nil {
-		return "", wrapInfrastructureError("生成动作 token ID 失败", err)
+		return "", apperr.WrapInternal("生成动作 token ID 失败", err)
 	}
 	now := s.now()
 	token, err := actiontoken.New(tokenID, userID, purpose, s.secrets.HashToken(raw), targetEmail, now.Add(ttl), now)
@@ -203,7 +203,7 @@ func (s *AuthService) createActionToken(ctx context.Context, userID int64, purpo
 		return "", err
 	}
 	if err := s.repos.ActionTokens.Create(ctx, token); err != nil {
-		return "", wrapInfrastructureError("保存动作 token 失败", err)
+		return "", apperr.WrapInternal("保存动作 token 失败", err)
 	}
 	return raw, nil
 }
@@ -258,14 +258,7 @@ func mapUserLookupError(err error) error {
 	if stderrors.Is(err, userdomain.ErrNotFound) {
 		return apperr.NotFound("用户不存在")
 	}
-	return wrapInfrastructureError("查询用户失败", err)
-}
-
-func wrapInfrastructureError(message string, err error) error {
-	if stderrors.Is(err, context.Canceled) || stderrors.Is(err, context.DeadlineExceeded) {
-		return err
-	}
-	return apperr.Internal(message, err)
+	return apperr.WrapInternal("查询用户失败", err)
 }
 
 func appendLoginCode(base string, code string) string {

@@ -3,7 +3,6 @@ package handler
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -12,6 +11,7 @@ import (
 	workspacecmd "github.com/maguowei/gotobeta/internal/modules/workspace/application/command"
 	workspacequery "github.com/maguowei/gotobeta/internal/modules/workspace/application/query"
 	workspaceresult "github.com/maguowei/gotobeta/internal/modules/workspace/application/result"
+	"github.com/maguowei/gotobeta/internal/pkg/httpx"
 	httpmiddleware "github.com/maguowei/gotobeta/internal/pkg/httpx/middleware"
 	httpresponse "github.com/maguowei/gotobeta/internal/pkg/httpx/response"
 )
@@ -74,7 +74,7 @@ func (h *WorkspaceHandler) InviteMember(c *gin.Context) {
 	if !ok {
 		return
 	}
-	wsID, err := parsePositiveID(c.Param("ws"))
+	wsID, err := httpx.ParsePositiveID(c.Param("ws"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的工作区 ID")
 		return
@@ -98,12 +98,12 @@ func (h *WorkspaceHandler) AssignRole(c *gin.Context) {
 	if !ok {
 		return
 	}
-	wsID, err := parsePositiveID(c.Param("ws"))
+	wsID, err := httpx.ParsePositiveID(c.Param("ws"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的工作区 ID")
 		return
 	}
-	uid, err := parsePositiveID(c.Param("uid"))
+	uid, err := httpx.ParsePositiveID(c.Param("uid"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的用户 ID")
 		return
@@ -126,7 +126,7 @@ func (h *WorkspaceHandler) ListRoles(c *gin.Context) {
 	if !ok {
 		return
 	}
-	wsID, err := parsePositiveID(c.Param("ws"))
+	wsID, err := httpx.ParsePositiveID(c.Param("ws"))
 	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的工作区 ID")
 		return
@@ -137,15 +137,4 @@ func (h *WorkspaceHandler) ListRoles(c *gin.Context) {
 		return
 	}
 	httpresponse.Success(c, workspaceresp.ToRoleListResponse(items))
-}
-
-func parsePositiveID(raw string) (int64, error) {
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	if id <= 0 {
-		return 0, strconv.ErrSyntax
-	}
-	return id, nil
 }

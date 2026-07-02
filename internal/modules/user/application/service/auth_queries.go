@@ -18,7 +18,7 @@ func (s *AuthService) CurrentUser(ctx context.Context, query userquery.GetCurren
 		if stderrors.Is(err, userdomain.ErrNotFound) {
 			return nil, apperr.NotFound("用户不存在")
 		}
-		return nil, wrapInfrastructureError("查询用户失败", err)
+		return nil, apperr.WrapInternal("查询用户失败", err)
 	}
 	return toUserResult(u), nil
 }
@@ -27,7 +27,7 @@ func (s *AuthService) CurrentUser(ctx context.Context, query userquery.GetCurren
 func (s *AuthService) ListIdentities(ctx context.Context, query userquery.ListIdentitiesQuery) ([]*userresult.IdentityResult, error) {
 	items, err := s.repos.Identities.List(ctx, query.UserID)
 	if err != nil {
-		return nil, wrapInfrastructureError("查询第三方身份失败", err)
+		return nil, apperr.WrapInternal("查询第三方身份失败", err)
 	}
 	out := make([]*userresult.IdentityResult, 0, len(items))
 	for _, item := range items {

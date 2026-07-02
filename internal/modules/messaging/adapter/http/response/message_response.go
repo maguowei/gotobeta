@@ -34,12 +34,12 @@ func ToMessageResponse(out *messagingresult.MessageResult) MessageResponse {
 		ReplyToMsgID:   out.ReplyToMsgID,
 		Status:         out.Status,
 		ServerTime:     out.ServerTime.Format(time.DateTime),
-		EditedAt:       formatEditedAt(out.EditedAt),
+		EditedAt:       formatNullableTime(out.EditedAt),
 	}
 }
 
-// formatEditedAt 把可空编辑时间格式化为字符串；未编辑时返回空串（响应省略该字段）。
-func formatEditedAt(t *time.Time) string {
+// formatNullableTime 把可空时间格式化为字符串；nil 返回空串（响应省略该字段）。
+func formatNullableTime(t *time.Time) string {
 	if t == nil {
 		return ""
 	}

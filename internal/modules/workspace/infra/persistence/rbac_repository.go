@@ -47,10 +47,7 @@ func (r *RBACRepository) FindRoleByCode(ctx context.Context, workspaceID int64, 
 		Where(entrole.WorkspaceID(workspaceID), entrole.Code(code)).
 		Only(ctx)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, rbac.ErrRoleNotFound
-		}
-		return nil, err
+		return nil, mapEntNotFound(err, rbac.ErrRoleNotFound)
 	}
 	return rbac.UnmarshalRole(row.BizID, row.WorkspaceID, row.Code, row.Name, row.RoleType, row.Status), nil
 }
@@ -89,10 +86,7 @@ func (r *RBACRepository) FindPermissionByCode(ctx context.Context, workspaceID i
 		Where(entperm.WorkspaceID(workspaceID), entperm.Code(code)).
 		Only(ctx)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, rbac.ErrPermissionNotFound
-		}
-		return nil, err
+		return nil, mapEntNotFound(err, rbac.ErrPermissionNotFound)
 	}
 	return rbac.UnmarshalPermission(row.BizID, row.WorkspaceID, row.Code, row.Name, row.ResourceType, row.ActionKey, row.Status), nil
 }

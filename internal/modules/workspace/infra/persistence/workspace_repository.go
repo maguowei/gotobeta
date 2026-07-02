@@ -50,10 +50,7 @@ func (r *WorkspaceRepository) FindByID(ctx context.Context, id int64) (*workspac
 	client := entdb.ClientFromCtx(ctx, r.client)
 	row, err := client.Workspace.Query().Where(entworkspace.BizID(id)).Only(ctx)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, workspace.ErrNotFound
-		}
-		return nil, err
+		return nil, mapEntNotFound(err, workspace.ErrNotFound)
 	}
 	return workspaceToEntity(row), nil
 }
@@ -63,10 +60,7 @@ func (r *WorkspaceRepository) FindBySlug(ctx context.Context, slug string) (*wor
 	client := entdb.ClientFromCtx(ctx, r.client)
 	row, err := client.Workspace.Query().Where(entworkspace.Slug(slug)).Only(ctx)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, workspace.ErrNotFound
-		}
-		return nil, err
+		return nil, mapEntNotFound(err, workspace.ErrNotFound)
 	}
 	return workspaceToEntity(row), nil
 }

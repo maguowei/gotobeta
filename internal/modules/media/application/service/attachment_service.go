@@ -17,9 +17,6 @@ import (
 	"github.com/maguowei/gotobeta/internal/pkg/idgen"
 )
 
-// 工作区级权限动作编码，必须与 workspace 平台权限 seed 保持一致。
-const actionMessageSend = "message.send"
-
 // AttachmentService 编排附件相关用例。
 type AttachmentService struct {
 	attachments attachment.Repository
@@ -60,7 +57,7 @@ func (s *AttachmentService) Presign(ctx context.Context, cmd mediacmd.PresignAtt
 	if err := s.checker.Check(ctx, authz.Request{
 		WorkspaceID: cmd.WorkspaceID,
 		Subject:     authz.Subject{UserID: cmd.UploaderID},
-		Action:      actionMessageSend,
+		Action:      authz.PermMessageSend,
 	}); err != nil {
 		return nil, err
 	}

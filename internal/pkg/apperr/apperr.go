@@ -1,6 +1,8 @@
 package apperr
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 )
@@ -97,4 +99,13 @@ func Forbidden(message string) *DomainError {
 // Internal 创建内部错误。
 func Internal(message string, cause error) *DomainError {
 	return &DomainError{Kind: KindInternal, Message: message, Cause: cause}
+}
+
+// WrapInternal 把基础设施错误包装为内部错误；
+// context 取消/超时原样透传，避免误报为系统故障。
+func WrapInternal(message string, err error) error {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	return Internal(message, err)
 }

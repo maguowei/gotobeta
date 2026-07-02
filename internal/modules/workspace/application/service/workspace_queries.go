@@ -14,7 +14,7 @@ import (
 func (s *WorkspaceService) ListMyWorkspaces(ctx context.Context, q workspacequery.ListMyWorkspacesQuery) ([]*workspaceresult.WorkspaceResult, error) {
 	rows, err := s.workspaces.ListByMemberUser(ctx, q.UserID)
 	if err != nil {
-		return nil, wrapInfrastructureError("查询工作区失败", err)
+		return nil, apperr.WrapInternal("查询工作区失败", err)
 	}
 	items := make([]*workspaceresult.WorkspaceResult, 0, len(rows))
 	for _, w := range rows {
@@ -29,11 +29,11 @@ func (s *WorkspaceService) ListRoles(ctx context.Context, q workspacequery.ListR
 		if stderrors.Is(err, membership.ErrNotFound) {
 			return nil, apperr.Forbidden("不是该工作区成员")
 		}
-		return nil, wrapInfrastructureError("查询成员失败", err)
+		return nil, apperr.WrapInternal("查询成员失败", err)
 	}
 	roles, err := s.rbac.ListRoles(ctx, q.WorkspaceID)
 	if err != nil {
-		return nil, wrapInfrastructureError("查询角色失败", err)
+		return nil, apperr.WrapInternal("查询角色失败", err)
 	}
 	items := make([]*workspaceresult.RoleResult, 0, len(roles))
 	for _, r := range roles {

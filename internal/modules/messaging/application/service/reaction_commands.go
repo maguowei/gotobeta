@@ -17,12 +17,9 @@ import (
 	loggerx "github.com/maguowei/gotobeta/internal/pkg/logger"
 )
 
-// 工作区级权限动作编码，必须与 workspace 平台权限 seed 保持一致。
-const actionMessageReact = "message.react"
-
 // AddReaction 给消息添加表情回应：成员校验 + message.react 权限 → 唯一约束幂等落库 → 发布事件。
 func (s *MessageService) AddReaction(ctx context.Context, cmd messagingcmd.AddReactionCommand) error {
-	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+	if err := authz.AssertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
 		return err
 	}
 	if cmd.Emoji == "" {
@@ -37,14 +34,14 @@ func (s *MessageService) AddReaction(ctx context.Context, cmd messagingcmd.AddRe
 	if err := s.checker.Check(ctx, authz.Request{
 		WorkspaceID: cmd.WorkspaceID,
 		Subject:     authz.Subject{UserID: cmd.OperatorUserID},
-		Action:      actionMessageReact,
+		Action:      authz.PermMessageReact,
 	}); err != nil {
 		return err
 	}
 
 	id, err := s.idGenerator.NextID(ctx)
 	if err != nil {
-		return wrapInfrastructureError("生成表情回应 ID 失败", err)
+		return apperr.WrapInternal("生成表情回应 ID 失败", err)
 	}
 	rc, err := reaction.New(id, cmd.ConversationID, cmd.MessageID, cmd.OperatorUserID, cmd.Emoji)
 	if err != nil {
@@ -56,27 +53,19 @@ func (s *MessageService) AddReaction(ctx context.Context, cmd messagingcmd.AddRe
 		}
 		seq, err := s.seqAllocator.Next(txCtx, cmd.ConversationID)
 		if err != nil {
-			return wrapInfrastructureError("分配 seq 失败", err)
+			return apperr.WrapInternal("分配 seq 失败", err)
 		}
-		changeID, err := s.idGenerator.NextID(txCtx)
-		if err != nil {
-			return wrapInfrastructureError("生成变更 ID 失败", err)
-		}
-		chg, err := messagechange.New(changeID, cmd.ConversationID, seq, messagechange.ChangeReactionAdd, cmd.MessageID, cmd.OperatorUserID, map[string]any{
+		return s.appendChange(txCtx, cmd.ConversationID, seq, messagechange.ChangeReactionAdd, cmd.MessageID, cmd.OperatorUserID, map[string]any{
 			// userId 以字符串入 payload：避免大整数经 JSON number 在客户端丢精度。
 			"userId": strconv.FormatInt(cmd.OperatorUserID, 10),
 			"emoji":  cmd.Emoji,
 		})
-		if err != nil {
-			return err
-		}
-		return s.changes.Append(txCtx, chg)
 	})
 	if err != nil {
 		if stderrors.Is(err, reaction.ErrAlreadyExists) {
 			return nil // 幂等：已回应过，no-op 不发事件、不写变更（事务已回滚）
 		}
-		return wrapInfrastructureError("保存表情回应失败", err)
+		return apperr.WrapInternal("保存表情回应失败", err)
 	}
 
 	s.publishReaction(ctx, cmd.WorkspaceID, cmd.ConversationID, cmd.MessageID, cmd.OperatorUserID, cmd.Emoji, imevent.ReactionActionAdd)
@@ -86,7 +75,7 @@ func (s *MessageService) AddReaction(ctx context.Context, cmd messagingcmd.AddRe
 
 // RemoveReaction 取消本人对消息的表情回应；未回应过则幂等返回不发事件。
 func (s *MessageService) RemoveReaction(ctx context.Context, cmd messagingcmd.RemoveReactionCommand) error {
-	if err := assertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
+	if err := authz.AssertWorkspaceScope(ctx, cmd.WorkspaceID); err != nil {
 		return err
 	}
 	if cmd.Emoji == "" {
@@ -104,28 +93,20 @@ func (s *MessageService) RemoveReaction(ctx context.Context, cmd messagingcmd.Re
 		var rerr error
 		removed, rerr = s.reactions.Remove(txCtx, cmd.MessageID, cmd.OperatorUserID, cmd.Emoji)
 		if rerr != nil {
-			return wrapInfrastructureError("删除表情回应失败", rerr)
+			return apperr.WrapInternal("删除表情回应失败", rerr)
 		}
 		if !removed {
 			return nil // 未回应过，幂等 no-op（不写变更）
 		}
 		seq, err := s.seqAllocator.Next(txCtx, cmd.ConversationID)
 		if err != nil {
-			return wrapInfrastructureError("分配 seq 失败", err)
+			return apperr.WrapInternal("分配 seq 失败", err)
 		}
-		changeID, err := s.idGenerator.NextID(txCtx)
-		if err != nil {
-			return wrapInfrastructureError("生成变更 ID 失败", err)
-		}
-		chg, err := messagechange.New(changeID, cmd.ConversationID, seq, messagechange.ChangeReactionRemove, cmd.MessageID, cmd.OperatorUserID, map[string]any{
+		return s.appendChange(txCtx, cmd.ConversationID, seq, messagechange.ChangeReactionRemove, cmd.MessageID, cmd.OperatorUserID, map[string]any{
 			// userId 以字符串入 payload：避免大整数经 JSON number 在客户端丢精度。
 			"userId": strconv.FormatInt(cmd.OperatorUserID, 10),
 			"emoji":  cmd.Emoji,
 		})
-		if err != nil {
-			return err
-		}
-		return s.changes.Append(txCtx, chg)
 	})
 	if err != nil {
 		return err
@@ -146,7 +127,7 @@ func (s *MessageService) assertMessageInConversation(ctx context.Context, messag
 		if stderrors.Is(err, message.ErrNotFound) {
 			return apperr.NotFound("消息不存在")
 		}
-		return wrapInfrastructureError("查询消息失败", err)
+		return apperr.WrapInternal("查询消息失败", err)
 	}
 	if msg.ConversationID() != conversationID {
 		return apperr.InvalidParam("消息不属于该会话")

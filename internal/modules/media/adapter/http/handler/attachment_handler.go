@@ -3,7 +3,6 @@ package handler
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -11,6 +10,7 @@ import (
 	mediaresp "github.com/maguowei/gotobeta/internal/modules/media/adapter/http/response"
 	mediacmd "github.com/maguowei/gotobeta/internal/modules/media/application/command"
 	mediaresult "github.com/maguowei/gotobeta/internal/modules/media/application/result"
+	"github.com/maguowei/gotobeta/internal/pkg/httpx"
 	httpmiddleware "github.com/maguowei/gotobeta/internal/pkg/httpx/middleware"
 	httpresponse "github.com/maguowei/gotobeta/internal/pkg/httpx/response"
 )
@@ -56,8 +56,8 @@ func (h *AttachmentHandler) Commit(c *gin.Context) {
 	if !ok {
 		return
 	}
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil || id <= 0 {
+	id, err := httpx.ParsePositiveID(c.Param("id"))
+	if err != nil {
 		httpresponse.ErrorWithCode(c, httpresponse.CodeInvalidParam, "无效的附件 ID")
 		return
 	}

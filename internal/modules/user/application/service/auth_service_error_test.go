@@ -14,7 +14,7 @@ import (
 	userdomain "github.com/maguowei/gotobeta/internal/modules/user/domain/user"
 )
 
-// errInfra 模拟仓储/基础设施返回的底层错误，用于命中 wrapInfrastructureError 分支。
+// errInfra 模拟仓储/基础设施返回的底层错误，用于命中 apperr.WrapInternal 分支。
 var errInfra = stderrors.New("infra failure")
 
 // registerDisabledUser 注册一个用户并把其状态改为 disabled，用于命中 EnsureCanLogin 的 Forbidden 分支。
@@ -323,36 +323,6 @@ func TestAuthServiceListIdentitiesInfraError(t *testing.T) {
 	_, err := svc.ListIdentities(t.Context(), userquery.ListIdentitiesQuery{UserID: 1})
 	if err == nil || !strings.Contains(err.Error(), "查询第三方身份失败") {
 		t.Fatalf("ListIdentities() error = %v, want infra error", err)
-	}
-}
-
-// TestWrapInfrastructureErrorPassesThroughContextErrors 验证 context 取消/超时错误原样透传，不被包装成 Internal。
-func TestWrapInfrastructureErrorPassesThroughContextErrors(t *testing.T) {
-	tests := []struct {
-		name string
-		err  error
-	}{
-		{name: "canceled", err: context.Canceled},
-		{name: "deadline", err: context.DeadlineExceeded},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := wrapInfrastructureError("msg", tc.err); !stderrors.Is(got, tc.err) {
-				t.Fatalf("wrapInfrastructureError() = %v, want passthrough of %v", got, tc.err)
-			}
-		})
-	}
-
-	wrapped := wrapInfrastructureError("查询失败", errInfra)
-	// 普通 infra 错误应被包装成带友好 message 的 DomainError，但仍通过 Unwrap 保留原始 cause。
-	if wrapped == errInfra { //nolint:errorlint // 这里有意做指针相等判断而非 errors.Is
-		t.Fatalf("wrapInfrastructureError() returned raw infra error, want wrapped DomainError")
-	}
-	if !stderrors.Is(wrapped, errInfra) {
-		t.Fatalf("wrapInfrastructureError() lost original cause in error chain")
-	}
-	if wrapped.Error() != "查询失败" {
-		t.Fatalf("wrapInfrastructureError() message = %q, want 查询失败", wrapped.Error())
 	}
 }
 

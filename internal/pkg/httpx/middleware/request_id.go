@@ -7,8 +7,10 @@ import (
 	"github.com/maguowei/gotobeta/internal/pkg/requestctx"
 )
 
+// 自定义响应/请求头名统一在此定义，避免包内字面量漂移。
 const (
 	headerXRequestID   = "X-Request-ID"
+	headerXTraceID     = "X-Trace-ID"
 	maxRequestIDLength = 128
 )
 

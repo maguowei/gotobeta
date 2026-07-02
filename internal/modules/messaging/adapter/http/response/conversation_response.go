@@ -46,9 +46,7 @@ func ToConversationResponse(out *messagingresult.ConversationResult) Conversatio
 		Status:         out.Status,
 		CreatedAt:      out.CreatedAt.Format(time.DateTime),
 	}
-	if out.LastMsgAt != nil {
-		resp.LastMsgAt = out.LastMsgAt.Format(time.DateTime)
-	}
+	resp.LastMsgAt = formatNullableTime(out.LastMsgAt)
 	return resp
 }
 

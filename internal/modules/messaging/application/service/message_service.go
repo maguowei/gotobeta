@@ -19,9 +19,6 @@ import (
 	"github.com/maguowei/gotobeta/internal/pkg/persistence"
 )
 
-// 工作区级权限动作编码，必须与 workspace 平台权限 seed 保持一致。
-const actionMessageRecall = "message.recall"
-
 // MessageService 编排消息相关用例（发送、拉取、撤回）。
 type MessageService struct {
 	messages      message.Repository
@@ -93,6 +90,22 @@ func toMessageResult(m *message.Message) *messagingresult.MessageResult {
 	}
 }
 
+// appendChange 生成变更 ID 并把一条 messagechange 追加进变更流（须在事务内调用）。
+func (s *MessageService) appendChange(txCtx context.Context, convID, seq int64, ct messagechange.ChangeType, targetID, operatorID int64, payload map[string]any) error {
+	changeID, err := s.idGenerator.NextID(txCtx)
+	if err != nil {
+		return apperr.WrapInternal("生成变更 ID 失败", err)
+	}
+	chg, err := messagechange.New(changeID, convID, seq, ct, targetID, operatorID, payload)
+	if err != nil {
+		return err
+	}
+	if err := s.changes.Append(txCtx, chg); err != nil {
+		return apperr.WrapInternal("追加变更流失败", err)
+	}
+	return nil
+}
+
 // requireActiveMember 校验用户是会话活跃成员，返回成员记录。
 func (s *MessageService) requireActiveMember(ctx context.Context, convID, userID int64) (*conversation.Member, error) {
 	mem, err := s.conversations.FindMember(ctx, convID, conversation.MemberUser, userID)
@@ -100,7 +113,7 @@ func (s *MessageService) requireActiveMember(ctx context.Context, convID, userID
 		if stderrors.Is(err, conversation.ErrMemberNotFound) {
 			return nil, apperr.Forbidden("不是该会话成员")
 		}
-		return nil, wrapInfrastructureError("查询会话成员失败", err)
+		return nil, apperr.WrapInternal("查询会话成员失败", err)
 	}
 	if mem.Status() != conversation.MemberActive {
 		return nil, apperr.Forbidden("不是该会话成员")

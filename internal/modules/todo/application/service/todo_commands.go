@@ -16,7 +16,7 @@ import (
 func (s *TodoService) CreateTodo(ctx context.Context, cmd todocmd.CreateTodoCommand) (*todoresult.TodoResult, error) {
 	todoID, err := s.idGenerator.NextID(ctx)
 	if err != nil {
-		return nil, wrapInfrastructureError("生成待办 ID 失败", err)
+		return nil, apperr.WrapInternal("生成待办 ID 失败", err)
 	}
 
 	item, err := todo.New(todoID, cmd.Title)
@@ -26,7 +26,7 @@ func (s *TodoService) CreateTodo(ctx context.Context, cmd todocmd.CreateTodoComm
 
 	err = s.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
 		if err := s.repository.Create(txCtx, item); err != nil {
-			return wrapInfrastructureError("保存待办失败", err)
+			return apperr.WrapInternal("保存待办失败", err)
 		}
 
 		return nil
@@ -51,7 +51,7 @@ func (s *TodoService) CompleteTodo(ctx context.Context, cmd todocmd.CompleteTodo
 			if stderrors.Is(err, todo.ErrNotFound) {
 				return apperr.NotFound("待办不存在")
 			}
-			return wrapInfrastructureError("查询待办失败", err)
+			return apperr.WrapInternal("查询待办失败", err)
 		}
 
 		if err := item.Complete(); err != nil {
@@ -65,7 +65,7 @@ func (s *TodoService) CompleteTodo(ctx context.Context, cmd todocmd.CompleteTodo
 			if stderrors.Is(err, todo.ErrConflict) {
 				return apperr.Conflict("待办已被并发修改，请重试")
 			}
-			return wrapInfrastructureError("保存待办失败", err)
+			return apperr.WrapInternal("保存待办失败", err)
 		}
 
 		completed = item
@@ -87,7 +87,7 @@ func (s *TodoService) DeleteTodo(ctx context.Context, cmd todocmd.DeleteTodoComm
 			if stderrors.Is(err, todo.ErrNotFound) {
 				return apperr.NotFound("待办不存在")
 			}
-			return wrapInfrastructureError("删除待办失败", err)
+			return apperr.WrapInternal("删除待办失败", err)
 		}
 		return nil
 	}); err != nil {
