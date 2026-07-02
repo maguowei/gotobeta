@@ -189,6 +189,19 @@ func (s *MessageService) RecallMessage(ctx context.Context, cmd messagingcmd.Rec
 		if err := s.conversations.Save(txCtx, conv); err != nil {
 			return wrapInfrastructureError("更新会话游标失败", err)
 		}
+		changeID, err := s.idGenerator.NextID(txCtx)
+		if err != nil {
+			return wrapInfrastructureError("生成变更 ID 失败", err)
+		}
+		chg, err := messagechange.New(changeID, cmd.ConversationID, seq, messagechange.ChangeCreated, sys.ID(), cmd.OperatorUserID, map[string]any{
+			"recalledMsgId": msg.ID(),
+		})
+		if err != nil {
+			return err
+		}
+		if err := s.changes.Append(txCtx, chg); err != nil {
+			return wrapInfrastructureError("追加变更流失败", err)
+		}
 		sysMsg = sys
 		return nil
 	})
